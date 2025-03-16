@@ -397,6 +397,7 @@ namespace MCSMapConv
                 map.AddSolid(CreateSolid(-1, 0, 0, 0, sby, sbz + 1, "SKY", false));
                 map.AddSolid(CreateSolid(sbx, 0, 0, sbx + 1, sby, sbz + 1, "SKY", false));
                 map.AddSolid(CreateSolid(0, 0, sbz, sbx, sby, sbz + 1, "SKY", false));
+                map.AddSolid(CreateSolid(-1, -1, -1, sbx + 1, sby + 1, 0, "SKY", false));
             }
 
             return map;
@@ -830,7 +831,16 @@ namespace MCSMapConv
                                         switch (args[0])
                                         {
                                             case "angle":
-                                                res = ((int)(block.Data * 22.5f)).ToString();
+                                                int vali = ((int)((-block.Data * 22.5f) + 90));
+                                                if (vali >= 360)
+                                                {
+                                                    vali -= 360;
+                                                }
+                                                else if (vali < 0)
+                                                {
+                                                    vali += 360;
+                                                }
+                                                res = vali.ToString();
                                                 break;
 
                                             case "x":
