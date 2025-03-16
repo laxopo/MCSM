@@ -8,7 +8,7 @@ namespace MCSMapConv.VHE
 {
     public class Map
     {
-        public List<Object> Data { get; set; } = new List<Object>();
+        public List<Entity> Data { get; set; } = new List<Entity>();
 
         public class Solid
         {
@@ -18,11 +18,12 @@ namespace MCSMapConv.VHE
 
         public Map() 
         {
-            var header = new Object("worldspawn");
-            header.AddParameter("mapversion", 220, Object.Type.Int);
-            header.AddParameter("MaxRange", 4096, Object.Type.Int);
-            header.AddParameter("wad", new List<string>(), Object.Type.StringArray);
-            header.AddParameter("Solids", new List<Solid>(), Object.Type.SolidArray);
+            var header = new Entity("worldspawn");
+            header.AddParameter("mapversion", 220, Entity.Type.Int);
+            header.AddParameter("MaxRange", 4096, Entity.Type.Int);
+            header.AddParameter("sounds", 1, Entity.Type.Int);
+            header.AddParameter("wad", new List<string>(), Entity.Type.StringArray);
+            header.AddParameter("Solids", new List<Solid>(), Entity.Type.SolidArray);
             Data.Add(header);
         }
 
@@ -127,6 +128,117 @@ namespace MCSMapConv.VHE
             }
         }*/
 
+        public static string Str(object value)
+        {
+            var buf = value.ToString();
+            buf = buf.Replace(',', '.');
+            return buf;
+        }
+
+        public string Serialize()
+        {
+            List<string> data = new List<string>();
+
+            foreach (var obj in Data)
+            {
+                data.Add("{");
+                data.Add("\"classname\" \"" + obj.ClassName + "\"");
+
+                foreach (var par in obj.Parameters)
+                {
+                    if (par.ValueType == Entity.Type.SolidArray)
+                    {
+                        data.Add(par.SerializeValue());
+                    }
+                    else
+                    {
+                        data.Add("\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
+                    }
+                }
+
+                data.Add("}");
+            }
+
+            data.Add("");
+
+            return string.Join(Environment.NewLine, data);
+        }
+
+        public void SetParameter(string className, string paramName, object value)
+        {
+            GetParameter(className, paramName).Value = value;
+        }
+
+        public void AddSolid(string className, Solid solid)
+        {
+            var param = GetParameter(className, "Solids");
+
+            (param.Value as List<Solid>).Add(solid);
+        }
+
+        public void AddSolid(Solid solid)
+        {
+            var param = GetParameter("worldspawn", "Solids");
+
+            (param.Value as List<Solid>).Add(solid);
+        }
+
+        public void AddString(string className, string paramName, string value)
+        {
+            var param = GetParameter(className, paramName);
+
+            (param.Value as List<string>).Add(value);
+        }
+
+        public Stat GetSolidsCount()
+        {
+            var stat = new Stat();
+
+            foreach (var obj in Data)
+            {
+                var solids = obj.Parameters.Find(x => x.Name == "Solids");
+
+                if (solids == null)
+                {
+                    continue;
+                }
+
+                stat.Solids += (solids.Value as List<Solid>).Count;
+                (solids.Value as List<Solid>).ForEach(x => stat.Faces += x.Faces.Count);
+            }
+
+            return stat;
+        }
+
+        public void CreateEntity(EntityTemplate entityTemplate)
+        {
+            Data.Add(new Entity(entityTemplate));
+        }
+
+        public void CreateEntity(Entity entity)
+        {
+            Data.Add(entity);
+        }
+
+        /**/
+
+        private Entity.Parameter GetParameter(string className, string paramName)
+        {
+            var obj = Data.Find(x => x.ClassName == className);
+            if (obj == null)
+            {
+                throw new Exception("Object not found.");
+            }
+
+            var param = obj.Parameters.Find(x => x.Name == paramName);
+            if (param == null)
+            {
+                throw new Exception("Parameter not found.");
+            }
+
+            return param;
+        }
+
         private float[][] GetValuesRow(string row, ref int index, int count = 1, string range = null)
         {
             var blocks = new List<float[]>();
@@ -199,180 +311,6 @@ namespace MCSMapConv.VHE
             int end = data.IndexOf("\"", idx);
 
             return data.Substring(idx, end - idx);
-        }
-
-        public static string Str(object value)
-        {
-            var buf = value.ToString();
-            buf = buf.Replace(',', '.');
-            return buf;
-        }
-
-        public string Serialize()
-        {
-            List<string> data = new List<string>();
-
-            foreach (var obj in Data)
-            {
-                data.Add("{");
-                data.Add("\"classname\" \"" + obj.ClassName + "\"");
-
-                foreach (var par in obj.Parameters)
-                {
-                    if (par.ValueType == Object.Type.SolidArray)
-                    {
-                        data.Add(par.SerializeValue());
-                    }
-                    else
-                    {
-                        data.Add("\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
-                    }
-                }
-
-                data.Add("}");
-            }
-
-            data.Add("");
-
-            return string.Join(Environment.NewLine, data);
-        }
-
-        /*public string OldSerialize()
-        {
-            List<string> data = new List<string>();
-
-            data.Add("{");
-            data.Add("\"classname\" \"" + ClassName + "\"");
-            data.Add("\"MaxRange\" \"" + MaxRange + "\"");
-            data.Add("\"mapversion\" \"220\"");
-            
-            var wadStr = "\"wad\" \"";
-            bool init = false;
-            foreach (var wad in Textures)
-            {
-                if (init)
-                {
-                    wadStr += "; ";
-                }
-
-                wadStr += wad;
-                init = true;
-            }
-            data.Add(wadStr+ "\"");
-
-            foreach(var solid in Solids)
-            {
-                data.Add("{");
-                foreach (var face in solid.Faces)
-                {
-                    string texture;
-                    if (face.Texture == null)
-                    {
-                        texture = "null";
-                    }
-                    else
-                    {
-                        texture = face.Texture;
-                    }
-
-                    string row =
-                        "( " + Str(face.Vertexes[0].X) + " " + Str(face.Vertexes[0].Y) + " " + Str(face.Vertexes[0].Z) + " ) " +
-                        "( " + Str(face.Vertexes[1].X) + " " + Str(face.Vertexes[1].Y) + " " + Str(face.Vertexes[1].Z) + " ) " +
-                        "( " + Str(face.Vertexes[2].X) + " " + Str(face.Vertexes[2].Y) + " " + Str(face.Vertexes[2].Z) + " ) " +
-                        texture + " " +
-                        "[ " + Str(face.AxisU.X) + " " + Str(face.AxisU.Y) + " " + Str(face.AxisU.Z) + " " + Str(face.OffsetU) + " ] " +
-                        "[ " + Str(face.AxisV.X) + " " + Str(face.AxisV.Y) + " " + Str(face.AxisV.Z) + " " + Str(face.OffsetV) + " ] " +
-                        Str(face.Rotation) + " " + Str(face.ScaleU) + " " + Str(face.ScaleV) + " ";
-
-                    data.Add(row);
-                }
-                data.Add("}");
-            }
-
-            data.Add("}");
-
-            //objects
-            foreach (var obj in Objects)
-            {
-                data.Add("{");
-                data.Add("\"classname\" \"" + obj.ClassName + "\"");
-
-                foreach (var par in obj.Parameters)
-                {
-                    data.Add("\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
-                }
-
-                data.Add("}");
-            }
-
-            data.Add("");
-
-            return string.Join(Environment.NewLine, data);
-        }*/
-
-        public void SetParameter(string className, string paramName, object value)
-        {
-            GetParameter(className, paramName).Value = value;
-        }
-
-        public void AddSolid(string className, Solid solid)
-        {
-            var param = GetParameter(className, "Solids");
-
-            (param.Value as List<Solid>).Add(solid);
-        }
-
-        public void AddSolid(Solid solid)
-        {
-            var param = GetParameter("worldspawn", "Solids");
-
-            (param.Value as List<Solid>).Add(solid);
-        }
-
-        public void AddString(string className, string paramName, string value)
-        {
-            var param = GetParameter(className, paramName);
-
-            (param.Value as List<string>).Add(value);
-        }
-
-        public Stat GetSolidsCount()
-        {
-            var stat = new Stat();
-
-            foreach (var obj in Data)
-            {
-                var solids = obj.Parameters.Find(x => x.Name == "Solids");
-
-                if (solids == null)
-                {
-                    continue;
-                }
-
-                stat.Solids += (solids.Value as List<Solid>).Count;
-                (solids.Value as List<Solid>).ForEach(x => stat.Faces += x.Faces.Count);
-            }
-
-            return stat;
-        }
-
-        /**/
-
-        private Object.Parameter GetParameter(string className, string paramName)
-        {
-            var obj = Data.Find(x => x.ClassName == className);
-            if (obj == null)
-            {
-                throw new Exception("Object not found.");
-            }
-
-            var param = obj.Parameters.Find(x => x.Name == paramName);
-            if (param == null)
-            {
-                throw new Exception("Parameter not found.");
-            }
-
-            return param;
         }
     }
 }

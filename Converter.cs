@@ -21,13 +21,15 @@ namespace MCSMapConv
 
         public static List<BlockTexture> Blocks;
         public static VHE.WAD Wad;
-        public static List<ObjectTemplate> ObjectTemplates;
+        public static List<EntityTemplate> SignEntities;
+        public static List<EntityTemplate> SolidEntities;
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, "models.json"},
             {Resources.Wad, @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\minecraft.wad"},
             {Resources.Textures, "blocks.json"},
-            {Resources.Objects, "objects.json"}
+            {Resources.SignEntities, "objects.json"},
+            {Resources.SolidEntities, "solid_entities.json"}
         };
 
         public enum Resources
@@ -36,7 +38,8 @@ namespace MCSMapConv
             Models,
             Wad,
             Textures,
-            Objects
+            SignEntities,
+            SolidEntities
         }
 
         public static VHE.Map ConvertToMap(World world, int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
@@ -98,7 +101,8 @@ namespace MCSMapConv
                         }
 
                         //Pane
-                        var bt0 = Blocks.Find(bt => bt.ID == block.ID && (bt.Model == "Pane" || bt.Model == "Fence"));
+                        var bt0 = Blocks.Find(bt => bt.ID == block.ID && 
+                            (bt.Model.ToUpper() == "PANE" || bt.Model.ToUpper() == "FENCE"));
                         bool isPane = bt0 != null;
 
                         if (isPane)
@@ -372,13 +376,13 @@ namespace MCSMapConv
                 switch (mcsolid.Type)
                 {
                     case Solid.SolidType.Normal:
-                        var solid = CreateSolid(mcsolid.Xmin, mcsolid.Ymin, mcsolid.Zmin,
-                            mcsolid.Xmax, mcsolid.Ymax, mcsolid.Zmax, bt, false);
-                        map.AddSolid(solid);
+                        GenerateModelNormal(map, mcsolid, bt);
                         break;
+
                     case Solid.SolidType.Pane:
                         GenerateModelPane(map, mcsolid, bt);
                         break;
+
                     case Solid.SolidType.Fence:
                         GenerateModelFence(map, mcsolid, bt);
                         break;
@@ -401,6 +405,13 @@ namespace MCSMapConv
             }
 
             return map;
+        }
+
+        private static void GenerateModelNormal(VHE.Map map, Solid mcsolid, BlockTexture bt)
+        {
+            var solid = CreateSolid(mcsolid.Xmin, mcsolid.Ymin, mcsolid.Zmin,
+                            mcsolid.Xmax, mcsolid.Ymax, mcsolid.Zmax, bt, false);
+            MapAddObject(map, solid, bt);
         }
 
         private static void GenerateModelPane(VHE.Map map, Solid mcsolid, BlockTexture bt)
@@ -465,7 +476,7 @@ namespace MCSMapConv
                 }
             }
 
-            map.AddSolid(solid);
+            MapAddObject(map, solid, bt);
         }
 
         private static void GenerateModelFence(VHE.Map map, Solid mcsolid, BlockTexture bt)
@@ -667,6 +678,21 @@ namespace MCSMapConv
             return solid;
         }
 
+        private static void MapAddObject(VHE.Map map, VHE.Map.Solid solid, BlockTexture bt)
+        {
+            var se = GetSolidEntity(bt);
+            if (se != null)
+            {
+                var entity = new VHE.Entity(se);
+                entity.AddSolid(solid);
+                map.CreateEntity(entity);
+            }
+            else
+            {
+                map.AddSolid(solid);
+            }
+        }
+
         private static string GetTextureName(BlockTexture bt, params string[] keys)
         {
             BlockTexture.TextureKey tk = null;
@@ -683,6 +709,16 @@ namespace MCSMapConv
             if (tk != null)
             {
                 return tk.Texture;
+            }
+
+            return null;
+        }
+
+        private static EntityTemplate GetSolidEntity(BlockTexture bt)
+        {
+            if (bt.Entity != null)
+            {
+                return SolidEntities.Find(x => x.Macros.ToUpper() == bt.Entity.ToUpper());
             }
 
             return null;
@@ -773,7 +809,7 @@ namespace MCSMapConv
                             int mend = text.IndexOf(" ");
                             var macros = text.Substring(1, mend - 1);
 
-                            var objt = ObjectTemplates.Find(o => o.Macros == macros);
+                            var objt = SignEntities.Find(o => o.Macros == macros);
                             if (objt == null)
                             {
                                 Console.WriteLine("Undefined macros {0} at {1} {2} {3}", macros,
@@ -781,11 +817,11 @@ namespace MCSMapConv
                             }
                             else
                             {
-                                var obj = new VHE.Object(objt.ClassName);
+                                var obj = new VHE.Entity(objt.ClassName);
 
                                 foreach (var part in objt.Parameters)
                                 {
-                                    var par = new VHE.Object.Parameter(part.Name);
+                                    var par = new VHE.Entity.Parameter(part.Name);
 
                                     par.SetType(part.ValueType);
 
@@ -1288,11 +1324,18 @@ namespace MCSMapConv
             }
             if (res == Resources.Textures || res == Resources.All)
             {
-                Blocks = JsonConvert.DeserializeObject<List<BlockTexture>>(File.ReadAllText(Resource[Resources.Textures]));
+                Blocks = JsonConvert.DeserializeObject<List<BlockTexture>>(
+                    File.ReadAllText(Resource[Resources.Textures]));
             }
-            if (res == Resources.Objects || res == Resources.All)
+            if (res == Resources.SignEntities || res == Resources.All)
             {
-                ObjectTemplates = JsonConvert.DeserializeObject<List<ObjectTemplate>>(File.ReadAllText(Resource[Resources.Objects]));
+                SignEntities = JsonConvert.DeserializeObject<List<EntityTemplate>>(
+                    File.ReadAllText(Resource[Resources.SignEntities]));
+            }
+            if (res == Resources.SignEntities || res == Resources.All)
+            {
+                SolidEntities = JsonConvert.DeserializeObject<List<EntityTemplate>>(
+                    File.ReadAllText(Resource[Resources.SolidEntities]));
             }
         }
     }

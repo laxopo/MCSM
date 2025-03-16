@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv.VHE
 {
-    public class Object
+    public class Entity
     {
         public string ClassName { get; set; }
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
@@ -20,6 +20,7 @@ namespace MCSMapConv.VHE
             public Parameter (string name)
             {
                 Name = name;
+                ValueType = Type.Undefined;
             }
 
             public Parameter(string name, object value, Type type)
@@ -102,12 +103,15 @@ namespace MCSMapConv.VHE
 
                         Value = new Vector(x, y, z);
                         break;
+
+                    default:
+                        throw new Exception("Undefined value type.");
                 }
             }
 
             public void SetType(string type)
             {
-                ValueType = Types[type];
+                ValueType = Types[type.ToUpper()];
             }
 
             public string SerializeValue()
@@ -190,20 +194,48 @@ namespace MCSMapConv.VHE
         }
 
         public static Dictionary<string, Type> Types = new Dictionary<string, Type>() {
-            {"Float", Type.Float },
-            {"Int", Type.Int },
-            {"String", Type.String },
-            {"Vector", Type.Vector }
+            {"FLOAT", Type.Float },
+            {"INT", Type.Int },
+            {"STRING", Type.String },
+            {"STRINGARRAY", Type.StringArray },
+            {"VECTOR", Type.Vector },
+            {"SOLIDARRAY", Type.SolidArray }
         };
 
-        public Object(string className)
+        public Entity(string className)
         {
             ClassName = className;
+        }
+
+        public Entity(EntityTemplate entityTemplate)
+        {
+            ClassName = entityTemplate.ClassName;
+            
+            foreach (var parTemp in entityTemplate.Parameters)
+            {
+                var par = new Parameter(parTemp.Name);
+                par.SetType(parTemp.ValueType);
+                par.SetValue(parTemp.Value);
+
+                Parameters.Add(par);
+            }
         }
 
         public void AddParameter(string name, object value, Type type)
         {
             Parameters.Add(new Parameter(name, value, type));
+        }
+
+        public void AddSolid(Map.Solid solid)
+        {
+            var par = Parameters.Find(x => x.Name == "Solids");
+            if (par == null)
+            {
+                par = new Parameter("Solids", new List<Map.Solid>(), Type.SolidArray);
+                Parameters.Add(par);
+            }
+
+            (par.Value as List<Map.Solid>).Add(solid);
         }
     }
 }

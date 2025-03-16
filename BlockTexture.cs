@@ -10,6 +10,7 @@ namespace MCSMapConv
     {
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
         public string Model { get; set; }
+        public string Entity { get; set; }
         public int DataMask { get; set; }
 
         public class TextureKey
@@ -25,7 +26,7 @@ namespace MCSMapConv
                 return Textures[0].Texture;
             }
 
-            var tk = Textures.Find(x => x.Key == key);
+            var tk = Textures.Find(x => x.Key.ToUpper() == key.ToUpper());
             if (tk != null)
             {
                 return tk.Texture;
