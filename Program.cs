@@ -27,10 +27,8 @@ namespace MCSMapConv
                     File.WriteAllText(mapOutput, map.Serialize());
                 }
 
-                int fcs = 0;
-                map.Solids.ForEach(x => fcs += x.Faces.Count);
-
-                Console.WriteLine("Done! Blocks:{2}, Solids:{0}, Faces:{1} ", map.Solids.Count, fcs, Converter.BlockCount);
+                var stat = map.GetSolidsCount();
+                Console.WriteLine("Done! Blocks:{2}, Solids:{0}, Faces:{1} ", stat.Solids, stat.Faces, Converter.BlockCount);
             }
             else
             {

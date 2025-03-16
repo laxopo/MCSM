@@ -47,7 +47,7 @@ namespace MCSMapConv
             LoadResources(Resources.All);
 
             VHE.Map map = new VHE.Map();
-            map.Textures.Add(@"\cstrike\minecraft.wad");
+            map.AddString("worldspawn", "wad", @"\cstrike\minecraft.wad");
 
             var missings = new BlockMissMsg();
             var mcsolids = new List<Solid>();
@@ -374,7 +374,7 @@ namespace MCSMapConv
                     case Solid.SolidType.Normal:
                         var solid = CreateSolid(mcsolid.Xmin, mcsolid.Ymin, mcsolid.Zmin,
                             mcsolid.Xmax, mcsolid.Ymax, mcsolid.Zmax, bt, false);
-                        map.Solids.Add(solid);
+                        map.AddSolid(solid);
                         break;
                     case Solid.SolidType.Pane:
                         GenerateModelPane(map, mcsolid, bt);
@@ -392,11 +392,11 @@ namespace MCSMapConv
                 var sby = mczmax - mczmin + 1;
                 var sbz = mcymax - mcymin + 1; 
 
-                map.Solids.Add(CreateSolid(-1, -1, 0, sbx + 1, 0, sbz + 1, "SKY", false));
-                map.Solids.Add(CreateSolid(-1, sby, 0, sbx + 1, sby + 1, sbz + 1, "SKY", false));
-                map.Solids.Add(CreateSolid(-1, 0, 0, 0, sby, sbz + 1, "SKY", false));
-                map.Solids.Add(CreateSolid(sbx, 0, 0, sbx + 1, sby, sbz + 1, "SKY", false));
-                map.Solids.Add(CreateSolid(0, 0, sbz, sbx, sby, sbz + 1, "SKY", false));
+                map.AddSolid(CreateSolid(-1, -1, 0, sbx + 1, 0, sbz + 1, "SKY", false));
+                map.AddSolid(CreateSolid(-1, sby, 0, sbx + 1, sby + 1, sbz + 1, "SKY", false));
+                map.AddSolid(CreateSolid(-1, 0, 0, 0, sby, sbz + 1, "SKY", false));
+                map.AddSolid(CreateSolid(sbx, 0, 0, sbx + 1, sby, sbz + 1, "SKY", false));
+                map.AddSolid(CreateSolid(0, 0, sbz, sbx, sby, sbz + 1, "SKY", false));
             }
 
             return map;
@@ -464,7 +464,7 @@ namespace MCSMapConv
                 }
             }
 
-            map.Solids.Add(solid);
+            map.AddSolid(solid);
         }
 
         private static void GenerateModelFence(VHE.Map map, Solid mcsolid, BlockTexture bt)
@@ -522,16 +522,16 @@ namespace MCSMapConv
 
                 if (mcsolid.Orientation != Solid.Orient.None)
                 {
-                    map.Solids.Add(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
+                    map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
 
                     zmin += 0.375f;
                     zmax += 0.375f;
-                    map.Solids.Add(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
+                    map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
                 }
             }
             else //vertical pillars
             {
-                map.Solids.Add(CreateSolid(mcsolid.Xmin + 0.375f, mcsolid.Ymin + 0.375f, mcsolid.Zmin,
+                map.AddSolid(CreateSolid(mcsolid.Xmin + 0.375f, mcsolid.Ymin + 0.375f, mcsolid.Zmin,
                     mcsolid.Xmin + 0.625f, mcsolid.Ymin + 0.625f, mcsolid.Zmax, bt, false));
             }
         }
@@ -780,14 +780,11 @@ namespace MCSMapConv
                             }
                             else
                             {
-                                var obj = new VHE.Object() { ClassName = objt.ClassName };
+                                var obj = new VHE.Object(objt.ClassName);
 
                                 foreach (var part in objt.Parameters)
                                 {
-                                    var par = new VHE.Object.Parameter()
-                                    {
-                                        Name = part.Name,
-                                    };
+                                    var par = new VHE.Object.Parameter(part.Name);
 
                                     par.SetType(part.ValueType);
 
@@ -877,7 +874,7 @@ namespace MCSMapConv
                                     obj.Parameters.Add(par);
                                 }
 
-                                map.Objects.Add(obj);
+                                map.Data.Add(obj);
                             }
                         }
                     }

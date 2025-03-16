@@ -60,6 +60,7 @@
     <Compile Include="VHE\Face.cs" />
     <Compile Include="VHE\Map.cs" />
     <Compile Include="VHE\Object.cs" />
+    <Compile Include="VHE\Stat.cs" />
     <Compile Include="VHE\Vector.cs" />
     <Compile Include="VHE\WAD.cs" />
   </ItemGroup>

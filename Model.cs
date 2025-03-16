@@ -16,13 +16,13 @@ namespace MCSMapConv
 
         public Model() { }
 
-        public Model(string name, double length, double width, double height, VHE.Map model)
+        /*public Model(string name, double length, double width, double height, VHE.Map model)
         {
             Name = name;
             ScaleX = length;
             ScaleY = width;
             ScaleZ = height;
             Solids = model.Solids;
-        }
+        }*/
     }
 }

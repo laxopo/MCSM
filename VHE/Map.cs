@@ -8,11 +8,7 @@ namespace MCSMapConv.VHE
 {
     public class Map
     {
-        public string ClassName { get; set; } = "worldspawn";
-        public int MaxRange { get; set; } = 4096;
-        public List<string> Textures { get; set; } = new List<string>();
-        public List<Solid> Solids { get; set; } = new List<Solid>();
-        public List<Object> Objects { get; set; } = new List<Object>();
+        public List<Object> Data { get; set; } = new List<Object>();
 
         public class Solid
         {
@@ -20,9 +16,17 @@ namespace MCSMapConv.VHE
             public List<Face> Faces { get; set; } = new List<Face>();
         }
 
-        public Map() { }
+        public Map() 
+        {
+            var header = new Object("worldspawn");
+            header.AddParameter("mapversion", 220, Object.Type.Int);
+            header.AddParameter("MaxRange", 4096, Object.Type.Int);
+            header.AddParameter("wad", new List<string>(), Object.Type.StringArray);
+            header.AddParameter("Solids", new List<Solid>(), Object.Type.SolidArray);
+            Data.Add(header);
+        }
 
-        public Map(string[] data)
+        /*public Map(string[] data)
         {
             int block = -1;
             string header = "";
@@ -121,7 +125,7 @@ namespace MCSMapConv.VHE
                     solid.Faces.Add(face);
                 }
             }
-        }
+        }*/
 
         private float[][] GetValuesRow(string row, ref int index, int count = 1, string range = null)
         {
@@ -208,6 +212,35 @@ namespace MCSMapConv.VHE
         {
             List<string> data = new List<string>();
 
+            foreach (var obj in Data)
+            {
+                data.Add("{");
+                data.Add("\"classname\" \"" + obj.ClassName + "\"");
+
+                foreach (var par in obj.Parameters)
+                {
+                    if (par.ValueType == Object.Type.SolidArray)
+                    {
+                        data.Add(par.SerializeValue());
+                    }
+                    else
+                    {
+                        data.Add("\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
+                    }
+                }
+
+                data.Add("}");
+            }
+
+            data.Add("");
+
+            return string.Join(Environment.NewLine, data);
+        }
+
+        /*public string OldSerialize()
+        {
+            List<string> data = new List<string>();
+
             data.Add("{");
             data.Add("\"classname\" \"" + ClassName + "\"");
             data.Add("\"MaxRange\" \"" + MaxRange + "\"");
@@ -275,6 +308,71 @@ namespace MCSMapConv.VHE
             data.Add("");
 
             return string.Join(Environment.NewLine, data);
+        }*/
+
+        public void SetParameter(string className, string paramName, object value)
+        {
+            GetParameter(className, paramName).Value = value;
+        }
+
+        public void AddSolid(string className, Solid solid)
+        {
+            var param = GetParameter(className, "Solids");
+
+            (param.Value as List<Solid>).Add(solid);
+        }
+
+        public void AddSolid(Solid solid)
+        {
+            var param = GetParameter("worldspawn", "Solids");
+
+            (param.Value as List<Solid>).Add(solid);
+        }
+
+        public void AddString(string className, string paramName, string value)
+        {
+            var param = GetParameter(className, paramName);
+
+            (param.Value as List<string>).Add(value);
+        }
+
+        public Stat GetSolidsCount()
+        {
+            var stat = new Stat();
+
+            foreach (var obj in Data)
+            {
+                var solids = obj.Parameters.Find(x => x.Name == "Solids");
+
+                if (solids == null)
+                {
+                    continue;
+                }
+
+                stat.Solids += (solids.Value as List<Solid>).Count;
+                (solids.Value as List<Solid>).ForEach(x => stat.Faces += x.Faces.Count);
+            }
+
+            return stat;
+        }
+
+        /**/
+
+        private Object.Parameter GetParameter(string className, string paramName)
+        {
+            var obj = Data.Find(x => x.ClassName == className);
+            if (obj == null)
+            {
+                throw new Exception("Object not found.");
+            }
+
+            var param = obj.Parameters.Find(x => x.Name == paramName);
+            if (param == null)
+            {
+                throw new Exception("Parameter not found.");
+            }
+
+            return param;
         }
     }
 }
