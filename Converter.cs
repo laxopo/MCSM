@@ -828,9 +828,9 @@ namespace MCSMapConv
                                         value = value.Remove(beg, end - beg + 1);
 
                                         string res = "";
-                                        switch (args[0])
+                                        switch (args[0].ToUpper())
                                         {
-                                            case "angle":
+                                            case "ANGLE":
                                                 int vali = ((int)((-block.Data * 22.5f) + 90));
                                                 if (vali >= 360)
                                                 {
@@ -843,7 +843,7 @@ namespace MCSMapConv
                                                 res = vali.ToString();
                                                 break;
 
-                                            case "x":
+                                            case "X":
                                                 double val = x;
                                                 if (args.Count > 1)
                                                 {
@@ -852,7 +852,7 @@ namespace MCSMapConv
                                                 res = (val * CSScale).ToString();
                                                 break;
 
-                                            case "y":
+                                            case "Y":
                                                 val = -y;
                                                 if (args.Count > 1)
                                                 {
@@ -861,7 +861,7 @@ namespace MCSMapConv
                                                 res = (val * CSScale).ToString();
                                                 break;
 
-                                            case "z":
+                                            case "Z":
                                                 val = z + 1;
                                                 if (args.Count > 1)
                                                 {
@@ -877,7 +877,6 @@ namespace MCSMapConv
                                         }
 
                                         value = value.Insert(beg, res);
-                                        
                                     }
 
                                     par.SetValue(value);
