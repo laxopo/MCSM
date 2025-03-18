@@ -36,13 +36,15 @@ namespace MCSMapConv
         {
             Normal,
             Pane,
-            Fence
+            Fence,
+            Door
         }
 
         public static Dictionary<string, SolidType> SType = new Dictionary<string, SolidType>() {
-            { "Normal", SolidType.Normal },
-            { "Pane", SolidType.Pane },
-            { "Fence", SolidType.Fence }
+            { "NORMAL", SolidType.Normal },
+            { "PANE", SolidType.Pane },
+            { "FENCE", SolidType.Fence },
+            { "DOOR", SolidType.Door },
         };
 
         public Solid() { }

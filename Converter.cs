@@ -16,17 +16,22 @@ namespace MCSMapConv
         public static float TextureSize = 128;
         public static bool SkyBoxEnable = true;
 
-        public static bool Aborted;
-        public static int BlockCount;
+        public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
 
-        public static List<BlockTexture> Blocks;
-        public static VHE.WAD Wad;
-        public static List<EntityTemplate> SignEntities;
-        public static List<EntityTemplate> SolidEntities;
+        public static bool Aborted { get; private set; }
+        public static int BlockCount { get; private set; }
+
+        private static List<BlockTexture> Blocks;
+        private static List<VHE.WAD> Wads;
+        private static List<EntityTemplate> SignEntities;
+        private static List<EntityTemplate> SolidEntities;
+
+        private static World MCWorld;
+        private static VHE.Map Map;
+        private static List<Solid> Solids;
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, "models.json"},
-            {Resources.Wad, @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\minecraft.wad"},
             {Resources.Textures, "blocks.json"},
             {Resources.SignEntities, "objects.json"},
             {Resources.SolidEntities, "solid_entities.json"}
@@ -47,27 +52,39 @@ namespace MCSMapConv
             Settings.DebugEnable = !Debuging;
             BlockCount = 0;
             Aborted = false;
+            MCWorld = world;
+            Xmin = mcxmin;
+            Ymin = mcymin;
+            Zmin = mczmin;
+            Xmax = mcxmax;
+            Ymax = mcymax;
+            Zmax = mczmax;
+
             LoadResources(Resources.All);
 
-            VHE.Map map = new VHE.Map();
-            map.AddString("worldspawn", "wad", @"\cstrike\minecraft.wad");
+            Map = new VHE.Map();
+            Map.AddString("worldspawn", "wad", @"\cstrike\minecraft.wad");
+            Solids = new List<Solid>();
 
             var missings = new BlockMissMsg();
-            var mcsolids = new List<Solid>();
-
+            
             //coordinates of cs map
-            for (int z = 0; z <= mcymax - mcymin; z++)
+            for (int z = 0; z <= Ymax - Ymin; z++)
             {
-                for (int y = 0; y <= mczmax - mczmin; y++)
+                for (int y = 0; y <= Zmax - Zmin; y++)
                 {
-                    for (int x = 0; x <= mcxmax - mcxmin; x++)
+                    for (int x = 0; x <= Xmax - Xmin; x++)
                     {
-                        var block = world.GetBlock(0, x + mcxmin, z + mcymin, y + mczmin);
-                        
+                        var block = world.GetBlock(0, x + Xmin, z + Ymin, y + Zmin);
+                        if (block.ID == 64)
+                        {
+                            
+                        }
+
                         //object
                         if (block.ID == 63)
                         {
-                            SignObjects(world, block, x, y, z, map);
+                            GenerateSignEntity(block, x, y, z);
                             block.ID = 0;
                         }
 
@@ -75,8 +92,8 @@ namespace MCSMapConv
                         bt_chk:
                         if (block.ID != 0 && GetBT(block.ID, block.Data) == null)
                         {
-                            var res = missings.Message(block.ID, block.Data, "at " + (x + mcxmin) + " " + 
-                                (z + mcymin) + " " + (y + mczmin) + " is unregistered", true);
+                            var res = missings.Message(block.ID, block.Data, "at " + (x + Xmin) + " " + 
+                                (z + Ymin) + " " + (y + Zmin) + " is unregistered", true);
 
                             switch (res)
                             {
@@ -101,256 +118,63 @@ namespace MCSMapConv
                         }
 
                         //Pane
-                        var bt0 = Blocks.Find(bt => bt.ID == block.ID && 
-                            (bt.Model.ToUpper() == "PANE" || bt.Model.ToUpper() == "FENCE"));
-                        bool isPane = bt0 != null;
+                        var bt = Blocks.Find(a => a.ID == block.ID);
 
-                        if (isPane)
+                        if (bt != null)
                         {
-                            bool px = false, py = false;
-                            var model = Solid.SType[bt0.Model];
-
-                            //X
-                            var paneX = mcsolids.Find(p => p.Type == model && !p.XClosed &&
-                                p.Xmax == x && p.Ymin == y && p.Orientation != Solid.Orient.Y && p.BlockID == block.ID);
-
-                            if (paneX == null) //create new pane
+                            switch (bt.Model.ToUpper())
                             {
-                                paneX = new Solid(block.ID, block.Data, x, y, z);
-                                paneX.Type = model;
+                                case "PANE":
+                                case "FENCE":
+                                    SolidPaneFence(block, bt, x, y, z);
+                                    block.ID = 0;
+                                    break;
 
-                                //X
-                                var bmx = world.GetBlock(0, x + mcxmin - 1, z + mcymin, y + mczmin);
-                                var btmx = Blocks.Find(e => e.ID == bmx.ID);
-                                var nbmx = btmx != null && btmx.Model == "Normal";
-                                var bpx = world.GetBlock(0, x + mcxmin + 1, z + mcymin, y + mczmin);
-                                var btpx = Blocks.Find(e => e.ID == bpx.ID);
-                                var nbpx = btpx != null && btpx.Model == "Normal";
-                                px = nbmx || nbpx || bpx.ID == block.ID;
-
-                                if (px)
-                                {
-                                    paneX.Orientation = Solid.Orient.X;
-                                    paneX.XBegTouch = nbmx;
-                                    paneX.XEndTouch = nbpx && bpx.ID != block.ID;
-                                    paneX.XClosed = bpx.ID != block.ID;
-
-                                    if (!PaneMerge(mcsolids, paneX, z))
+                                case "DOOR":
+                                    if (block.Data < 8)
                                     {
-                                        //create new pane
-                                        mcsolids.Add(paneX);
+                                        int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
+                                        if (data == 8)
+                                        {
+                                            data = block.Data;
+                                        }
+                                        else
+                                        {
+                                            data = block.Data + 8;
+                                        }
+                                        var mcsolid = new Solid(block.ID, data, x, y, z);
+                                        mcsolid.Type = Solid.SolidType.Door;
+                                        Solids.Add(mcsolid);
                                     }
-                                }
-                            }
-                            else //expand existing pane
-                            {
-                                paneX.Expand(x, y, z);
-                                px = true;
-
-                                var bp = world.GetBlock(0, x + mcxmin + 1, z + mcymin, y + mczmin);
-                                var btp = Blocks.Find(e => e.ID == bp.ID);
-                                var nbp = btp != null && btp.Model == "Normal";
-
-                                if (bp.ID != block.ID)
-                                {
-                                    paneX.XClosed = true;
-                                    if (nbp)
-                                    {
-                                        paneX.XEndTouch = true;
-                                    }
-
-                                    PaneMerge(mcsolids, paneX, z);
-                                }
-                            }
-
-
-                            //Y
-                            var paneY = mcsolids.Find(p => p.Type == model && !p.YClosed &&
-                                p.Ymax == y && p.Xmin == x && p.Orientation != Solid.Orient.X && p.BlockID == block.ID);
-
-                            if (paneY == null) //create new pane
-                            {
-                                paneY = new Solid(block.ID, block.Data, x, y, z);
-                                paneY.Type = model;
-
-                                //Y
-                                var bmy = world.GetBlock(0, x + mcxmin, z + mcymin, y + mczmin - 1);
-                                var btmy = Blocks.Find(e => e.ID == bmy.ID);
-                                var nbmy = btmy != null && btmy.Model == "Normal";
-                                var bpy = world.GetBlock(0, x + mcxmin, z + mcymin, y + mczmin + 1);
-                                var btpy = Blocks.Find(e => e.ID == bpy.ID);
-                                var nbpy = btpy != null && btpy.Model == "Normal";
-                                py = nbmy || nbpy || bpy.ID == block.ID;
-
-                                if (py)
-                                {
-                                    paneY.Orientation = Solid.Orient.Y;
-                                    paneY.YBegTouch = nbmy;
-                                    paneY.YEndTouch = nbpy && bpy.ID != block.ID;
-                                    paneY.YClosed = bpy.ID != block.ID;
-
-                                    if (!PaneMerge(mcsolids, paneY, z))
-                                    {
-                                        //create new pane
-                                        mcsolids.Add(paneY);
-                                    }
-                                }
-                            }
-                            else //expand existing pane
-                            {
-                                paneY.Expand(x, y, z);
-                                py = true;
-
-                                var bp = world.GetBlock(0, x + mcxmin, z + mcymin, y + mczmin + 1);
-                                var btp = Blocks.Find(e => e.ID == bp.ID);
-                                var nbp = btp != null && btp.Model == "Normal";
-
-                                if (bp.ID != block.ID)
-                                {
-                                    paneY.YClosed = true;
-                                    if (nbp)
-                                    {
-                                        paneY.YEndTouch = true;
-                                    }
-
-                                    PaneMerge(mcsolids, paneY, z);
-                                }
-                            }
-
-                            //None
-                            if (!px && !py)
-                            {
-                                if (!PaneMerge(mcsolids, paneY, z))
-                                {
-                                    //create new pane
-                                    mcsolids.Add(paneY);
-                                }
-                            }
-
-                            //Z
-                            if (model == Solid.SolidType.Fence)
-                            {
-                                var pillar = mcsolids.Find(p => p.Type == model && !p.ZClosed && p.BlockID == block.ID &&
-                                    p.Orientation == Solid.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
-
-                                if (pillar == null)
-                                {
-                                    pillar = new Solid(block.ID, block.Data, x, y, z);
-                                    pillar.Type = model;
-                                    pillar.Orientation = Solid.Orient.Z;
-
-                                    var bpz = world.GetBlock(0, x + mcxmin, z + mcymin + 1, y + mczmin);
-                                    var btmy = Blocks.Find(e => e.ID == bpz.ID);
-                                    if (btmy == null || btmy.ID != block.ID)
-                                    {
-                                        pillar.ZClosed = true;
-                                    }
-
-                                    mcsolids.Add(pillar);
-                                }
-                                else
-                                {
-                                    pillar.Expand(x, y, z);
-                                    var bpz = world.GetBlock(0, x + mcxmin, z + mcymin + 1, y + mczmin);
-                                    var btmy = Blocks.Find(e => e.ID == bpz.ID);
-                                    if (btmy == null || btmy.ID != block.ID)
-                                    {
-                                        pillar.ZClosed = true;
-                                    }
-                                }
+                                    block.ID = 0;
+                                    break;
                             }
                         }
 
                         //Normal block
-                        bool found = false;
-                        Solid[] cuts = new Solid[2];
-                        foreach (var solid in mcsolids)
-                        {
-                            if (solid.Type != Solid.SolidType.Normal)
-                            {
-                                continue;
-                            }
-
-                            var rngX = x >= solid.Xmin && x < solid.Xmax;
-                            var rngY = y >= solid.Ymin && y < solid.Ymax;
-                            var rngZ = z < solid.Zmax;
-                            var expX = !solid.XClosed && y == solid.Ymax - 1 && x == solid.Xmax;
-                            var expY = !solid.YClosed && y == solid.Ymax && rngX;
-                            var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
-                            if (expX || expY || expZ || (rngX && rngY && rngZ))
-                            {
-                                if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found && !isPane)
-                                {
-                                    solid.Expand(x, y, z);
-                                    found = true;
-                                }
-                                else
-                                {
-                                    cuts = solid.Cut(x, y, z);
-                                }
-                            }
-                        }
-
-                        bool added = false;
-                        foreach (var cut in cuts)
-                        {
-                            if (cut != null)
-                            {
-                                mcsolids.Add(cut);
-                                added = true;
-                            }
-                        }
-
-                        if (!found && block.ID != 0  && block.ID != 63 && !isPane)
-                        {
-                            mcsolids.Add(new Solid(block.ID, block.Data, x, y, z));
-                            var last = mcsolids.Last();
-                            mcsolids.Remove(last);
-                            mcsolids.Insert(0, last);
-                            added = true;
-                        }
-
-                        if (added)
-                        {
-                            int idmax = -1;
-                            foreach (var sld in mcsolids)
-                            {
-                                if (sld.TestID > idmax || (sld.TestID != -1 && idmax == -1))
-                                {
-                                    idmax = sld.TestID;
-                                }
-                            }
-                            foreach (var sld in mcsolids)
-                            {
-                                if (sld.TestID == -1)
-                                {
-                                    sld.TestID = ++idmax;
-                                }
-                            }
-                        }
+                        SolidNormal(block, x, y, z);
 
                         if (Debuging)
                         {
-                            Debug(x, y, z, mcxmin, mcxmax, mcymin, mcymax, mczmin, mczmax, mcsolids);
+                            Debug(x, y, z);
                         }
                     }
-                    mcsolids.ForEach(x => x.XClosed = true);
+                    Solids.ForEach(x => x.XClosed = true);
 
                 }
-                mcsolids.ForEach(x => x.YClosed = true);
+                Solids.ForEach(x => x.YClosed = true);
 
             }
-            mcsolids.ForEach(x => x.ZClosed = true);
+            Solids.ForEach(x => x.ZClosed = true);
 
             if (Debuging)
             {
-                Debug(mcxmax - mcxmin, mczmax - mczmin, mcymax - mcymin,
-                    mcxmin, mcxmax, mcymin, mcymax, mczmin, mczmax, mcsolids);
+                Debug(Xmax - Xmin, Zmax - Zmin, Ymax - Ymin);
             }
 
             //Generate cs solids
             Aborted = false;
-            foreach (var mcsolid in mcsolids)
+            foreach (var mcsolid in Solids)
             {
             pBegin:
                 var bt = GetBT(mcsolid.BlockID, mcsolid.BlockData);
@@ -365,56 +189,315 @@ namespace MCSMapConv
 
                         case BlockMissMsg.Result.Abort:
                             Aborted = true;
-                            break;
+                            return null;
                     }
-                    if (Aborted)
+                }
+
+                pWad:
+                foreach (var tex in bt.Textures)
+                {
+                    bool found = false;
+                    foreach (var wad in Wads)
                     {
-                        break;
+                        if (wad.Textures.Find(t => t.Name.ToUpper() == tex.Texture.ToUpper()) == null)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        var res = missings.Message(mcsolid.BlockID, mcsolid.BlockData, 
+                            "wad texture " + tex.Texture + " not found", false);
+                        switch (res)
+                        {
+                            case BlockMissMsg.Result.Retry:
+                                LoadResources(Resources.Wad);
+                                goto pWad;
+
+                            case BlockMissMsg.Result.Abort:
+                                Aborted = true;
+                                return null;
+                        }
                     }
                 }
 
                 switch (mcsolid.Type)
                 {
                     case Solid.SolidType.Normal:
-                        GenerateModelNormal(map, mcsolid, bt);
+                        GenerateModelNormal(mcsolid, bt);
                         break;
 
                     case Solid.SolidType.Pane:
-                        GenerateModelPane(map, mcsolid, bt);
+                        GenerateModelPane(mcsolid, bt);
                         break;
 
                     case Solid.SolidType.Fence:
-                        GenerateModelFence(map, mcsolid, bt);
+                        GenerateModelFence(mcsolid, bt);
                         break;
+
+                    case Solid.SolidType.Door:
+                        GenerateModelDoor(mcsolid, bt);
+                        break;
+
+                    default:
+                        throw new Exception("Undefined model type.");
                 }
             }
 
             //Generate skybox
             if (SkyBoxEnable)
             {
-                var sbx = mcxmax - mcxmin + 1;
-                var sby = mczmax - mczmin + 1;
-                var sbz = mcymax - mcymin + 1; 
+                var sbx = Xmax - Xmin + 1;
+                var sby = Zmax - Zmin + 1;
+                var sbz = Ymax - Ymin + 1; 
 
-                map.AddSolid(CreateSolid(-1, -1, 0, sbx + 1, 0, sbz + 1, "SKY", false));
-                map.AddSolid(CreateSolid(-1, sby, 0, sbx + 1, sby + 1, sbz + 1, "SKY", false));
-                map.AddSolid(CreateSolid(-1, 0, 0, 0, sby, sbz + 1, "SKY", false));
-                map.AddSolid(CreateSolid(sbx, 0, 0, sbx + 1, sby, sbz + 1, "SKY", false));
-                map.AddSolid(CreateSolid(0, 0, sbz, sbx, sby, sbz + 1, "SKY", false));
-                map.AddSolid(CreateSolid(-1, -1, -1, sbx + 1, sby + 1, 0, "SKY", false));
+                Map.AddSolid(CreateSolid(-1, -1, 0, sbx + 1, 0, sbz + 1, "SKY", false));
+                Map.AddSolid(CreateSolid(-1, sby, 0, sbx + 1, sby + 1, sbz + 1, "SKY", false));
+                Map.AddSolid(CreateSolid(-1, 0, 0, 0, sby, sbz + 1, "SKY", false));
+                Map.AddSolid(CreateSolid(sbx, 0, 0, sbx + 1, sby, sbz + 1, "SKY", false));
+                Map.AddSolid(CreateSolid(0, 0, sbz, sbx, sby, sbz + 1, "SKY", false));
+                Map.AddSolid(CreateSolid(-1, -1, -1, sbx + 1, sby + 1, 0, "SKY", false));
             }
 
-            return map;
+            return Map;
         }
 
-        private static void GenerateModelNormal(VHE.Map map, Solid mcsolid, BlockTexture bt)
+        private static void SolidPaneFence(Block block, BlockTexture bt, int x, int y, int z)
+        {
+            bool px = false, py = false;
+            var model = Solid.SType[bt.Model.ToUpper()];
+
+            //X
+            var paneX = Solids.Find(p => p.Type == model && !p.XClosed &&
+                p.Xmax == x && p.Ymin == y && p.Orientation != Solid.Orient.Y && p.BlockID == block.ID);
+
+            if (paneX == null) //create new pane
+            {
+                paneX = new Solid(block.ID, block.Data, x, y, z);
+                paneX.Type = model;
+
+                //X
+                var bmx = MCWorld.GetBlock(0, x + Xmin - 1, z + Ymin, y + Zmin);
+                var btmx = Blocks.Find(e => e.ID == bmx.ID);
+                var nbmx = btmx != null && btmx.Model == "Normal";
+                var bpx = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
+                var btpx = Blocks.Find(e => e.ID == bpx.ID);
+                var nbpx = btpx != null && btpx.Model == "Normal";
+                px = nbmx || nbpx || bpx.ID == block.ID;
+
+                if (px)
+                {
+                    paneX.Orientation = Solid.Orient.X;
+                    paneX.XBegTouch = nbmx;
+                    paneX.XEndTouch = nbpx && bpx.ID != block.ID;
+                    paneX.XClosed = bpx.ID != block.ID;
+
+                    if (!PaneMerge(paneX, z))
+                    {
+                        //create new pane
+                        Solids.Add(paneX);
+                    }
+                }
+            }
+            else //expand existing pane
+            {
+                paneX.Expand(x, y, z);
+                px = true;
+
+                var bp = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
+                var btp = Blocks.Find(e => e.ID == bp.ID);
+                var nbp = btp != null && btp.Model == "Normal";
+
+                if (bp.ID != block.ID)
+                {
+                    paneX.XClosed = true;
+                    if (nbp)
+                    {
+                        paneX.XEndTouch = true;
+                    }
+
+                    PaneMerge(paneX, z);
+                }
+            }
+
+
+            //Y
+            var paneY = Solids.Find(p => p.Type == model && !p.YClosed &&
+                p.Ymax == y && p.Xmin == x && p.Orientation != Solid.Orient.X && p.BlockID == block.ID);
+
+            if (paneY == null) //create new pane
+            {
+                paneY = new Solid(block.ID, block.Data, x, y, z);
+                paneY.Type = model;
+
+                //Y
+                var bmy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin - 1);
+                var btmy = Blocks.Find(e => e.ID == bmy.ID);
+                var nbmy = btmy != null && btmy.Model == "Normal";
+                var bpy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
+                var btpy = Blocks.Find(e => e.ID == bpy.ID);
+                var nbpy = btpy != null && btpy.Model == "Normal";
+                py = nbmy || nbpy || bpy.ID == block.ID;
+
+                if (py)
+                {
+                    paneY.Orientation = Solid.Orient.Y;
+                    paneY.YBegTouch = nbmy;
+                    paneY.YEndTouch = nbpy && bpy.ID != block.ID;
+                    paneY.YClosed = bpy.ID != block.ID;
+
+                    if (!PaneMerge(paneY, z))
+                    {
+                        //create new pane
+                        Solids.Add(paneY);
+                    }
+                }
+            }
+            else //expand existing pane
+            {
+                paneY.Expand(x, y, z);
+                py = true;
+
+                var bp = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
+                var btp = Blocks.Find(e => e.ID == bp.ID);
+                var nbp = btp != null && btp.Model == "Normal";
+
+                if (bp.ID != block.ID)
+                {
+                    paneY.YClosed = true;
+                    if (nbp)
+                    {
+                        paneY.YEndTouch = true;
+                    }
+
+                    PaneMerge(paneY, z);
+                }
+            }
+
+            //None
+            if (!px && !py)
+            {
+                if (!PaneMerge(paneY, z))
+                {
+                    //create new pane
+                    Solids.Add(paneY);
+                }
+            }
+
+            //Z
+            if (model == Solid.SolidType.Fence)
+            {
+                var pillar = Solids.Find(p => p.Type == model && !p.ZClosed && p.BlockID == block.ID &&
+                    p.Orientation == Solid.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
+
+                if (pillar == null)
+                {
+                    pillar = new Solid(block.ID, block.Data, x, y, z);
+                    pillar.Type = model;
+                    pillar.Orientation = Solid.Orient.Z;
+
+                    var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
+                    var btmy = Blocks.Find(e => e.ID == bpz.ID);
+                    if (btmy == null || btmy.ID != block.ID)
+                    {
+                        pillar.ZClosed = true;
+                    }
+
+                    Solids.Add(pillar);
+                }
+                else
+                {
+                    pillar.Expand(x, y, z);
+                    var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
+                    var btmy = Blocks.Find(e => e.ID == bpz.ID);
+                    if (btmy == null || btmy.ID != block.ID)
+                    {
+                        pillar.ZClosed = true;
+                    }
+                }
+            }
+        }
+
+        private static void SolidNormal(Block block, int x, int y, int z)
+        {
+            bool found = false;
+            Solid[] cuts = new Solid[2];
+            foreach (var solid in Solids)
+            {
+                if (solid.Type != Solid.SolidType.Normal)
+                {
+                    continue;
+                }
+
+                var rngX = x >= solid.Xmin && x < solid.Xmax;
+                var rngY = y >= solid.Ymin && y < solid.Ymax;
+                var rngZ = z < solid.Zmax;
+                var expX = !solid.XClosed && y == solid.Ymax - 1 && x == solid.Xmax;
+                var expY = !solid.YClosed && y == solid.Ymax && rngX;
+                var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
+                if (expX || expY || expZ || (rngX && rngY && rngZ))
+                {
+                    if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found)
+                    {
+                        solid.Expand(x, y, z);
+                        found = true;
+                    }
+                    else
+                    {
+                        cuts = solid.Cut(x, y, z);
+                    }
+                }
+            }
+
+            bool added = false;
+            foreach (var cut in cuts)
+            {
+                if (cut != null)
+                {
+                    Solids.Add(cut);
+                    added = true;
+                }
+            }
+
+            if (!found && block.ID != 0)
+            {
+                Solids.Add(new Solid(block.ID, block.Data, x, y, z));
+                var last = Solids.Last();
+                Solids.Remove(last);
+                Solids.Insert(0, last);
+                added = true;
+            }
+
+            if (added)
+            {
+                int idmax = -1;
+                foreach (var sld in Solids)
+                {
+                    if (sld.TestID > idmax || (sld.TestID != -1 && idmax == -1))
+                    {
+                        idmax = sld.TestID;
+                    }
+                }
+                foreach (var sld in Solids)
+                {
+                    if (sld.TestID == -1)
+                    {
+                        sld.TestID = ++idmax;
+                    }
+                }
+            }
+        }
+
+        private static void GenerateModelNormal(Solid mcsolid, BlockTexture bt)
         {
             var solid = CreateSolid(mcsolid.Xmin, mcsolid.Ymin, mcsolid.Zmin,
                             mcsolid.Xmax, mcsolid.Ymax, mcsolid.Zmax, bt, false);
-            MapAddObject(map, solid, bt);
+            MapAddObject(solid, bt);
         }
 
-        private static void GenerateModelPane(VHE.Map map, Solid mcsolid, BlockTexture bt)
+        private static void GenerateModelPane(Solid mcsolid, BlockTexture bt)
         {
             float xmin = mcsolid.Xmin + 0.4375f;
             float ymin = mcsolid.Ymin + 0.4375f;
@@ -476,10 +559,10 @@ namespace MCSMapConv
                 }
             }
 
-            MapAddObject(map, solid, bt);
+            MapAddObject(solid, bt);
         }
 
-        private static void GenerateModelFence(VHE.Map map, Solid mcsolid, BlockTexture bt)
+        private static void GenerateModelFence(Solid mcsolid, BlockTexture bt)
         {
             //horizontal crossbars
             if (mcsolid.Orientation != Solid.Orient.Z)
@@ -534,18 +617,126 @@ namespace MCSMapConv
 
                 if (mcsolid.Orientation != Solid.Orient.None)
                 {
-                    map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
+                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
 
                     zmin += 0.375f;
                     zmax += 0.375f;
-                    map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
+                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
                 }
             }
             else //vertical pillars
             {
-                map.AddSolid(CreateSolid(mcsolid.Xmin + 0.375f, mcsolid.Ymin + 0.375f, mcsolid.Zmin,
+                Map.AddSolid(CreateSolid(mcsolid.Xmin + 0.375f, mcsolid.Ymin + 0.375f, mcsolid.Zmin,
                     mcsolid.Xmin + 0.625f, mcsolid.Ymin + 0.625f, mcsolid.Zmax, bt, false));
             }
+        }
+
+        private static void GenerateModelDoor(Solid mcsolid, BlockTexture bt)
+        {
+            float xmin = mcsolid.Xmin, xmax = mcsolid.Xmax, 
+                ymin = mcsolid.Ymin, ymax = mcsolid.Ymax, 
+                zmin = mcsolid.Zmin, zmax = mcsolid.Zmax + 1;
+
+            float oxmin = 0, oymin = 0;
+
+            bool mirror = false, rotate = false, offset = false;
+
+            switch (mcsolid.BlockData)
+            {
+                case 0:
+                case 13:
+                    xmax -= 0.8125f;
+                    oxmin = xmin + 0.03125f;
+                    oymin = ymin - 0.0625f;
+                    mirror = true;
+                    break;
+
+                case 1:
+                case 14:
+                    ymax -= 0.8125f;
+                    oxmin = xmax - 0.0625f;
+                    oymin = ymin + 0.03125f;
+                    mirror = true;
+                    rotate = true;
+                    break;
+
+                case 2:
+                case 15:
+                    xmin += 0.8125f;
+                    oxmin = xmin + 0.03125f;
+                    oymin = ymax - 0.0625f;
+                    offset = true;
+                    break;
+
+                case 3:
+                case 12:
+                    ymin += 0.8125f;
+                    oxmin = xmin - 0.0625f;
+                    oymin = ymin + 0.03125f;
+                    rotate = true;
+                    offset = true;
+                    break;
+
+                case 4:
+                case 9:
+                    ymax -= 0.8125f;
+                    oxmin = xmin - 0.0625f;
+                    oymin = ymin + 0.03125f;
+                    rotate = true;
+                    break;
+
+                case 5:
+                case 10:
+                    xmin += 0.8125f;
+                    oxmin = xmin + 0.03125f;
+                    oymin = ymin - 0.0625f;
+                    mirror = true;
+                    offset = true;
+                    break;
+
+                case 6:
+                case 11:
+                    ymin += 0.8125f;
+                    oxmin = xmax - 0.0625f;
+                    oymin = ymin + 0.03125f;
+                    mirror = true;
+                    rotate = true;
+                    offset = true;
+                    break;
+
+                case 7:
+                case 8:
+                    xmax -= 0.8125f;
+                    oxmin = xmin + 0.03125f;
+                    oymin = ymax - 0.0625f;
+                    break;
+            }
+
+            float oxmax = oxmin + 0.125f;
+            float oymax = oymin + 0.125f;
+            float ozmin = zmin + 0.9375f;
+            float ozmax = zmax - 0.9375f;
+
+            var door = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, rotate);
+            var origin = CreateSolid(oxmin, oymin, ozmin, oxmax, oymax, ozmax, "origin", false);
+
+            if (mirror)
+            {
+                door.Faces[2].MirrorTexture();
+                door.Faces[3].MirrorTexture();
+                door.Faces[4].MirrorTexture();
+                door.Faces[5].MirrorTexture();
+            }
+
+            if (offset)
+            {
+                door.Faces[0].OffsetU = 0.1875f * TextureSize;
+                door.Faces[1].OffsetU = 0.1875f * TextureSize;
+            }
+
+            var solids = new List<VHE.Map.Solid>() { door, origin };
+
+            MapAddObject(solids, bt);
         }
 
         private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
@@ -678,18 +869,40 @@ namespace MCSMapConv
             return solid;
         }
 
-        private static void MapAddObject(VHE.Map map, VHE.Map.Solid solid, BlockTexture bt)
+        private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt)
         {
             var se = GetSolidEntity(bt);
             if (se != null)
             {
                 var entity = new VHE.Entity(se);
                 entity.AddSolid(solid);
-                map.CreateEntity(entity);
+                Map.CreateEntity(entity);
             }
             else
             {
-                map.AddSolid(solid);
+                Map.AddSolid(solid);
+            }
+        }
+
+        private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt, 
+            int blockData = 0, float x = 0, float y = 0, float z = 0)
+        {
+            MapAddObject(new List<VHE.Map.Solid>() { solid }, bt, blockData, x, y, z);
+        }
+
+        private static void MapAddObject(List<VHE.Map.Solid> solids, BlockTexture bt, 
+            int blockData = 0, float x = 0, float y = 0, float z = 0)
+        {
+            var se = GetSolidEntity(bt);
+            if (se != null)
+            {
+                var entity = GenerateEntity(se, blockData, x, y, z);
+                solids.ForEach(s => entity.AddSolid(s));
+                Map.CreateEntity(entity);
+            }
+            else
+            {
+                solids.ForEach(s => Map.AddSolid(s));
             }
         }
 
@@ -724,7 +937,7 @@ namespace MCSMapConv
             return null;
         }
 
-        private static bool PaneMerge(List<Solid> mcsolids, Solid pane, int z)
+        private static bool PaneMerge(Solid pane, int z)
         {
             if (pane.Type == Solid.SolidType.Fence)
             {
@@ -734,7 +947,7 @@ namespace MCSMapConv
             if (pane.XClosed || pane.YClosed)
             {
                 //looking for the same pane in the previous Z layer
-                var paneZ = mcsolids.Find(pz => pz.Type == Solid.SolidType.Pane &&
+                var paneZ = Solids.Find(pz => pz.Type == Solid.SolidType.Pane &&
                     pz.Xmin == pane.Xmin && pz.Xmax == pane.Xmax &&
                     pz.Ymin == pane.Ymin && pz.Ymax == pane.Ymax && pz.Zmax == z &&
                     pz.XBegTouch == pane.XBegTouch && pz.XEndTouch == pane.XEndTouch &&
@@ -744,7 +957,7 @@ namespace MCSMapConv
                 if (paneZ != null)
                 {
                     paneZ.Zmax++;
-                    mcsolids.Remove(pane);
+                    Solids.Remove(pane);
                     return true;
                 }
             }
@@ -758,6 +971,11 @@ namespace MCSMapConv
             {
                 if (bt.ID == id)
                 {
+                    if (bt.Data == -1) //Ignore the data value
+                    {
+                        return bt;
+                    }
+
                     int dat;
                     if (bt.DataMask != 0)
                     {
@@ -778,9 +996,9 @@ namespace MCSMapConv
             return null;
         }
 
-        private static void SignObjects(World world, Block block, int x, int y, int z, VHE.Map map)
+        private static void GenerateSignEntity(Block block, int x, int y, int z)
         {
-            var chunk = world.GetChunkAtBlock(0, block.X, block.Z);
+            var chunk = MCWorld.GetChunkAtBlock(0, block.X, block.Z);
             List<NBT> tes = chunk.NBTData.GetTag("Level/TileEntities");
 
             foreach (var te in tes)
@@ -817,109 +1035,7 @@ namespace MCSMapConv
                             }
                             else
                             {
-                                var obj = new VHE.Entity(objt.ClassName);
-
-                                foreach (var part in objt.Parameters)
-                                {
-                                    var par = new VHE.Entity.Parameter(part.Name);
-
-                                    par.SetType(part.ValueType);
-
-                                    string value = part.Value;
-
-                                    while (value.IndexOf("{") != -1)
-                                    {
-                                        int beg = value.IndexOf("{");
-                                        int end = value.IndexOf("}", beg + 1);
-
-                                        if (beg == -1 || end == -1)
-                                        {
-                                            break;
-                                        }
-
-                                        List<string> args = new List<string>();
-                                        var mac = value.Substring(beg + 1, end - beg - 1);
-
-                                        int sep = mac.IndexOf(" ");
-                                        if (sep == -1)
-                                        {
-                                            args.Add(mac);
-                                        }
-                                        else
-                                        {
-                                            int ab = 0;
-                                            while (sep != -1)
-                                            {
-                                                args.Add(mac.Substring(ab, sep - ab));
-                                                ab = sep + 1;
-                                                sep = mac.IndexOf(" ", ab);
-
-                                                if (sep == -1)
-                                                {
-                                                    args.Add(mac.Substring(ab, mac.Length - ab));
-                                                }
-                                            }
-                                        }
-
-                                        value = value.Remove(beg, end - beg + 1);
-
-                                        string res = "";
-                                        switch (args[0].ToUpper())
-                                        {
-                                            case "ANGLE":
-                                                int vali = ((int)((-block.Data * 22.5f) + 90));
-                                                if (vali >= 360)
-                                                {
-                                                    vali -= 360;
-                                                }
-                                                else if (vali < 0)
-                                                {
-                                                    vali += 360;
-                                                }
-                                                res = vali.ToString();
-                                                break;
-
-                                            case "X":
-                                                double val = x;
-                                                if (args.Count > 1)
-                                                {
-                                                    val += Convert.ToDouble(args[1]);
-                                                }
-                                                res = (val * CSScale).ToString();
-                                                break;
-
-                                            case "Y":
-                                                val = -y;
-                                                if (args.Count > 1)
-                                                {
-                                                    val += Convert.ToDouble(args[1]);
-                                                }
-                                                res = (val * CSScale).ToString();
-                                                break;
-
-                                            case "Z":
-                                                val = z + 1;
-                                                if (args.Count > 1)
-                                                {
-                                                    val += Convert.ToDouble(args[1]);
-                                                }
-                                                res = (val * CSScale).ToString();
-                                                break;
-
-                                            default:
-                                                Console.WriteLine("Undefined submacros \"{0}\" at {1} {2} {3}", mac,
-                                                    block.X, block.Y, block.Z);
-                                                break;
-                                        }
-
-                                        value = value.Insert(beg, res);
-                                    }
-
-                                    par.SetValue(value);
-                                    obj.Parameters.Add(par);
-                                }
-
-                                map.Data.Add(obj);
+                                Map.Data.Add(GenerateEntity(objt, block, x, y, z));
                             }
                         }
                     }
@@ -927,19 +1043,142 @@ namespace MCSMapConv
             }
         }
 
+        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, int blockData, float x, float y, float z)
+        {
+            var block = new Block() { 
+                ID = 0,
+                Data = (byte)blockData
+            };
+
+            return GenerateEntity(entityTemplate, block, x, y, z);
+        }
+
+        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, Block block, float x, float y, float z)
+        {
+            var entity = new VHE.Entity(entityTemplate.ClassName);
+
+            foreach (var part in entityTemplate.Parameters)
+            {
+                var par = new VHE.Entity.Parameter(part.Name);
+
+                par.SetType(part.ValueType);
+
+                string value = part.Value;
+
+                while (value.IndexOf("{") != -1)
+                {
+                    int beg = value.IndexOf("{");
+                    int end = value.IndexOf("}", beg + 1);
+
+                    if (beg == -1 || end == -1)
+                    {
+                        break;
+                    }
+
+                    List<string> args = new List<string>();
+                    var mac = value.Substring(beg + 1, end - beg - 1);
+
+                    int sep = mac.IndexOf(" ");
+                    if (sep == -1)
+                    {
+                        args.Add(mac);
+                    }
+                    else
+                    {
+                        int ab = 0;
+                        while (sep != -1)
+                        {
+                            args.Add(mac.Substring(ab, sep - ab));
+                            ab = sep + 1;
+                            sep = mac.IndexOf(" ", ab);
+
+                            if (sep == -1)
+                            {
+                                args.Add(mac.Substring(ab, mac.Length - ab));
+                            }
+                        }
+                    }
+
+                    value = value.Remove(beg, end - beg + 1);
+
+                    string res = "";
+                    switch (args[0].ToUpper())
+                    {
+                        case "ANGLE":
+                            int vali = ((int)((-block.Data * 22.5f) + 90));
+                            if (vali >= 360)
+                            {
+                                vali -= 360;
+                            }
+                            else if (vali < 0)
+                            {
+                                vali += 360;
+                            }
+                            res = vali.ToString();
+                            break;
+
+                        case "X":
+                            double val = x;
+                            if (args.Count > 1)
+                            {
+                                val += Convert.ToDouble(args[1]);
+                            }
+                            res = (val * CSScale).ToString();
+                            break;
+
+                        case "Y":
+                            val = -y;
+                            if (args.Count > 1)
+                            {
+                                val += Convert.ToDouble(args[1]);
+                            }
+                            res = (val * CSScale).ToString();
+                            break;
+
+                        case "Z":
+                            val = z + 1;
+                            if (args.Count > 1)
+                            {
+                                val += Convert.ToDouble(args[1]);
+                            }
+                            res = (val * CSScale).ToString();
+                            break;
+
+                        default:
+                            if (block.ID == 0)
+                            {
+                                Console.WriteLine("Undefined submacros \"{0}\" at {1} {2} {3}", mac, x, y, z);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Undefined submacros \"{0}\" at block {1} {2} {3}", mac,
+                                    block.X, block.Y, block.Z);
+                            }
+                            break;
+                    }
+
+                    value = value.Insert(beg, res);
+                }
+
+                par.SetValue(value);
+                entity.Parameters.Add(par);
+            }
+
+            return entity;
+        }
+
         /*Debug*/
-        private static void Debug(int x, int y, int z, int xmin, int xmax, int ymin, int ymax, int zmin, int zmax,
-           List<Solid> mcsolids)
+        private static void Debug(int x, int y, int z)
         {
             Settings.DebugEnable = false;
             Console.CursorVisible = false;
 
             //Build empty field
-            for (int cz = 0; cz <= ymax - ymin; cz++)
+            for (int cz = 0; cz <= Ymax - Ymin; cz++)
             {
-                for (int cy = 0; cy <= zmax - zmin; cy++)
+                for (int cy = 0; cy <= Zmax - Zmin; cy++)
                 {
-                    for (int cx = 0; cx <= xmax - xmin; cx++)
+                    for (int cx = 0; cx <= Xmax - Xmin; cx++)
                     {
                         if (cx == x && cy == y && cz == z)
                         {
@@ -947,7 +1186,7 @@ namespace MCSMapConv
                             Console.ForegroundColor = ConsoleColor.Yellow;
                         }
 
-                        Console.SetCursorPosition(cx + (xmax - xmin + 4) * cz + 1, cy + 1);
+                        Console.SetCursorPosition(cx + (Xmax - Xmin + 4) * cz + 1, cy + 1);
                         Console.Write(".");
 
                         Console.BackgroundColor = ConsoleColor.Black;
@@ -956,17 +1195,17 @@ namespace MCSMapConv
                 }
 
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.SetCursorPosition((xmax - xmin + 4) * cz + 1, zmax - zmin + 2);
+                Console.SetCursorPosition((Xmax - Xmin + 4) * cz + 1, Zmax - Zmin + 2);
                 Console.Write("z=" + cz);
 
-                Console.SetCursorPosition((xmax - xmin + 4) * cz + 1, 0);
-                for (int i = 0; i <= xmax - xmin; i++)
+                Console.SetCursorPosition((Xmax - Xmin + 4) * cz + 1, 0);
+                for (int i = 0; i <= Xmax - Xmin; i++)
                 {
                     Console.Write(ToHex(i));
                 }
-                for (int i = 0; i <= zmax - zmin; i++)
+                for (int i = 0; i <= Zmax - Zmin; i++)
                 {
-                    Console.SetCursorPosition((xmax - xmin + 4) * cz, i + 1);
+                    Console.SetCursorPosition((Xmax - Xmin + 4) * cz, i + 1);
                     Console.Write(ToHex(i));
                 }
 
@@ -974,9 +1213,9 @@ namespace MCSMapConv
             }
 
             //Render solids
-            for (int i = 0; i < mcsolids.Count; i++)
+            for (int i = 0; i < Solids.Count; i++)
             {
-                var sld = mcsolids[i];
+                var sld = Solids[i];
                 if (sld.Type != Solid.SolidType.Normal)
                 {
                     continue;
@@ -1008,7 +1247,7 @@ namespace MCSMapConv
                                 }
                             }
 
-                            Console.SetCursorPosition(cx + (xmax - xmin + 4) * cz + 1, cy + 1);
+                            Console.SetCursorPosition(cx + (Xmax - Xmin + 4) * cz + 1, cy + 1);
                             Console.Write(ToHex(sld.TestID));
                             Console.BackgroundColor = ConsoleColor.Black;
                             Console.ForegroundColor = ConsoleColor.White;
@@ -1020,11 +1259,11 @@ namespace MCSMapConv
 
 
             //Render panes
-            char[,,] matrix = new char[xmax - xmin + 1, zmax - zmin + 1, ymax - ymin + 1];
+            char[,,] matrix = new char[Xmax - Xmin + 1, Zmax - Zmin + 1, Ymax - Ymin + 1];
 
-            for (int i = 0; i < mcsolids.Count; i++)
+            for (int i = 0; i < Solids.Count; i++)
             {
-                var pane = mcsolids[i];
+                var pane = Solids[i];
                 if (pane.Type != Solid.SolidType.Pane)
                 {
                     continue;
@@ -1145,11 +1384,11 @@ namespace MCSMapConv
                 }
             }
 
-            for (int cz = 0; cz <= ymax - ymin; cz++)
+            for (int cz = 0; cz <= Ymax - Ymin; cz++)
             {
-                for (int cy = 0; cy <= zmax - zmin; cy++)
+                for (int cy = 0; cy <= Zmax - Zmin; cy++)
                 {
-                    for (int cx = 0; cx <= xmax - xmin; cx++)
+                    for (int cx = 0; cx <= Xmax - Xmin; cx++)
                     {
                         if (cx == x && cy == y && cz == z)
                         {
@@ -1158,7 +1397,7 @@ namespace MCSMapConv
 
                         if (matrix[cx, cy, cz] != '\0')
                         {
-                            Console.SetCursorPosition(cx + (xmax - xmin + 4) * cz + 1, cy + 1);
+                            Console.SetCursorPosition(cx + (Xmax - Xmin + 4) * cz + 1, cy + 1);
                             Console.Write(matrix[cx, cy, cz]);
                         }
 
@@ -1169,7 +1408,7 @@ namespace MCSMapConv
             }
 
 
-            Console.SetCursorPosition(0, zmax - zmin + 4);
+            Console.SetCursorPosition(0, Zmax - Zmin + 4);
             ClearCurrentConsoleLine();
             Console.WriteLine(" X={0}  Y={1}  Z={2}", x, y, z);
             Console.CursorVisible = true;
@@ -1320,7 +1559,9 @@ namespace MCSMapConv
         {
             if (res == Resources.Wad || res == Resources.All)
             {
-                Wad = new VHE.WAD(Resource[Resources.Wad]);
+                Wads = new List<VHE.WAD>();
+                Wads.Add(new VHE.WAD(@"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\minecraft.wad"));
+                Wads.Add(new VHE.WAD(@"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\cstrike.wad"));
             }
             if (res == Resources.Textures || res == Resources.All)
             {

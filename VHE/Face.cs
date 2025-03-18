@@ -42,5 +42,11 @@ namespace MCSMapConv.VHE
 
             return face;
         }
+
+        public void MirrorTexture()
+        {
+            AxisU.X *= -1;
+            AxisU.Y *= -1;
+        }
     }
 }
