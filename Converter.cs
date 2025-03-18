@@ -882,7 +882,7 @@ namespace MCSMapConv
             return solid;
         }
 
-        private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt)
+        /*private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt)
         {
             var se = GetSolidEntity(bt);
             if (se != null)
@@ -895,7 +895,7 @@ namespace MCSMapConv
             {
                 Map.AddSolid(solid);
             }
-        }
+        }*/
 
         private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
@@ -1162,7 +1162,7 @@ namespace MCSMapConv
                             break;
 
                         case "X":
-                            double val = x;
+                            double val = x + 0.5;
                             if (args.Count > 1)
                             {
                                 val += Convert.ToDouble(args[1]);
@@ -1171,7 +1171,7 @@ namespace MCSMapConv
                             break;
 
                         case "Y":
-                            val = -y;
+                            val = -y - 0.5;
                             if (args.Count > 1)
                             {
                                 val += Convert.ToDouble(args[1]);
@@ -1180,7 +1180,7 @@ namespace MCSMapConv
                             break;
 
                         case "Z":
-                            val = z + 1;
+                            val = z + 0.5;
                             if (args.Count > 1)
                             {
                                 val += Convert.ToDouble(args[1]);
