@@ -34,5 +34,10 @@ namespace MCSMapConv
 
             return null;
         }
+
+        public Solid.SolidType GetSolidType()
+        {
+            return Solid.GetSolidType(Model);
+        }
     }
 }

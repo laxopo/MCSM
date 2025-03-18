@@ -37,7 +37,8 @@ namespace MCSMapConv
             Normal,
             Pane,
             Fence,
-            Door
+            Door,
+            Liquid
         }
 
         public static Dictionary<string, SolidType> SType = new Dictionary<string, SolidType>() {
@@ -45,6 +46,7 @@ namespace MCSMapConv
             { "PANE", SolidType.Pane },
             { "FENCE", SolidType.Fence },
             { "DOOR", SolidType.Door },
+            { "LIQUID", SolidType.Liquid }
         };
 
         public Solid() { }
@@ -134,6 +136,11 @@ namespace MCSMapConv
             }
 
             return solids;
+        }
+
+        public static SolidType GetSolidType(string typeName)
+        {
+            return SType[typeName.ToUpper()];
         }
     }
 }

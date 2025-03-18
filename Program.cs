@@ -18,6 +18,7 @@ namespace MCSMapConv
         {
             World world = new World(worldPath);
             var map = Converter.ConvertToMap(world, 455, 54, -354, 498, 64, -316);
+            //455, 54, -354, 498, 64, -316
 
             Console.WriteLine();
             if (!Converter.Aborted)

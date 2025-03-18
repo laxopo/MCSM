@@ -76,10 +76,6 @@ namespace MCSMapConv
                     for (int x = 0; x <= Xmax - Xmin; x++)
                     {
                         var block = world.GetBlock(0, x + Xmin, z + Ymin, y + Zmin);
-                        if (block.ID == 64)
-                        {
-                            
-                        }
 
                         //object
                         if (block.ID == 63)
@@ -88,9 +84,15 @@ namespace MCSMapConv
                             block.ID = 0;
                         }
 
-                        //check register
-                        bt_chk:
-                        if (block.ID != 0 && GetBT(block.ID, block.Data) == null)
+                    /*if ((block.ID == 9 && block.Data != 0) || block.ID == 8)
+                    {
+                        Console.WriteLine("WATER: {0}:{1}", block.ID, block.Data);
+                    }*/
+
+                    //check register
+                    bt_chk:
+                        var btm = GetBT(block.ID, block.Data);
+                        if (block.ID != 0 && btm == null)
                         {
                             var res = missings.Message(block.ID, block.Data, "at " + (x + Xmin) + " " + 
                                 (z + Ymin) + " " + (y + Zmin) + " is unregistered", true);
@@ -152,7 +154,7 @@ namespace MCSMapConv
                         }
 
                         //Normal block
-                        SolidNormal(block, x, y, z);
+                        SolidNormal(block, x, y, z, btm);
 
                         if (Debuging)
                         {
@@ -226,6 +228,7 @@ namespace MCSMapConv
                 switch (mcsolid.Type)
                 {
                     case Solid.SolidType.Normal:
+                    case Solid.SolidType.Liquid:
                         GenerateModelNormal(mcsolid, bt);
                         break;
 
@@ -420,13 +423,13 @@ namespace MCSMapConv
             }
         }
 
-        private static void SolidNormal(Block block, int x, int y, int z)
+        private static void SolidNormal(Block block, int x, int y, int z, BlockTexture bt)
         {
             bool found = false;
             Solid[] cuts = new Solid[2];
             foreach (var solid in Solids)
             {
-                if (solid.Type != Solid.SolidType.Normal)
+                if (solid.Type != Solid.SolidType.Normal && solid.Type != Solid.SolidType.Liquid)
                 {
                     continue;
                 }
@@ -439,7 +442,8 @@ namespace MCSMapConv
                 var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
-                    if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found)
+                    //if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found)
+                    if (CompareID(block, solid.BlockID, solid.BlockData) && !found)
                     {
                         solid.Expand(x, y, z);
                         found = true;
@@ -463,7 +467,9 @@ namespace MCSMapConv
 
             if (!found && block.ID != 0)
             {
-                Solids.Add(new Solid(block.ID, block.Data, x, y, z));
+                Solids.Add(new Solid(block.ID, block.Data, x, y, z) { 
+                    Type = bt.GetSolidType()
+                });
                 var last = Solids.Last();
                 Solids.Remove(last);
                 Solids.Insert(0, last);
@@ -492,8 +498,15 @@ namespace MCSMapConv
 
         private static void GenerateModelNormal(Solid mcsolid, BlockTexture bt)
         {
-            var solid = CreateSolid(mcsolid.Xmin, mcsolid.Ymin, mcsolid.Zmin,
-                            mcsolid.Xmax, mcsolid.Ymax, mcsolid.Zmax, bt, false);
+            float xmin = mcsolid.Xmin, ymin = mcsolid.Ymin, zmin = mcsolid.Zmin,
+                xmax = mcsolid.Xmax, ymax = mcsolid.Ymax, zmax = mcsolid.Zmax;
+
+            if (mcsolid.Type == Solid.SolidType.Liquid)
+            {
+                zmax -= 0.125f;
+            }
+
+            var solid = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false);
             MapAddObject(solid, bt);
         }
 
@@ -994,6 +1007,37 @@ namespace MCSMapConv
             }
 
             return null;
+        }
+
+        private static bool CompareID(Block block, int id, int data)
+        {
+            foreach (var bt in Blocks)
+            {
+                if (block.ID == id)
+                {
+                    if (bt.Data == -1) //Ignore the data value
+                    {
+                        return true;
+                    }
+
+                    int dat;
+                    if (bt.DataMask != 0)
+                    {
+                        dat = data & bt.DataMask;
+                    }
+                    else
+                    {
+                        dat = data;
+                    }
+
+                    if (block.Data == dat)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static void GenerateSignEntity(Block block, int x, int y, int z)
