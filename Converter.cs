@@ -84,11 +84,6 @@ namespace MCSMapConv
                             block.ID = 0;
                         }
 
-                    /*if ((block.ID == 9 && block.Data != 0) || block.ID == 8)
-                    {
-                        Console.WriteLine("WATER: {0}:{1}", block.ID, block.Data);
-                    }*/
-
                     //check register
                     bt_chk:
                         var btm = GetBT(block.ID, block.Data);
@@ -144,10 +139,22 @@ namespace MCSMapConv
                                         {
                                             data = block.Data + 8;
                                         }
-                                        var mcsolid = new Solid(block.ID, data, x, y, z);
-                                        mcsolid.Type = Solid.SolidType.Door;
-                                        Solids.Add(mcsolid);
+                                        Solids.Add(new Solid(block.ID, data, x, y, z) { 
+                                            Type = Solid.SolidType.Door
+                                        });
                                     }
+                                    block.ID = 0;
+                                    break;
+
+                                case "GRASS":
+                                    var grassSld = new Solid(block.ID, block.Data, x, y, z) { 
+                                        Type = Solid.SolidType.Grass,
+                                    };
+                                    if (block.ID == 175)
+                                    {
+                                        grassSld.Zmax++;
+                                    }
+                                    Solids.Add(grassSld);
                                     block.ID = 0;
                                     break;
                             }
@@ -242,6 +249,10 @@ namespace MCSMapConv
 
                     case Solid.SolidType.Door:
                         GenerateModelDoor(mcsolid, bt);
+                        break;
+
+                    case Solid.SolidType.Grass:
+                        GenerateModelGrass(mcsolid, bt);
                         break;
 
                     default:
@@ -752,6 +763,36 @@ namespace MCSMapConv
             MapAddObject(solids, bt);
         }
 
+        private static void GenerateModelGrass(Solid mcsolid, BlockTexture bt)
+        {
+            const float thick = 0.01f;
+            
+            var solids = new List<VHE.Map.Solid>();
+            var texture = GetTextureName(bt);
+
+            var ofs = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
+            float xOffset = ofs[0];
+            float yOffset = ofs[1];
+            float tOffset = thick * 0.707107f;
+
+            float zmin = mcsolid.Zmin;
+            float zmax = mcsolid.Zmax;
+
+            float x1 = mcsolid.Xmin + xOffset;
+            float y1 = mcsolid.Ymin + yOffset;
+            float x2 = x1 - tOffset;
+            float y2 = y1 + tOffset;
+            float x4 = mcsolid.Xmax + xOffset;
+            float y4 = mcsolid.Ymax + yOffset;
+            float x3 = x4 - tOffset;
+            float y3 = y4 + tOffset;
+
+            solids.Add(CreateSolidAngle(x1, y1, x2, y2, x3, y3, x4, y4, mcsolid.Ymin, zmin, zmax, texture, yOffset));
+            solids.Add(CreateSolidAngle(x2, y4, x1, y3, x4, y2, x3, y1, mcsolid.Ymin, zmin, zmax, texture, yOffset));
+
+            MapAddObject(solids, bt);
+        }
+
         private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
             BlockTexture bt, bool rotate)
         {
@@ -882,21 +923,107 @@ namespace MCSMapConv
             return solid;
         }
 
-        /*private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt)
+        private static VHE.Map.Solid CreateSolidAngle(float x1, float y1, float x2, float y2, float x3, float y3, 
+            float x4, float y4, float ymin, float zmin, float zmax, string texture, float offset)
         {
-            var se = GetSolidEntity(bt);
-            if (se != null)
-            {
-                var entity = new VHE.Entity(se);
-                entity.AddSolid(solid);
-                Map.CreateEntity(entity);
-            }
-            else
-            {
-                Map.AddSolid(solid);
-            }
-        }*/
+            var solid = new VHE.Map.Solid();
 
+            //top
+            solid.Faces.Add(new VHE.Face()
+            {
+                AxisU = new VHE.Vector(1, 0, 0),
+                AxisV = new VHE.Vector(0, -1, 0),
+                ScaleU = CSScale / TextureSize,
+                ScaleV = CSScale / TextureSize,
+                Texture = null,
+                Vertexes = new VHE.Vector[] {
+                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
+                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
+                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
+                        }
+            });
+
+            //bottom
+            solid.Faces.Add(new VHE.Face()
+            {
+                AxisU = new VHE.Vector(1, 0, 0),
+                AxisV = new VHE.Vector(0, -1, 0),
+                ScaleU = CSScale / TextureSize,
+                ScaleV = CSScale / TextureSize,
+                Texture = null,
+                Vertexes = new VHE.Vector[] {
+                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
+                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
+                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
+                        }
+            });
+
+            //left
+            solid.Faces.Add(new VHE.Face()
+            {
+                AxisU = new VHE.Vector(0, 1, 0),
+                AxisV = new VHE.Vector(0, 0, -1),
+                ScaleU = CSScale / TextureSize,
+                ScaleV = CSScale / TextureSize,
+                Texture = null,
+                Vertexes = new VHE.Vector[] {
+                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
+                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
+                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
+                        }
+            });
+
+            //right
+            solid.Faces.Add(new VHE.Face()
+            {
+                AxisU = new VHE.Vector(0, 1, 0),
+                AxisV = new VHE.Vector(0, 0, -1),
+                ScaleU = CSScale / TextureSize,
+                ScaleV = CSScale / TextureSize,
+                Texture = null,
+                Vertexes = new VHE.Vector[] {
+                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
+                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
+                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
+                        }
+            });
+
+            //rear
+            solid.Faces.Add(new VHE.Face()
+            {
+                AxisU = new VHE.Vector(0, 1, 0),
+                AxisV = new VHE.Vector(0, 0, -1),
+                ScaleU = CSScale / TextureSize,
+                ScaleV = CSScale / TextureSize,
+                OffsetU = -(8 + 16 * ymin) + offset * TextureSize,
+                OffsetV = -(8 + 16 * zmin),
+                Texture = texture,
+                Vertexes = new VHE.Vector[] {
+                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
+                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
+                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmin * CSScale),
+                        }
+            });
+
+            //front
+            solid.Faces.Add(new VHE.Face()
+            {
+                AxisU = new VHE.Vector(0, 1, 0),
+                AxisV = new VHE.Vector(0, 0, -1),
+                ScaleU = CSScale / TextureSize,
+                ScaleV = CSScale / TextureSize,
+                OffsetU = -(8 + 16 * ymin) + offset * TextureSize,
+                OffsetV = -(8 + 16 * zmin),
+                Texture = texture,
+                Vertexes = new VHE.Vector[] {
+                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
+                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
+                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
+                        }
+            });
+
+            return solid;
+        }
         private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
         {
@@ -921,6 +1048,11 @@ namespace MCSMapConv
 
         private static string GetTextureName(BlockTexture bt, params string[] keys)
         {
+            if (keys.Length == 0)
+            {
+                return bt.Textures[0].Texture;
+            }
+
             BlockTexture.TextureKey tk = null;
 
             foreach (var key in keys)

@@ -54,6 +54,7 @@
     <Compile Include="EntityTemplate.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Random.cs" />
     <Compile Include="Solid.cs" />
     <Compile Include="BlockTexture.cs" />
     <Compile Include="SolidID.cs" />
