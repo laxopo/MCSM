@@ -12,6 +12,8 @@ namespace MCSMapConv
         public string Model { get; set; }
         public string Entity { get; set; }
         public int DataMask { get; set; }
+        public int DataMax { get; set; }
+        public bool IgnoreExcluded { get; set; }
 
         public class TextureKey
         {

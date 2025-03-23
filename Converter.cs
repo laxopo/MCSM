@@ -84,7 +84,7 @@ namespace MCSMapConv
                             block.ID = 0;
                         }
 
-                    //check register
+                        //check register
                     bt_chk:
                         var btm = GetBT(block.ID, block.Data);
                         if (block.ID != 0 && btm == null)
@@ -109,12 +109,16 @@ namespace MCSMapConv
                             }
                         }
 
+                        if (btm != null && btm.Model == null)
+                        {
+                            block.ID = 0;
+                        }
+
                         if (block.ID != 0)
                         {
                             BlockCount++;
                         }
 
-                        //Pane
                         var bt = Blocks.Find(a => a.ID == block.ID);
 
                         if (bt != null)
@@ -150,9 +154,14 @@ namespace MCSMapConv
                                     var grassSld = new Solid(block.ID, block.Data, x, y, z) { 
                                         Type = Solid.SolidType.Grass,
                                     };
-                                    if (block.ID == 175)
+                                    var txt = GetTexture(GetTextureName(bt));
+                                    if (txt != null && txt.Height != -1)
                                     {
-                                        grassSld.Zmax++;
+                                        int h = txt.Height / (int)TextureSize;
+                                        if (h != 0)
+                                        {
+                                            grassSld.Zmax = grassSld.Zmin + h;
+                                        }
                                     }
                                     Solids.Add(grassSld);
                                     block.ID = 0;
@@ -787,8 +796,13 @@ namespace MCSMapConv
             float x3 = x4 - tOffset;
             float y3 = y4 + tOffset;
 
-            solids.Add(CreateSolidAngle(x1, y1, x2, y2, x3, y3, x4, y4, mcsolid.Ymin, zmin, zmax, texture, yOffset));
-            solids.Add(CreateSolidAngle(x2, y4, x1, y3, x4, y2, x3, y1, mcsolid.Ymin, zmin, zmax, texture, yOffset));
+            float h = zmax - zmin;
+            float p = TextureSize / 16;
+            float uOffset = -(p + 2 * p * mcsolid.Ymin) + yOffset * TextureSize;
+            float vOffset = -(p + 2 * p * zmin / h) + zmin % h * (p + TextureSize);
+
+            solids.Add(CreateSolidAngle(x1, y1, x2, y2, x3, y3, x4, y4, zmin, zmax, texture, uOffset, vOffset));
+            solids.Add(CreateSolidAngle(x2, y4, x1, y3, x4, y2, x3, y1, zmin, zmax, texture, uOffset, vOffset));
 
             MapAddObject(solids, bt);
         }
@@ -924,7 +938,7 @@ namespace MCSMapConv
         }
 
         private static VHE.Map.Solid CreateSolidAngle(float x1, float y1, float x2, float y2, float x3, float y3, 
-            float x4, float y4, float ymin, float zmin, float zmax, string texture, float offset)
+            float x4, float y4, float zmin, float zmax, string texture, float uOffset, float vOffset)
         {
             var solid = new VHE.Map.Solid();
 
@@ -995,8 +1009,8 @@ namespace MCSMapConv
                 AxisV = new VHE.Vector(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
-                OffsetU = -(8 + 16 * ymin) + offset * TextureSize,
-                OffsetV = -(8 + 16 * zmin),
+                OffsetU = uOffset,
+                OffsetV = vOffset,
                 Texture = texture,
                 Vertexes = new VHE.Vector[] {
                             new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
@@ -1012,8 +1026,8 @@ namespace MCSMapConv
                 AxisV = new VHE.Vector(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
-                OffsetU = -(8 + 16 * ymin) + offset * TextureSize,
-                OffsetV = -(8 + 16 * zmin),
+                OffsetU = uOffset,
+                OffsetV = vOffset,
                 Texture = texture,
                 Vertexes = new VHE.Vector[] {
                             new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
@@ -1067,6 +1081,20 @@ namespace MCSMapConv
             if (tk != null)
             {
                 return tk.Texture;
+            }
+
+            return null;
+        }
+
+        private static VHE.WAD.Texture GetTexture(string textureName)
+        {
+            foreach (var wad in Wads)
+            {
+                var txt = wad.Textures.Find(t => t.Name.ToUpper() == textureName.ToUpper());
+                if (txt != null)
+                {
+                    return txt;
+                }
             }
 
             return null;
@@ -1128,12 +1156,24 @@ namespace MCSMapConv
                     }
                     else
                     {
-                        dat = data;
+                        if (bt.DataMax != 0 && data > bt.DataMax)
+                        {
+                            dat = -1;
+                        }
+                        else
+                        {
+                            dat = data;
+                        }
                     }
 
                     if (bt.Data == dat)
                     {
                         return bt;
+                    }
+
+                    if (bt.IgnoreExcluded)
+                    {
+                        return new BlockTexture();
                     }
                 }
             }
@@ -1159,7 +1199,14 @@ namespace MCSMapConv
                     }
                     else
                     {
-                        dat = data;
+                        if (bt.DataMax != 0 && data > bt.DataMax)
+                        {
+                            dat = -1;
+                        }
+                        else
+                        {
+                            dat = data;
+                        }
                     }
 
                     if (block.Data == dat)

@@ -22,6 +22,8 @@ namespace MCSMapConv.VHE
             public bool ToggledAnimate { get; set; }
             public bool RandomTiling { get; set; }
             public bool Sky { get; set; }
+            public int Height { get; set; }
+            public int Width { get; set; }
         }
 
         public WAD(string filepath)
@@ -39,6 +41,28 @@ namespace MCSMapConv.VHE
             for (int i = 0; i < Count; i++)
             {
                 var texture = new Texture();
+
+                int imgOffset = GetInt(fs, DataOffset + i * 32);
+                int type = GetInt(fs, DataOffset + i * 32 + 12);
+
+                switch (type)
+                {
+                    case 0x42://qpic
+                        texture.Width = GetInt(fs, imgOffset);
+                        texture.Height = GetInt(fs, imgOffset + 4);
+                        break;
+
+                    case 0x43://miptex
+                        texture.Width = GetInt(fs, imgOffset + 16);
+                        texture.Height = GetInt(fs, imgOffset + 20);
+                        break;
+
+                    default:
+                        texture.Width = -1;
+                        texture.Height = -1;
+                        break;
+                }           
+
                 var name = GetString(fs, DataOffset + i * 32 + 16, 16);
 
                 switch (name[0])
