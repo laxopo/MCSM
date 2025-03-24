@@ -154,7 +154,7 @@ namespace MCSMapConv
                                     var grassSld = new Solid(block.ID, block.Data, x, y, z) { 
                                         Type = Solid.SolidType.Grass,
                                     };
-                                    var txt = GetTexture(GetTextureName(bt));
+                                    var txt = GetTexture(GetTextureName(bt, block.Data));
                                     if (txt != null && txt.Height != -1)
                                     {
                                         int h = txt.Height / (int)TextureSize;
@@ -526,7 +526,7 @@ namespace MCSMapConv
                 zmax -= 0.125f;
             }
 
-            var solid = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false);
+            var solid = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, false);
             MapAddObject(solid, bt);
         }
 
@@ -560,8 +560,8 @@ namespace MCSMapConv
                 }
             }
 
-            var textureSide = GetTextureName(bt, "side");
-            var textureFace = GetTextureName(bt, "face");
+            var textureSide = GetTextureName(bt, mcsolid.BlockData, "side");
+            var textureFace = GetTextureName(bt, mcsolid.BlockData, "face");
 
             var solid = CreateSolid(xmin, ymin, mcsolid.Zmin, xmax, ymax, mcsolid.Zmax, textureFace,
                 mcsolid.Orientation == Solid.Orient.X);
@@ -650,17 +650,17 @@ namespace MCSMapConv
 
                 if (mcsolid.Orientation != Solid.Orient.None)
                 {
-                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
+                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, false));
 
                     zmin += 0.375f;
                     zmax += 0.375f;
-                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, false));
+                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, false));
                 }
             }
             else //vertical pillars
             {
                 Map.AddSolid(CreateSolid(mcsolid.Xmin + 0.375f, mcsolid.Ymin + 0.375f, mcsolid.Zmin,
-                    mcsolid.Xmin + 0.625f, mcsolid.Ymin + 0.625f, mcsolid.Zmax, bt, false));
+                    mcsolid.Xmin + 0.625f, mcsolid.Ymin + 0.625f, mcsolid.Zmax, bt, mcsolid.BlockData, false));
             }
         }
 
@@ -750,7 +750,7 @@ namespace MCSMapConv
             float ozmin = zmin + 0.9375f;
             float ozmax = zmax - 0.9375f;
 
-            var door = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, rotate);
+            var door = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, rotate);
             var origin = CreateSolid(oxmin, oymin, ozmin, oxmax, oymax, ozmax, "origin", false);
 
             if (mirror)
@@ -777,7 +777,7 @@ namespace MCSMapConv
             const float thick = 0.01f;
             
             var solids = new List<VHE.Map.Solid>();
-            var texture = GetTextureName(bt);
+            var texture = GetTextureName(bt, mcsolid.BlockData);
 
             var ofs = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
             float xOffset = ofs[0];
@@ -808,16 +808,16 @@ namespace MCSMapConv
         }
 
         private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
-            BlockTexture bt, bool rotate)
+            BlockTexture bt, int blockData, bool rotate)
         {
             var solid = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, (string)null, rotate);
 
-            solid.Faces[0].Texture = GetTextureName(bt, "top", "vert", null);
-            solid.Faces[1].Texture = GetTextureName(bt, "bottom", "vert", null);
-            solid.Faces[2].Texture = GetTextureName(bt, "left", "side", null);
-            solid.Faces[3].Texture = GetTextureName(bt, "rith", "side", null);
-            solid.Faces[4].Texture = GetTextureName(bt, "rear", "side", null);
-            solid.Faces[5].Texture = GetTextureName(bt, "front", "side", null);
+            solid.Faces[0].Texture = GetTextureName(bt, blockData, "top", "vert", null);
+            solid.Faces[1].Texture = GetTextureName(bt, blockData, "bottom", "vert", null);
+            solid.Faces[2].Texture = GetTextureName(bt, blockData, "left", "side", null);
+            solid.Faces[3].Texture = GetTextureName(bt, blockData, "right", "side", null);
+            solid.Faces[4].Texture = GetTextureName(bt, blockData, "rear", "side", null);
+            solid.Faces[5].Texture = GetTextureName(bt, blockData, "front", "side", null);
 
             return solid;
         }
@@ -1060,27 +1060,81 @@ namespace MCSMapConv
             }
         }
 
-        private static string GetTextureName(BlockTexture bt, params string[] keys)
+        /// <summary>
+        /// data = -1 : ignore the data value
+        /// </summary>
+        /// <param name="bt"></param>
+        /// <param name="data"></param>
+        /// <param name="keys"></param>
+        /// <returns></returns>
+        private static string GetTextureName(BlockTexture bt, int data, params string[] keys)
         {
-            if (keys.Length == 0)
+            var mac = "";
+            if (data > -1)
             {
-                return bt.Textures[0].Texture;
+                mac = "$d" + data;
             }
 
-            BlockTexture.TextureKey tk = null;
-
-            foreach (var key in keys)
+            string GetDataTexture(string key = null)
             {
-                tk = bt.Textures.Find(x => x.Key == key);
-                if (tk != null)
+                foreach (var txt in bt.Textures)
                 {
-                    break;
+                    if (txt.Key == null)
+                    {
+                        if (key == null)
+                        {
+                            return txt.Texture;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    var args = txt.Key.Split(' ');
+                    if (args[0] == mac)
+                    {
+                        if (key != null && args.Length > 1)
+                        {
+                            if (args[1] == key)
+                            {
+                                return txt.Texture;
+                            }
+                        }
+                        else
+                        {
+                            return txt.Texture;
+                        }
+                    }
+                    else if (args[0] == key)
+                    {
+                        return txt.Texture;                    
+                    }
+                }
+
+                return null;
+            }
+
+            if (keys.Length == 0)
+            {
+                if (data > 0)
+                {
+                    return GetDataTexture();
+                }
+                else
+                {
+                    return bt.Textures[0].Texture;
                 }
             }
 
-            if (tk != null)
+            foreach (var key in keys)
             {
-                return tk.Texture;
+                var txt = GetDataTexture(key);
+
+                if (txt != null)
+                {
+                    return txt;
+                }
             }
 
             return null;
@@ -1088,6 +1142,11 @@ namespace MCSMapConv
 
         private static VHE.WAD.Texture GetTexture(string textureName)
         {
+            if (textureName == null)
+            {
+                return null;
+            }
+
             foreach (var wad in Wads)
             {
                 var txt = wad.Textures.Find(t => t.Name.ToUpper() == textureName.ToUpper());
@@ -1140,33 +1199,40 @@ namespace MCSMapConv
 
         private static BlockTexture GetBT(int id, int data)
         {
+            int CheckData(BlockTexture bt)
+            {
+                if (bt.DataMask != 0)
+                {
+                    return data & bt.DataMask;
+                }
+                else
+                {
+                    if (bt.DataMax != 0 && data > bt.DataMax)
+                    {
+                        return -1;
+                    }
+                    else
+                    {
+                        return data;
+                    }
+                }
+            }
+
             foreach (var bt in Blocks)
             {
                 if (bt.ID == id)
                 {
                     if (bt.Data == -1) //Ignore the data value
                     {
+                        if (bt.IgnoreExcluded && CheckData(bt) == -1)
+                        {
+                            return new BlockTexture();
+                        }
+
                         return bt;
                     }
 
-                    int dat;
-                    if (bt.DataMask != 0)
-                    {
-                        dat = data & bt.DataMask;
-                    }
-                    else
-                    {
-                        if (bt.DataMax != 0 && data > bt.DataMax)
-                        {
-                            dat = -1;
-                        }
-                        else
-                        {
-                            dat = data;
-                        }
-                    }
-
-                    if (bt.Data == dat)
+                    if (bt.Data == CheckData(bt))
                     {
                         return bt;
                     }
