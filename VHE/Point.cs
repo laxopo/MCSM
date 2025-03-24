@@ -6,22 +6,22 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv.VHE
 {
-    public class Vector : ICloneable
+    public class Point : ICloneable
     {
         public float X { get; set; }
         public float Y { get; set; }
         public float Z { get; set; }
 
-        public Vector() { }
+        public Point() { }
 
-        public Vector(float x, float y, float z)
+        public Point(float x, float y, float z)
         {
             X = x;
             Y = y;
             Z = z;
         }
 
-        public Vector(float[] xyz)
+        public Point(float[] xyz)
         {
             X = xyz[0];
             Y = xyz[1];
@@ -33,9 +33,9 @@ namespace MCSMapConv.VHE
             return MemberwiseClone();
         }
 
-        public Vector Copy()
+        public Point Copy()
         {
-            return Clone() as Vector;
+            return Clone() as Point;
         }
     }
 }

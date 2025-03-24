@@ -9,14 +9,14 @@ namespace MCSMapConv.VHE
     public class Face : ICloneable
     {
         public string Texture { get; set; }
-        public Vector AxisU { get; set; }
-        public Vector AxisV { get; set; }
+        public Point AxisU { get; set; }
+        public Point AxisV { get; set; }
         public float OffsetU { get; set; }
         public float OffsetV{ get; set; }
         public float ScaleU { get; set; }
         public float ScaleV { get; set; }
         public float Rotation { get; set; }
-        public Vector[] Vertexes { get; set; } = new Vector[3];
+        public Point[] Vertexes { get; set; } = new Point[3];
 
         public object Clone()
         {

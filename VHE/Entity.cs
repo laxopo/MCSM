@@ -101,7 +101,7 @@ namespace MCSMapConv.VHE
                             }
                         }
 
-                        Value = new Vector(x, y, z);
+                        Value = new Point(x, y, z);
                         break;
 
                     default:
@@ -139,7 +139,7 @@ namespace MCSMapConv.VHE
                         return buf;
 
                     case Type.Vector:
-                        var vect = Value as Vector;
+                        var vect = Value as Point;
                         return Map.Str(vect.X) + " " + Map.Str(vect.Y) + " " + Map.Str(vect.Z);
 
                     case Type.SolidArray:

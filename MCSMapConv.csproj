@@ -62,7 +62,7 @@
     <Compile Include="VHE\Map.cs" />
     <Compile Include="VHE\Entity.cs" />
     <Compile Include="VHE\Stat.cs" />
-    <Compile Include="VHE\Vector.cs" />
+    <Compile Include="VHE\Point.cs" />
     <Compile Include="VHE\WAD.cs" />
   </ItemGroup>
   <ItemGroup>

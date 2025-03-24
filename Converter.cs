@@ -807,6 +807,12 @@ namespace MCSMapConv
             MapAddObject(solids, bt);
         }
 
+        /*private static VHE.Map.Solid CreateSolidCube(float xl, float yl, float zl, float x, float y, float z, 
+            float rx, float ry, float rz, BlockTexture bt, int blockData)
+        {
+            float t1
+        }*/
+
         private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
             BlockTexture bt, int blockData, bool rotate)
         {
@@ -831,17 +837,17 @@ namespace MCSMapConv
             }
 
             var solid = new VHE.Map.Solid();
-            VHE.Vector au, av;
+            VHE.Point au, av;
 
             if (rotate)
             {
-                au = new VHE.Vector(0, -1, 0);
-                av = new VHE.Vector(-1, 0, 0);
+                au = new VHE.Point(0, -1, 0);
+                av = new VHE.Point(-1, 0, 0);
             }
             else
             {
-                au = new VHE.Vector(1, 0, 0);
-                av = new VHE.Vector(0, -1, 0);
+                au = new VHE.Point(1, 0, 0);
+                av = new VHE.Point(0, -1, 0);
             }
 
             //top
@@ -852,10 +858,10 @@ namespace MCSMapConv
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Vector(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Vector(xmax * CSScale, -ymax * CSScale, zmax * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
+                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
+                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmax * CSScale),
                         }
             });
 
@@ -867,70 +873,70 @@ namespace MCSMapConv
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Vector(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Vector(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
+                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
+                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
                         }
             });
 
             //left
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(0, 1, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(0, 1, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Vector(xmin * CSScale, -ymax * CSScale, zmax * CSScale),
-                            new VHE.Vector(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
+                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmax * CSScale),
+                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
                         }
             });
 
             //right
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(0, 1, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(0, 1, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
-                            new VHE.Vector(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Vector(xmax * CSScale, -ymax * CSScale, zmax * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
+                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
+                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmax * CSScale),
                         }
             });
 
             //rear
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(1, 0, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(1, 0, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Vector(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Vector(xmin * CSScale, -ymin * CSScale, zmin * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
+                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
+                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmin * CSScale),
                         }
             });
 
             //front
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(1, 0, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(1, 0, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Vector(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Vector(xmin * CSScale, -ymax * CSScale, zmax * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
+                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
+                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmax * CSScale),
                         }
             });
 
@@ -945,94 +951,94 @@ namespace MCSMapConv
             //top
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(1, 0, 0),
-                AxisV = new VHE.Vector(0, -1, 0),
+                AxisU = new VHE.Point(1, 0, 0),
+                AxisV = new VHE.Point(0, -1, 0),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = null,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
-                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
-                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
+                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
+                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
                         }
             });
 
             //bottom
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(1, 0, 0),
-                AxisV = new VHE.Vector(0, -1, 0),
+                AxisU = new VHE.Point(1, 0, 0),
+                AxisV = new VHE.Point(0, -1, 0),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = null,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
-                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
-                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
+                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
+                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
                         }
             });
 
             //left
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(0, 1, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(0, 1, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = null,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
-                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
-                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
+                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
+                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
                         }
             });
 
             //right
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(0, 1, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(0, 1, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 Texture = null,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
-                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
-                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
+                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
+                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
                         }
             });
 
             //rear
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(0, 1, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(0, 1, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 OffsetU = uOffset,
                 OffsetV = vOffset,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
-                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
-                            new VHE.Vector(x1 * CSScale, -y1 * CSScale, zmin * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
+                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
+                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmin * CSScale),
                         }
             });
 
             //front
             solid.Faces.Add(new VHE.Face()
             {
-                AxisU = new VHE.Vector(0, 1, 0),
-                AxisV = new VHE.Vector(0, 0, -1),
+                AxisU = new VHE.Point(0, 1, 0),
+                AxisV = new VHE.Point(0, 0, -1),
                 ScaleU = CSScale / TextureSize,
                 ScaleV = CSScale / TextureSize,
                 OffsetU = uOffset,
                 OffsetV = vOffset,
                 Texture = texture,
-                Vertexes = new VHE.Vector[] {
-                            new VHE.Vector(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
-                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
-                            new VHE.Vector(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
+                Vertexes = new VHE.Point[] {
+                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
+                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
+                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
                         }
             });
 
