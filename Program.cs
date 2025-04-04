@@ -37,7 +37,7 @@ namespace MCSMapConv
             }
             
             Console.WriteLine("Press \"Esc\" to exit");
-            while (Console.ReadKey().Key != ConsoleKey.Escape) ;
+            //while (Console.ReadKey().Key != ConsoleKey.Escape) ;
         }
     }
 }

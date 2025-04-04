@@ -130,7 +130,24 @@ namespace MCSMapConv.VHE
 
         public static string Str(object value)
         {
-            var buf = value.ToString();
+            string buf;
+
+            if (value is double || value is float)
+            {
+                var val = (float)value;
+
+                if(float.IsNaN(val) || float.IsInfinity(val))
+                {
+                    throw new Exception("Invalid float value");
+                }
+
+                buf = val.ToString("0.########");
+            }
+            else
+            {
+                buf = value.ToString();
+            }
+
             buf = buf.Replace(',', '.');
             return buf;
         }
@@ -169,16 +186,24 @@ namespace MCSMapConv.VHE
             GetParameter(className, paramName).Value = value;
         }
 
-        public void AddSolid(string className, Solid solid)
+        public void AddSolids(string className, List<Solid> solids)
         {
-            var param = GetParameter(className, "Solids");
+            solids.ForEach(x => AddSolid(className, x));
+        }
 
-            (param.Value as List<Solid>).Add(solid);
+        public void AddSolids(List<Solid> solids)
+        {
+            solids.ForEach(x => AddSolid(x));
         }
 
         public void AddSolid(Solid solid)
         {
-            var param = GetParameter("worldspawn", "Solids");
+            AddSolid("worldspawn", solid);
+        }
+
+        public void AddSolid(string className, Solid solid)
+        {
+            var param = GetParameter(className, "Solids");
 
             (param.Value as List<Solid>).Add(solid);
         }

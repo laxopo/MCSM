@@ -13,7 +13,7 @@ namespace MCSMapConv
     {
         public static bool Debuging = false;
         public static float CSScale = 37;
-        public static float TextureSize = 128;
+        public static float TextureRes = 128;
         public static bool SkyBoxEnable = true;
 
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
@@ -25,10 +25,11 @@ namespace MCSMapConv
         private static List<VHE.WAD> Wads;
         private static List<EntityTemplate> SignEntities;
         private static List<EntityTemplate> SolidEntities;
+        private static List<Model> Models;
 
         private static World MCWorld;
         private static VHE.Map Map;
-        private static List<Solid> Solids;
+        private static List<BlockGroup> BlockGroups;
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, "models.json"},
@@ -61,10 +62,86 @@ namespace MCSMapConv
             Zmax = mczmax;
 
             LoadResources(Resources.All);
+            Modelling.Initialize(CSScale, TextureRes, Map, Wads, Models, SolidEntities);
 
             Map = new VHE.Map();
             Map.AddString("worldspawn", "wad", @"\cstrike\minecraft.wad");
-            Solids = new List<Solid>();
+            BlockGroups = new List<BlockGroup>();
+
+            /*TEST*/
+            /*var bas = new Model()
+            {
+                Solids =
+                {
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(4, 4, 1),
+                        OriginAlign = new VHE.Point(0, 0, -1)
+                    }
+                },
+                Position = new VHE.Point(0, 0, 0)
+            };
+
+            var btx = Blocks.Find(t => t.ID == 1);
+
+            var mdl = new Model()
+            {
+                Solids =
+                {
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(1.41f, 0.01f, 2),
+                        Offset = new VHE.Point(0.4f, 0.5f, 0),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Rotation = new VHE.Point(0, 0, -45),
+                        Faces = new Model.Face[]
+                        {
+                            new Model.Face(Model.Faces.Front)
+                            {
+                                StretchU = true,
+                                Frame = true,
+                            },
+                            new Model.Face(Model.Faces.Rear)
+                            {
+                                StretchU = true,
+                                Frame = true,
+                            }
+                        }
+                    },
+                },
+                Position = new VHE.Point(1, 1, 0)
+            };
+
+            var mdl2 = new Model()
+            {
+                Solids =
+                {
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(1.41f, 0.01f, 2),
+                        Offset = new VHE.Point(0.3f, 0.45f, 0.85f),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Rotation = new VHE.Point(0, 0, -45),
+                        Faces = new Model.Face[]
+                        {
+                            new Model.Face(Model.Faces.Front)
+                            {
+                                StretchU = true,
+                                //Frame = true,
+                            }
+                        }
+                    },
+                },
+                Position = new VHE.Point(1, 1, 0)
+            };
+
+            Map.AddSolid(Modelling.GenerateSolid(mdl, "brick2"));
+            //Map.AddSolid(Modelling.GenerateSolid(mdl2, "brick2"));
+
+            Map.AddSolid(Modelling.GenerateSolid(bas, "blockgold"));
+            //Map.AddSolid(Modelling.CreateSolid(new VHE.Point(4, 0, 0), ms, new string[] { "!lava" }));
+            return Map;
+            /*TEST END*/
 
             var missings = new BlockMissMsg();
             
@@ -127,7 +204,7 @@ namespace MCSMapConv
                             {
                                 case "PANE":
                                 case "FENCE":
-                                    SolidPaneFence(block, bt, x, y, z);
+                                    GroupPaneFence(block, bt, x, y, z);
                                     block.ID = 0;
                                     break;
 
@@ -143,47 +220,47 @@ namespace MCSMapConv
                                         {
                                             data = block.Data + 8;
                                         }
-                                        Solids.Add(new Solid(block.ID, data, x, y, z) { 
-                                            Type = Solid.SolidType.Door
+                                        BlockGroups.Add(new BlockGroup(block.ID, data, x, y, z) { 
+                                            Type = BlockGroup.SolidType.Door
                                         });
                                     }
                                     block.ID = 0;
                                     break;
 
                                 case "GRASS":
-                                    var grassSld = new Solid(block.ID, block.Data, x, y, z) { 
-                                        Type = Solid.SolidType.Grass,
+                                    var grassSld = new BlockGroup(block.ID, block.Data, x, y, z) { 
+                                        Type = BlockGroup.SolidType.Grass,
                                     };
-                                    var txt = GetTexture(GetTextureName(bt, block.Data));
+                                    var txt = Modelling.GetTexture(Wads, bt.GetTextureName(block.Data));
                                     if (txt != null && txt.Height != -1)
                                     {
-                                        int h = txt.Height / (int)TextureSize;
+                                        int h = txt.Height / (int)TextureRes;
                                         if (h != 0)
                                         {
                                             grassSld.Zmax = grassSld.Zmin + h;
                                         }
                                     }
-                                    Solids.Add(grassSld);
+                                    BlockGroups.Add(grassSld);
                                     block.ID = 0;
                                     break;
                             }
                         }
 
                         //Normal block
-                        SolidNormal(block, x, y, z, btm);
+                        GroupNormal(block, x, y, z, btm);
 
                         if (Debuging)
                         {
                             Debug(x, y, z);
                         }
                     }
-                    Solids.ForEach(x => x.XClosed = true);
+                    BlockGroups.ForEach(x => x.XClosed = true);
 
                 }
-                Solids.ForEach(x => x.YClosed = true);
+                BlockGroups.ForEach(x => x.YClosed = true);
 
             }
-            Solids.ForEach(x => x.ZClosed = true);
+            BlockGroups.ForEach(x => x.ZClosed = true);
 
             if (Debuging)
             {
@@ -192,7 +269,7 @@ namespace MCSMapConv
 
             //Generate cs solids
             Aborted = false;
-            foreach (var mcsolid in Solids)
+            foreach (var mcsolid in BlockGroups)
             {
             pBegin:
                 var bt = GetBT(mcsolid.BlockID, mcsolid.BlockData);
@@ -243,25 +320,29 @@ namespace MCSMapConv
 
                 switch (mcsolid.Type)
                 {
-                    case Solid.SolidType.Normal:
-                    case Solid.SolidType.Liquid:
+                    case BlockGroup.SolidType.Normal:
+                    case BlockGroup.SolidType.Liquid:
                         GenerateModelNormal(mcsolid, bt);
                         break;
 
-                    case Solid.SolidType.Pane:
+                    case BlockGroup.SolidType.Pane:
                         GenerateModelPane(mcsolid, bt);
                         break;
 
-                    case Solid.SolidType.Fence:
+                    case BlockGroup.SolidType.Fence:
                         GenerateModelFence(mcsolid, bt);
                         break;
 
-                    case Solid.SolidType.Door:
+                    case BlockGroup.SolidType.Door:
                         GenerateModelDoor(mcsolid, bt);
                         break;
 
-                    case Solid.SolidType.Grass:
+                    case BlockGroup.SolidType.Grass:
                         GenerateModelGrass(mcsolid, bt);
+                        break;
+
+                    case BlockGroup.SolidType.Special:
+                        GenerateModelSpecial(mcsolid, bt);
                         break;
 
                     default:
@@ -274,31 +355,64 @@ namespace MCSMapConv
             {
                 var sbx = Xmax - Xmin + 1;
                 var sby = Zmax - Zmin + 1;
-                var sbz = Ymax - Ymin + 1; 
+                var sbz = Ymax - Ymin + 1;
 
-                Map.AddSolid(CreateSolid(-1, -1, 0, sbx + 1, 0, sbz + 1, "SKY", false));
-                Map.AddSolid(CreateSolid(-1, sby, 0, sbx + 1, sby + 1, sbz + 1, "SKY", false));
-                Map.AddSolid(CreateSolid(-1, 0, 0, 0, sby, sbz + 1, "SKY", false));
-                Map.AddSolid(CreateSolid(sbx, 0, 0, sbx + 1, sby, sbz + 1, "SKY", false));
-                Map.AddSolid(CreateSolid(0, 0, sbz, sbx, sby, sbz + 1, "SKY", false));
-                Map.AddSolid(CreateSolid(-1, -1, -1, sbx + 1, sby + 1, 0, "SKY", false));
+                var model = new Model()
+                {
+                    Position = new VHE.Point(),
+                    Solids = new List<Model.Solid>()
+                    {
+                        new Model.Solid()
+                        {
+                            Offset = new VHE.Point(0, -1, 0),
+                            Size = new VHE.Point(sbx, 1, sbz),
+                        },
+                        new Model.Solid()
+                        {
+                            Offset = new VHE.Point(sbx, -1, 0),
+                            Size = new VHE.Point(1, sby + 2, sbz),
+                        },
+                        new Model.Solid()
+                        {
+                            Offset = new VHE.Point(0, sby, 0),
+                            Size = new VHE.Point(sbx, 1, sbz),
+                        },
+                        new Model.Solid()
+                        {
+                            Offset = new VHE.Point(-1, -1, 0),
+                            Size = new VHE.Point(1, sby + 2, sbz),
+                        },
+                        new Model.Solid()
+                        {
+                            Offset = new VHE.Point(-1, -1, sbz),
+                            Size = new VHE.Point(sbx + 2, sby + 2, 1),
+                        },
+                        new Model.Solid()
+                        {
+                            Offset = new VHE.Point(-1, -1, -1),
+                            Size = new VHE.Point(sbx + 2, sby + 2, 1),
+                        }
+                    }
+                };
+
+                Map.AddSolids(Modelling.GenerateSolids(model, "sky"));
             }
 
             return Map;
         }
 
-        private static void SolidPaneFence(Block block, BlockTexture bt, int x, int y, int z)
+        private static void GroupPaneFence(Block block, BlockTexture bt, int x, int y, int z)
         {
             bool px = false, py = false;
-            var model = Solid.SType[bt.Model.ToUpper()];
+            var model = BlockGroup.SType[bt.Model.ToUpper()];
 
             //X
-            var paneX = Solids.Find(p => p.Type == model && !p.XClosed &&
-                p.Xmax == x && p.Ymin == y && p.Orientation != Solid.Orient.Y && p.BlockID == block.ID);
+            var paneX = BlockGroups.Find(p => p.Type == model && !p.XClosed &&
+                p.Xmax == x && p.Ymin == y && p.Orientation != BlockGroup.Orient.Y && p.BlockID == block.ID);
 
             if (paneX == null) //create new pane
             {
-                paneX = new Solid(block.ID, block.Data, x, y, z);
+                paneX = new BlockGroup(block.ID, block.Data, x, y, z);
                 paneX.Type = model;
 
                 //X
@@ -312,7 +426,7 @@ namespace MCSMapConv
 
                 if (px)
                 {
-                    paneX.Orientation = Solid.Orient.X;
+                    paneX.Orientation = BlockGroup.Orient.X;
                     paneX.XBegTouch = nbmx;
                     paneX.XEndTouch = nbpx && bpx.ID != block.ID;
                     paneX.XClosed = bpx.ID != block.ID;
@@ -320,7 +434,7 @@ namespace MCSMapConv
                     if (!PaneMerge(paneX, z))
                     {
                         //create new pane
-                        Solids.Add(paneX);
+                        BlockGroups.Add(paneX);
                     }
                 }
             }
@@ -347,12 +461,12 @@ namespace MCSMapConv
 
 
             //Y
-            var paneY = Solids.Find(p => p.Type == model && !p.YClosed &&
-                p.Ymax == y && p.Xmin == x && p.Orientation != Solid.Orient.X && p.BlockID == block.ID);
+            var paneY = BlockGroups.Find(p => p.Type == model && !p.YClosed &&
+                p.Ymax == y && p.Xmin == x && p.Orientation != BlockGroup.Orient.X && p.BlockID == block.ID);
 
             if (paneY == null) //create new pane
             {
-                paneY = new Solid(block.ID, block.Data, x, y, z);
+                paneY = new BlockGroup(block.ID, block.Data, x, y, z);
                 paneY.Type = model;
 
                 //Y
@@ -366,7 +480,7 @@ namespace MCSMapConv
 
                 if (py)
                 {
-                    paneY.Orientation = Solid.Orient.Y;
+                    paneY.Orientation = BlockGroup.Orient.Y;
                     paneY.YBegTouch = nbmy;
                     paneY.YEndTouch = nbpy && bpy.ID != block.ID;
                     paneY.YClosed = bpy.ID != block.ID;
@@ -374,7 +488,7 @@ namespace MCSMapConv
                     if (!PaneMerge(paneY, z))
                     {
                         //create new pane
-                        Solids.Add(paneY);
+                        BlockGroups.Add(paneY);
                     }
                 }
             }
@@ -405,21 +519,21 @@ namespace MCSMapConv
                 if (!PaneMerge(paneY, z))
                 {
                     //create new pane
-                    Solids.Add(paneY);
+                    BlockGroups.Add(paneY);
                 }
             }
 
             //Z
-            if (model == Solid.SolidType.Fence)
+            if (model == BlockGroup.SolidType.Fence)
             {
-                var pillar = Solids.Find(p => p.Type == model && !p.ZClosed && p.BlockID == block.ID &&
-                    p.Orientation == Solid.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
+                var pillar = BlockGroups.Find(p => p.Type == model && !p.ZClosed && p.BlockID == block.ID &&
+                    p.Orientation == BlockGroup.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
 
                 if (pillar == null)
                 {
-                    pillar = new Solid(block.ID, block.Data, x, y, z);
+                    pillar = new BlockGroup(block.ID, block.Data, x, y, z);
                     pillar.Type = model;
-                    pillar.Orientation = Solid.Orient.Z;
+                    pillar.Orientation = BlockGroup.Orient.Z;
 
                     var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
                     var btmy = Blocks.Find(e => e.ID == bpz.ID);
@@ -428,7 +542,7 @@ namespace MCSMapConv
                         pillar.ZClosed = true;
                     }
 
-                    Solids.Add(pillar);
+                    BlockGroups.Add(pillar);
                 }
                 else
                 {
@@ -443,13 +557,13 @@ namespace MCSMapConv
             }
         }
 
-        private static void SolidNormal(Block block, int x, int y, int z, BlockTexture bt)
+        private static void GroupNormal(Block block, int x, int y, int z, BlockTexture bt)
         {
             bool found = false;
-            Solid[] cuts = new Solid[2];
-            foreach (var solid in Solids)
+            BlockGroup[] cuts = new BlockGroup[2];
+            foreach (var solid in BlockGroups)
             {
-                if (solid.Type != Solid.SolidType.Normal && solid.Type != Solid.SolidType.Liquid)
+                if (solid.Type != BlockGroup.SolidType.Normal && solid.Type != BlockGroup.SolidType.Liquid)
                 {
                     continue;
                 }
@@ -480,33 +594,33 @@ namespace MCSMapConv
             {
                 if (cut != null)
                 {
-                    Solids.Add(cut);
+                    BlockGroups.Add(cut);
                     added = true;
                 }
             }
 
             if (!found && block.ID != 0)
             {
-                Solids.Add(new Solid(block.ID, block.Data, x, y, z) { 
+                BlockGroups.Add(new BlockGroup(block.ID, block.Data, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
-                var last = Solids.Last();
-                Solids.Remove(last);
-                Solids.Insert(0, last);
+                var last = BlockGroups.Last();
+                BlockGroups.Remove(last);
+                BlockGroups.Insert(0, last);
                 added = true;
             }
 
             if (added)
             {
                 int idmax = -1;
-                foreach (var sld in Solids)
+                foreach (var sld in BlockGroups)
                 {
                     if (sld.TestID > idmax || (sld.TestID != -1 && idmax == -1))
                     {
                         idmax = sld.TestID;
                     }
                 }
-                foreach (var sld in Solids)
+                foreach (var sld in BlockGroups)
                 {
                     if (sld.TestID == -1)
                     {
@@ -516,89 +630,149 @@ namespace MCSMapConv
             }
         }
 
-        private static void GenerateModelNormal(Solid mcsolid, BlockTexture bt)
+        private static void GenerateModelNormal(BlockGroup mcsolid, BlockTexture bt)
         {
-            float xmin = mcsolid.Xmin, ymin = mcsolid.Ymin, zmin = mcsolid.Zmin,
-                xmax = mcsolid.Xmax, ymax = mcsolid.Ymax, zmax = mcsolid.Zmax;
-
-            if (mcsolid.Type == Solid.SolidType.Liquid)
+            var model = new Model()
             {
-                zmax -= 0.125f;
+                Solids = 
+                { 
+                    new Model.Solid() 
+                    {
+                        Size = new VHE.Point(
+                        mcsolid.Xmax - mcsolid.Xmin,
+                        mcsolid.Ymax - mcsolid.Ymin,
+                        mcsolid.Zmax - mcsolid.Zmin)
+                    } 
+                }
+            };
+
+            if (mcsolid.Type == BlockGroup.SolidType.Liquid)
+            {
+                model.Solids[0].Size.Z -= 0.125f;
             }
 
-            var solid = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, false);
-            MapAddObject(solid, bt);
+            MapAddObject(Modelling.GenerateSolid(bt, mcsolid, model), bt);
         }
 
-        private static void GenerateModelPane(Solid mcsolid, BlockTexture bt)
+        private static void GenerateModelPane(BlockGroup mcsolid, BlockTexture bt)
         {
-            float xmin = mcsolid.Xmin + 0.4375f;
-            float ymin = mcsolid.Ymin + 0.4375f;
-            float xmax = mcsolid.Xmax - 0.4375f;
-            float ymax = mcsolid.Ymax - 0.4375f;
+            const float th = 0.125f;
 
-            if (mcsolid.Orientation == Solid.Orient.X)
+            float edgeOffset = 0.5f - th / 2;
+            float length = th, rot = 0;
+            float beg = 0, end = 0;
+            VHE.Point align = new VHE.Point(0, 0, 1);
+            VHE.Point offset = new VHE.Point(0.5f, 0.5f, 0);
+            var face = bt.GetTextureName("face", null);
+            var edge = bt.GetTextureName("edge", null);
+            string tl = face, tr = face, tf = face;
+
+            var bti = bt.Copy();
+            bti.Textures = new List<BlockTexture.TextureKey>() { 
+                new BlockTexture.TextureKey() 
+                { 
+                    Key = "vert",
+                    Texture = edge
+                }
+            };
+
+            switch (mcsolid.Orientation)
             {
-                if (mcsolid.XBegTouch)
-                {
-                    xmin = mcsolid.Xmin;
-                }
-                if (mcsolid.XEndTouch)
-                {
-                    xmax = mcsolid.Xmax;
-                }
+                case BlockGroup.Orient.X:
+                    if (!mcsolid.XBegTouch)
+                    {
+                        beg = edgeOffset;
+                    }
+                    else
+                    {
+                        tl = edge;
+                    }
+                    if (!mcsolid.XEndTouch)
+                    {
+                        end = edgeOffset;
+                    }
+                    else
+                    {
+                        tr = edge;
+                    }
+                    length = mcsolid.Xmax - mcsolid.Xmin - beg - end;
+                    align = new VHE.Point(1, 0, 1);
+                    offset = new VHE.Point(beg, 0.5f, 0);
+                    break;
+
+                case BlockGroup.Orient.Y:
+                    if (!mcsolid.YBegTouch)
+                    {
+                        beg = edgeOffset;
+                    }
+                    else
+                    {
+                        tl = edge;
+                    }
+                    if (!mcsolid.YEndTouch)
+                    {
+                        end = edgeOffset;
+                    }
+                    else
+                    {
+                        tr = edge;
+                    }
+                    length = mcsolid.Ymax - mcsolid.Ymin - beg - end;
+                    align = new VHE.Point(1, 0, 1);
+                    offset = new VHE.Point(0.5f, beg, 0);
+                    rot = 90;
+                    break;
             }
-            else if (mcsolid.Orientation == Solid.Orient.Y)
+
+            bti.Textures.Add(new BlockTexture.TextureKey()
             {
-                if (mcsolid.YBegTouch)
-                {
-                    ymin = mcsolid.Ymin;
-                }
-                if (mcsolid.YEndTouch)
-                {
-                    ymax = mcsolid.Ymax;
-                }
-            }
-
-            var textureSide = GetTextureName(bt, mcsolid.BlockData, "side");
-            var textureFace = GetTextureName(bt, mcsolid.BlockData, "face");
-
-            var solid = CreateSolid(xmin, ymin, mcsolid.Zmin, xmax, ymax, mcsolid.Zmax, textureFace,
-                mcsolid.Orientation == Solid.Orient.X);
-
-            solid.Faces[0].Texture = textureSide;
-            solid.Faces[1].Texture = textureSide;
-
-            if (mcsolid.Orientation == Solid.Orient.X)
+                Key = "face",
+                Texture = tf
+            });
+            bti.Textures.Add(new BlockTexture.TextureKey()
             {
-                if (mcsolid.XBegTouch)
-                {
-                    solid.Faces[2].Texture = textureSide;
-                }
-                if (mcsolid.XEndTouch)
-                {
-                    solid.Faces[3].Texture = textureSide;
-                }
-            }
-            else if (mcsolid.Orientation == Solid.Orient.Y)
+                Key = "left",
+                Texture = tl
+            });
+            bti.Textures.Add(new BlockTexture.TextureKey()
             {
-                if (mcsolid.YBegTouch)
-                {
-                    solid.Faces[5].Texture = textureSide;
-                }
-                if (mcsolid.YEndTouch)
-                {
-                    solid.Faces[4].Texture = textureSide;
-                }
-            }
+                Key = "right",
+                Texture = tr
+            });
 
-            MapAddObject(solid, bt);
+            var model = new Model() {
+                Solids = 
+                { 
+                    new Model.Solid() 
+                    {
+                        Size = new VHE.Point(length, th, mcsolid.Zmax - mcsolid.Zmin),
+                        Rotation = new VHE.Point(0, 0, rot),
+                        OriginAlign = align,
+                        Offset = offset,
+                        TextureLockOffsets = true,
+                        Faces = new List<Model.Face>
+                        {
+                            new Model.Face(Model.Faces.Top)
+                            {
+                                Rotation = 90
+                            },
+                            new Model.Face(Model.Faces.Bottom)
+                            {
+                                Rotation = 90
+                            }
+                        }
+                    }
+                }
+            };
+
+            var solid = Modelling.GenerateSolid(bti, mcsolid, model);
+            MapAddObject(solid, bti);
         }
 
-        private static void GenerateModelFence(Solid mcsolid, BlockTexture bt)
+        private static void GenerateModelFence(BlockGroup mcsolid, BlockTexture bt)
         {
             //horizontal crossbars
-            if (mcsolid.Orientation != Solid.Orient.Z)
+            if (mcsolid.Orientation != BlockGroup.Orient.Z)
             {
                 float zmin = mcsolid.Zmin + 0.375f;
                 float zmax = mcsolid.Zmin + 0.5625f;
@@ -607,7 +781,7 @@ namespace MCSMapConv
                 float ymin = mcsolid.Ymin + 0.4375f;
                 float ymax = mcsolid.Ymax - 0.4375f;
 
-                if (mcsolid.Orientation == Solid.Orient.X)
+                if (mcsolid.Orientation == BlockGroup.Orient.X)
                 {
                     if (mcsolid.XBegTouch)
                     {
@@ -627,7 +801,7 @@ namespace MCSMapConv
                         xmax = mcsolid.Xmax - 0.5f;
                     }
                 }
-                else if (mcsolid.Orientation == Solid.Orient.Y)
+                else if (mcsolid.Orientation == BlockGroup.Orient.Y)
                 {
                     if (mcsolid.YBegTouch)
                     {
@@ -648,184 +822,232 @@ namespace MCSMapConv
                     }
                 }
 
-                if (mcsolid.Orientation != Solid.Orient.None)
+                if (mcsolid.Orientation != BlockGroup.Orient.None)
                 {
-                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, false));
+                    var mdl = new Model() {
+                        Solids = { new Model.Solid() {
+                            Size = new VHE.Point(xmax - xmin, ymax - ymin, zmax - zmin),
+                            TextureLockOffsets = true
+                            } 
+                        },
+                        Position = new VHE.Point(xmin, ymin, zmin),
+                    };
+                    Map.AddSolid(Modelling.GenerateSolid(bt, mcsolid, mdl));
 
-                    zmin += 0.375f;
-                    zmax += 0.375f;
-                    Map.AddSolid(CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, false));
+                    mdl.Position.Z += 0.375f;
+                    Map.AddSolid(Modelling.GenerateSolid(bt, mcsolid, mdl));
                 }
             }
             else //vertical pillars
             {
-                Map.AddSolid(CreateSolid(mcsolid.Xmin + 0.375f, mcsolid.Ymin + 0.375f, mcsolid.Zmin,
-                    mcsolid.Xmin + 0.625f, mcsolid.Ymin + 0.625f, mcsolid.Zmax, bt, mcsolid.BlockData, false));
+                var mdl = new Model() {
+                    Solids = {
+                        new Model.Solid() {
+                            Size = new VHE.Point(0.25f, 0.25f, mcsolid.Zmax - mcsolid.Zmin),
+                            Offset = new VHE.Point(0.375f, 0.375f, 0),
+                            TextureLockOffsets = true
+                        },
+                    },       
+                };
+                Map.AddSolid(Modelling.GenerateSolid(bt, mcsolid, mdl));
             }
         }
 
-        private static void GenerateModelDoor(Solid mcsolid, BlockTexture bt)
+        private static void GenerateModelDoor(BlockGroup mcsolid, BlockTexture bt)
         {
-            float xmin = mcsolid.Xmin, xmax = mcsolid.Xmax, 
-                ymin = mcsolid.Ymin, ymax = mcsolid.Ymax, 
-                zmin = mcsolid.Zmin, zmax = mcsolid.Zmax + 1;
+            const float th = 0.1875f;
 
-            float oxmin = 0, oymin = 0;
-
-            bool mirror = false, rotate = false, offset = false;
+            float rotate = 0, orx = 0, ory = 0;
+            bool mirror = false;
 
             switch (mcsolid.BlockData)
             {
                 case 0:
                 case 13:
-                    xmax -= 0.8125f;
-                    oxmin = xmin + 0.03125f;
-                    oymin = ymin - 0.0625f;
+                    rotate = 270;
                     mirror = true;
                     break;
 
                 case 1:
                 case 14:
-                    ymax -= 0.8125f;
-                    oxmin = xmax - 0.0625f;
-                    oymin = ymin + 0.03125f;
                     mirror = true;
-                    rotate = true;
                     break;
 
                 case 2:
                 case 15:
-                    xmin += 0.8125f;
-                    oxmin = xmin + 0.03125f;
-                    oymin = ymax - 0.0625f;
-                    offset = true;
+                    rotate = 90;
+                    mirror = true;
                     break;
 
                 case 3:
                 case 12:
-                    ymin += 0.8125f;
-                    oxmin = xmin - 0.0625f;
-                    oymin = ymin + 0.03125f;
-                    rotate = true;
-                    offset = true;
+                    rotate = 180;
+                    mirror = true;
                     break;
 
                 case 4:
                 case 9:
-                    ymax -= 0.8125f;
-                    oxmin = xmin - 0.0625f;
-                    oymin = ymin + 0.03125f;
-                    rotate = true;
                     break;
 
                 case 5:
                 case 10:
-                    xmin += 0.8125f;
-                    oxmin = xmin + 0.03125f;
-                    oymin = ymin - 0.0625f;
-                    mirror = true;
-                    offset = true;
+                    rotate = 90;
                     break;
 
                 case 6:
                 case 11:
-                    ymin += 0.8125f;
-                    oxmin = xmax - 0.0625f;
-                    oymin = ymin + 0.03125f;
-                    mirror = true;
-                    rotate = true;
-                    offset = true;
+                    rotate = 180;
                     break;
 
                 case 7:
                 case 8:
-                    xmax -= 0.8125f;
-                    oxmin = xmin + 0.03125f;
-                    oymin = ymax - 0.0625f;
+                    rotate = 270;
                     break;
             }
 
-            float oxmax = oxmin + 0.125f;
-            float oymax = oymin + 0.125f;
-            float ozmin = zmin + 0.9375f;
-            float ozmax = zmax - 0.9375f;
-
-            var door = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, bt, mcsolid.BlockData, rotate);
-            var origin = CreateSolid(oxmin, oymin, ozmin, oxmax, oymax, ozmax, "origin", false);
-
             if (mirror)
             {
-                door.Faces[2].MirrorTexture();
-                door.Faces[3].MirrorTexture();
-                door.Faces[4].MirrorTexture();
-                door.Faces[5].MirrorTexture();
+                Modelling.RotatingOffset(ref orx, ref ory, rotate);
             }
-
-            if (offset)
-            {
-                door.Faces[0].OffsetU = 0.1875f * TextureSize;
-                door.Faces[1].OffsetU = 0.1875f * TextureSize;
-            }
-
-            var solids = new List<VHE.Map.Solid>() { door, origin };
-
-            MapAddObject(solids, bt);
-        }
-
-        private static void GenerateModelGrass(Solid mcsolid, BlockTexture bt)
-        {
-            const float thick = 0.01f;
             
-            var solids = new List<VHE.Map.Solid>();
-            var texture = GetTextureName(bt, mcsolid.BlockData);
+            var model = new Model()
+            {
+                Solids =
+                {
+                    new Model.Solid() //door
+                    {
+                        Size = new VHE.Point(1, th, 2),
+                        OriginAlign = new VHE.Point(1, 1, 1),
+                        OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
+                        Rotation = new VHE.Point(0, 0, rotate),
+                        TextureOriented = true,
+                        Faces = new List<Model.Face>
+                        {
+                            new Model.Face(Model.Faces.Front)
+                            {
+                                MirrorV = mirror
+                            },
+                            new Model.Face(Model.Faces.Rear)
+                            {
+                                MirrorV = mirror
+                            },
+                            new Model.Face(Model.Faces.Top)
+                            {
+                                Rotation = 90
+                            },
+                            new Model.Face(Model.Faces.Bottom)
+                            {
+                                Rotation = 90
+                            }
+                        }
+                    },
+                    new Model.Solid() //origin
+                    {
+                        Size = new VHE.Point(0.125f, 0.125f, 0.125f),
+                        Offset = new VHE.Point(0 + orx, th / 2 + ory, 1),
+                        OriginAlign = new VHE.Point(0, 0, 0),
+                        OriginRotOffset = new VHE.Point(0.5f, 0.5f - th / 2, 0),
+                        Rotation = new VHE.Point(0, 0, rotate),
+                        Textures =
+                        {
+                            new BlockTexture.TextureKey()
+                            {
+                                Texture = "origin"
+                            }
+                        }
+                    }
+                },
+            };
 
-            var ofs = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
-            float xOffset = ofs[0];
-            float yOffset = ofs[1];
-            float tOffset = thick * 0.707107f;
-
-            float zmin = mcsolid.Zmin;
-            float zmax = mcsolid.Zmax;
-
-            float x1 = mcsolid.Xmin + xOffset;
-            float y1 = mcsolid.Ymin + yOffset;
-            float x2 = x1 - tOffset;
-            float y2 = y1 + tOffset;
-            float x4 = mcsolid.Xmax + xOffset;
-            float y4 = mcsolid.Ymax + yOffset;
-            float x3 = x4 - tOffset;
-            float y3 = y4 + tOffset;
-
-            float h = zmax - zmin;
-            float p = TextureSize / 16;
-            float uOffset = -(p + 2 * p * mcsolid.Ymin) + yOffset * TextureSize;
-            float vOffset = -(p + 2 * p * zmin / h) + zmin % h * (p + TextureSize);
-
-            solids.Add(CreateSolidAngle(x1, y1, x2, y2, x3, y3, x4, y4, zmin, zmax, texture, uOffset, vOffset));
-            solids.Add(CreateSolidAngle(x2, y4, x1, y3, x4, y2, x3, y1, zmin, zmax, texture, uOffset, vOffset));
-
-            MapAddObject(solids, bt);
+            MapAddObject(Modelling.GenerateSolids(bt, mcsolid, model), bt);
         }
 
-        /*private static VHE.Map.Solid CreateSolidCube(float xl, float yl, float zl, float x, float y, float z, 
-            float rx, float ry, float rz, BlockTexture bt, int blockData)
+        private static void GenerateModelGrass(BlockGroup mcsolid, BlockTexture bt)
         {
-            float t1
-        }*/
+            float len = (float)Math.Sqrt(2);
 
-        private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
-            BlockTexture bt, int blockData, bool rotate)
+            var worldOffset = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
+            var texture = Modelling.GetTexture(Wads, bt.GetTextureName(mcsolid.BlockData));
+            float height = texture.Height / (int)TextureRes;
+
+            var model = new Model()
+            {
+                Solids =
+                {
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(len, 0, height),
+                        Offset = new VHE.Point(0.5f + worldOffset[0], 0.5f + worldOffset[1], 0),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Rotation = new VHE.Point(0, 0, 45),
+                        TextureOriented = true,
+                        TexturedFaces = new Model.Faces[]
+                        {
+                            Model.Faces.Front,
+                            Model.Faces.Rear
+                        },
+                        Faces = new List<Model.Face>
+                        {
+                            new Model.Face(Model.Faces.Front)
+                            {
+                                StretchU = true,
+                                Frame = true,
+                            },
+                            new Model.Face(Model.Faces.Rear)
+                            {
+                                StretchU = true,
+                                Frame = true,
+                            }
+                        }
+                    },
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(len, 0, height),
+                        Offset = new VHE.Point(0.5f + worldOffset[0], 0.5f + worldOffset[1], 0),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Rotation = new VHE.Point(0, 0, -45),
+                        TextureOriented = true,
+                        TexturedFaces = new Model.Faces[]
+                        {
+                            Model.Faces.Front,
+                            Model.Faces.Rear
+                        },
+                        Faces = new List<Model.Face>
+                        {
+                            new Model.Face(Model.Faces.Front)
+                            {
+                                StretchU = true,
+                                Frame = true,
+                            },
+                            new Model.Face(Model.Faces.Rear)
+                            {
+                                StretchU = true,
+                                Frame = true,
+                            }
+                        }
+                    }
+                },
+            };
+
+            MapAddObject(Modelling.GenerateSolids(bt, mcsolid, model), bt);
+        }
+
+        private static void GenerateModelSpecial(BlockGroup mcsolid, BlockTexture bt)
         {
-            var solid = CreateSolid(xmin, ymin, zmin, xmax, ymax, zmax, (string)null, rotate);
+            var model = Models.Find(x => x.Name == bt.ModelName);
 
-            solid.Faces[0].Texture = GetTextureName(bt, blockData, "top", "vert", null);
-            solid.Faces[1].Texture = GetTextureName(bt, blockData, "bottom", "vert", null);
-            solid.Faces[2].Texture = GetTextureName(bt, blockData, "left", "side", null);
-            solid.Faces[3].Texture = GetTextureName(bt, blockData, "right", "side", null);
-            solid.Faces[4].Texture = GetTextureName(bt, blockData, "rear", "side", null);
-            solid.Faces[5].Texture = GetTextureName(bt, blockData, "front", "side", null);
+            if (bt.WorldOffset)
+            {
+                var worldOffset = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
+                
+                foreach (var sld in model.Solids)
+                {
+                    sld.Offset.X += worldOffset[0];
+                    sld.Offset.Y += worldOffset[1];
+                }
+            }
 
-            return solid;
+            MapAddObject(Modelling.GenerateSolids(bt, mcsolid, model), bt);
         }
 
         private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
@@ -855,8 +1077,8 @@ namespace MCSMapConv
             {
                 AxisU = au,
                 AxisV = av,
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
+                ScaleU = CSScale / TextureRes,
+                ScaleV = CSScale / TextureRes,
                 Texture = texture,
                 Vertexes = new VHE.Point[] {
                             new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
@@ -870,8 +1092,8 @@ namespace MCSMapConv
             {
                 AxisU = au,
                 AxisV = av,
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
+                ScaleU = CSScale / TextureRes,
+                ScaleV = CSScale / TextureRes,
                 Texture = texture,
                 Vertexes = new VHE.Point[] {
                             new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
@@ -885,8 +1107,8 @@ namespace MCSMapConv
             {
                 AxisU = new VHE.Point(0, 1, 0),
                 AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
+                ScaleU = CSScale / TextureRes,
+                ScaleV = CSScale / TextureRes,
                 Texture = texture,
                 Vertexes = new VHE.Point[] {
                             new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
@@ -900,8 +1122,8 @@ namespace MCSMapConv
             {
                 AxisU = new VHE.Point(0, 1, 0),
                 AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
+                ScaleU = CSScale / TextureRes,
+                ScaleV = CSScale / TextureRes,
                 Texture = texture,
                 Vertexes = new VHE.Point[] {
                             new VHE.Point(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
@@ -915,8 +1137,8 @@ namespace MCSMapConv
             {
                 AxisU = new VHE.Point(1, 0, 0),
                 AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
+                ScaleU = CSScale / TextureRes,
+                ScaleV = CSScale / TextureRes,
                 Texture = texture,
                 Vertexes = new VHE.Point[] {
                             new VHE.Point(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
@@ -930,8 +1152,8 @@ namespace MCSMapConv
             {
                 AxisU = new VHE.Point(1, 0, 0),
                 AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
+                ScaleU = CSScale / TextureRes,
+                ScaleV = CSScale / TextureRes,
                 Texture = texture,
                 Vertexes = new VHE.Point[] {
                             new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
@@ -943,107 +1165,6 @@ namespace MCSMapConv
             return solid;
         }
 
-        private static VHE.Map.Solid CreateSolidAngle(float x1, float y1, float x2, float y2, float x3, float y3, 
-            float x4, float y4, float zmin, float zmax, string texture, float uOffset, float vOffset)
-        {
-            var solid = new VHE.Map.Solid();
-
-            //top
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(1, 0, 0),
-                AxisV = new VHE.Point(0, -1, 0),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
-                Texture = null,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
-                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
-                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
-                        }
-            });
-
-            //bottom
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(1, 0, 0),
-                AxisV = new VHE.Point(0, -1, 0),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
-                Texture = null,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
-                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
-                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
-                        }
-            });
-
-            //left
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(0, 1, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
-                Texture = null,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
-                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
-                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
-                        }
-            });
-
-            //right
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(0, 1, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
-                Texture = null,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmin * CSScale),
-                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
-                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmax * CSScale),
-                        }
-            });
-
-            //rear
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(0, 1, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
-                OffsetU = uOffset,
-                OffsetV = vOffset,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(x4 * CSScale, -y4 * CSScale, zmax * CSScale),
-                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmax * CSScale),
-                            new VHE.Point(x1 * CSScale, -y1 * CSScale, zmin * CSScale),
-                        }
-            });
-
-            //front
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(0, 1, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureSize,
-                ScaleV = CSScale / TextureSize,
-                OffsetU = uOffset,
-                OffsetV = vOffset,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(x3 * CSScale, -y3 * CSScale, zmin * CSScale),
-                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmin * CSScale),
-                            new VHE.Point(x2 * CSScale, -y2 * CSScale, zmax * CSScale),
-                        }
-            });
-
-            return solid;
-        }
         private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
         {
@@ -1066,104 +1187,6 @@ namespace MCSMapConv
             }
         }
 
-        /// <summary>
-        /// data = -1 : ignore the data value
-        /// </summary>
-        /// <param name="bt"></param>
-        /// <param name="data"></param>
-        /// <param name="keys"></param>
-        /// <returns></returns>
-        private static string GetTextureName(BlockTexture bt, int data, params string[] keys)
-        {
-            var mac = "";
-            if (data > -1)
-            {
-                mac = "$d" + data;
-            }
-
-            string GetDataTexture(string key = null)
-            {
-                foreach (var txt in bt.Textures)
-                {
-                    if (txt.Key == null)
-                    {
-                        if (key == null)
-                        {
-                            return txt.Texture;
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
-
-                    var args = txt.Key.Split(' ');
-                    if (args[0] == mac)
-                    {
-                        if (key != null && args.Length > 1)
-                        {
-                            if (args[1] == key)
-                            {
-                                return txt.Texture;
-                            }
-                        }
-                        else
-                        {
-                            return txt.Texture;
-                        }
-                    }
-                    else if (args[0] == key)
-                    {
-                        return txt.Texture;                    
-                    }
-                }
-
-                return null;
-            }
-
-            if (keys.Length == 0)
-            {
-                if (data > 0)
-                {
-                    return GetDataTexture();
-                }
-                else
-                {
-                    return bt.Textures[0].Texture;
-                }
-            }
-
-            foreach (var key in keys)
-            {
-                var txt = GetDataTexture(key);
-
-                if (txt != null)
-                {
-                    return txt;
-                }
-            }
-
-            return null;
-        }
-
-        private static VHE.WAD.Texture GetTexture(string textureName)
-        {
-            if (textureName == null)
-            {
-                return null;
-            }
-
-            foreach (var wad in Wads)
-            {
-                var txt = wad.Textures.Find(t => t.Name.ToUpper() == textureName.ToUpper());
-                if (txt != null)
-                {
-                    return txt;
-                }
-            }
-
-            return null;
-        }
 
         private static EntityTemplate GetSolidEntity(BlockTexture bt)
         {
@@ -1175,9 +1198,9 @@ namespace MCSMapConv
             return null;
         }
 
-        private static bool PaneMerge(Solid pane, int z)
+        private static bool PaneMerge(BlockGroup pane, int z)
         {
-            if (pane.Type == Solid.SolidType.Fence)
+            if (pane.Type == BlockGroup.SolidType.Fence)
             {
                 return false;
             }
@@ -1185,7 +1208,7 @@ namespace MCSMapConv
             if (pane.XClosed || pane.YClosed)
             {
                 //looking for the same pane in the previous Z layer
-                var paneZ = Solids.Find(pz => pz.Type == Solid.SolidType.Pane &&
+                var paneZ = BlockGroups.Find(pz => pz.Type == BlockGroup.SolidType.Pane &&
                     pz.Xmin == pane.Xmin && pz.Xmax == pane.Xmax &&
                     pz.Ymin == pane.Ymin && pz.Ymax == pane.Ymax && pz.Zmax == z &&
                     pz.XBegTouch == pane.XBegTouch && pz.XEndTouch == pane.XEndTouch &&
@@ -1195,7 +1218,7 @@ namespace MCSMapConv
                 if (paneZ != null)
                 {
                     paneZ.Zmax++;
-                    Solids.Remove(pane);
+                    BlockGroups.Remove(pane);
                     return true;
                 }
             }
@@ -1508,10 +1531,10 @@ namespace MCSMapConv
             }
 
             //Render solids
-            for (int i = 0; i < Solids.Count; i++)
+            for (int i = 0; i < BlockGroups.Count; i++)
             {
-                var sld = Solids[i];
-                if (sld.Type != Solid.SolidType.Normal)
+                var sld = BlockGroups[i];
+                if (sld.Type != BlockGroup.SolidType.Normal)
                 {
                     continue;
                 }
@@ -1556,10 +1579,10 @@ namespace MCSMapConv
             //Render panes
             char[,,] matrix = new char[Xmax - Xmin + 1, Zmax - Zmin + 1, Ymax - Ymin + 1];
 
-            for (int i = 0; i < Solids.Count; i++)
+            for (int i = 0; i < BlockGroups.Count; i++)
             {
-                var pane = Solids[i];
-                if (pane.Type != Solid.SolidType.Pane)
+                var pane = BlockGroups[i];
+                if (pane.Type != BlockGroup.SolidType.Pane)
                 {
                     continue;
                 }
@@ -1570,7 +1593,7 @@ namespace MCSMapConv
                     {
                         for (int cx = pane.Xmin; cx < pane.Xmax; cx++)
                         {
-                            if (pane.Orientation == Solid.Orient.X)
+                            if (pane.Orientation == BlockGroup.Orient.X)
                             {
                                 bool left = false, right = false;
                                 if (cx == pane.Xmin)
@@ -1622,7 +1645,7 @@ namespace MCSMapConv
                                 matrix[cx, cy, cz] = CharPaneComb(matrix[cx, cy, cz], left, right, false, false);
 
                             }
-                            else if (pane.Orientation == Solid.Orient.Y)
+                            else if (pane.Orientation == BlockGroup.Orient.Y)
                             {
                                 bool up = false, down = false;
                                 if (cy == pane.Ymin)
@@ -1862,6 +1885,11 @@ namespace MCSMapConv
             {
                 Blocks = JsonConvert.DeserializeObject<List<BlockTexture>>(
                     File.ReadAllText(Resource[Resources.Textures]));
+            }
+            if (res == Resources.Models || res == Resources.All)
+            {
+                Models = JsonConvert.DeserializeObject<List<Model>>(
+                    File.ReadAllText(Resource[Resources.Models]));
             }
             if (res == Resources.SignEntities || res == Resources.All)
             {

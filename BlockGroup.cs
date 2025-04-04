@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv
 {
-    public class Solid : SolidID
+    public class BlockGroup : SolidID
     {
         public int Xmin { get; set; }
         public int Xmax { get; set; }
@@ -39,7 +39,8 @@ namespace MCSMapConv
             Fence,
             Door,
             Liquid,
-            Grass
+            Grass,
+            Special
         }
 
         public static Dictionary<string, SolidType> SType = new Dictionary<string, SolidType>() {
@@ -48,12 +49,13 @@ namespace MCSMapConv
             { "FENCE", SolidType.Fence },
             { "DOOR", SolidType.Door },
             { "LIQUID", SolidType.Liquid },
-            { "GRASS", SolidType.Grass }
+            { "GRASS", SolidType.Grass },
+            { "SPECIAL", SolidType.Special },
         };
 
-        public Solid() { }
+        public BlockGroup() { }
 
-        public Solid(int id, int dat, int x, int y, int z)
+        public BlockGroup(int id, int dat, int x, int y, int z)
         {
             BlockID = id;
             BlockData = dat;
@@ -91,9 +93,9 @@ namespace MCSMapConv
             }
         }
 
-        public Solid[] Cut(int x, int y, int z)
+        public BlockGroup[] Cut(int x, int y, int z)
         {
-            Solid[] solids = new Solid[2];
+            BlockGroup[] solids = new BlockGroup[2];
 
             if (!XClosed)
             {
@@ -106,7 +108,7 @@ namespace MCSMapConv
                 if (x > Xmin)
                 {
                     Ymax--;
-                    solids[0] = new Solid(BlockID, BlockData, Xmin, y, z);
+                    solids[0] = new BlockGroup(BlockID, BlockData, Xmin, y, z);
                     solids[0].Xmax = x;
                     solids[0].XClosed = true;
                 }
@@ -122,7 +124,7 @@ namespace MCSMapConv
 
                 if (y > Ymin)
                 {
-                    solids[1] = new Solid(BlockID, BlockData, Xmin, Ymin, z);
+                    solids[1] = new BlockGroup(BlockID, BlockData, Xmin, Ymin, z);
                     solids[1].Xmax = Xmax;
                     solids[1].Ymax = y;
                     solids[1].XClosed = true;
@@ -131,7 +133,7 @@ namespace MCSMapConv
 
                 if (x > Xmin)
                 {
-                    solids[0] = new Solid(BlockID, BlockData, Xmin, y, z);
+                    solids[0] = new BlockGroup(BlockID, BlockData, Xmin, y, z);
                     solids[0].Xmax = x;
                     solids[0].XClosed = true;
                 }

@@ -14,6 +14,13 @@ namespace MCSMapConv.VHE
 
         public Point() { }
 
+        public Point(Point point)
+        {
+            X = point.X;
+            Y = point.Y;
+            Z = point.Z;
+        }
+
         public Point(float x, float y, float z)
         {
             X = x;
