@@ -1,5 +1,4 @@
-﻿using NamedBinaryTag;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +11,6 @@ namespace MCSMapConv
         public static float Scale { get; set; }
         public static float TextureRes { get; set; }
         public static float MinSize { get; set; }
-        public static VHE.Map Map { get; set; }
         public static List<VHE.WAD> Wads { get; set; }
         public static List<Model> Models { get; set; }
         public static List<EntityTemplate> SolidEntities { get; set; }
@@ -37,27 +35,26 @@ namespace MCSMapConv
                 new VHE.Point(0, 0, -1),
             };
 
-        public static void Initialize(float scale, float textureSize, VHE.Map map, 
+        public static void Initialize(float scale, float textureSize, 
             List<VHE.WAD> wads, List<Model> models, List<EntityTemplate> solidEntities)
         {
             Scale = scale;
             TextureRes = textureSize;
-            Map = map;
             Wads = wads;
             Models = models;
             SolidEntities = solidEntities;
             MinSize = 0.11f / Scale;
         }
 
-        public static Model CreateModel(BlockGroup mcsolid)
+        public static Model CreateModel(BlockGroup bg)
         {
             return new Model()
             {
                 Solids = { new Model.Solid() {
                     Size = new VHE.Point(
-                        mcsolid.Xmax - mcsolid.Xmin,
-                        mcsolid.Ymax - mcsolid.Ymin,
-                        mcsolid.Zmax - mcsolid.Zmin)} }
+                        bg.Xmax - bg.Xmin,
+                        bg.Ymax - bg.Ymin,
+                        bg.Zmax - bg.Zmin)} }
             };
         }
 
@@ -73,14 +70,14 @@ namespace MCSMapConv
             return GenerateSolids(new BlockTexture(), null, model, textures)[0];
         }
 
-        public static VHE.Map.Solid GenerateSolid(BlockTexture bt, BlockGroup mcsolid, Model model = null, string[] textures = null)
+        public static VHE.Map.Solid GenerateSolid(BlockTexture bt, BlockGroup bg, Model model = null, string[] textures = null)
         {
             if (model == null)
             {
-                model = CreateModel(mcsolid);
+                model = CreateModel(bg);
             }
  
-            return GenerateSolids(bt, mcsolid, model, textures)[0];
+            return GenerateSolids(bt, bg, model, textures)[0];
         }
 
         public static List<VHE.Map.Solid> GenerateSolids(Model model, string texture)
@@ -94,7 +91,7 @@ namespace MCSMapConv
             return GenerateSolids(null, null, model, textures);
         }
 
-        public static List<VHE.Map.Solid> GenerateSolids(BlockTexture bt, BlockGroup mcsolid, 
+        public static List<VHE.Map.Solid> GenerateSolids(BlockTexture bt, BlockGroup bg, 
             Model model, string[] textures = null)
         {
             if (model == null)
@@ -119,18 +116,18 @@ namespace MCSMapConv
             }
             else
             {
-                if (mcsolid == null)
+                if (bg == null)
                 {
                     throw new Exception("Position of the solid is not specified");
                 }
 
-                pos = new VHE.Point(mcsolid.Xmin, mcsolid.Ymin, mcsolid.Zmin);
+                pos = new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin);
             }
 
             int blockData = -1;
-            if (mcsolid != null)
+            if (bg != null)
             {
-                blockData = mcsolid.BlockData;
+                blockData = bg.BlockData;
             }
 
             List<VHE.Map.Solid> solids = new List<VHE.Map.Solid>();
@@ -141,6 +138,15 @@ namespace MCSMapConv
                 //get textures
                 if (!textureInput)
                 {
+                    if (mdlSolid.TextureScale > 0)
+                    {
+                        foreach (var face in mdlSolid.Faces)
+                        {
+                            face.ScaleU = mdlSolid.TextureScale;
+                            face.ScaleV = mdlSolid.TextureScale;
+                        }
+                    }
+
                     if (mdlSolid.Textures.Count == 0 && bt != null && bt.TextureOriented)
                     {
                         mdlSolid.TextureOriented = true;
@@ -148,7 +154,6 @@ namespace MCSMapConv
 
                     if (mdlSolid.TextureOriented)
                     {
-                        //var re = 
                         mdlSolid.Face(Model.Faces.Rear).MirrorV ^= true;
                         mdlSolid.Face(Model.Faces.Right).MirrorV ^= true;
                     }
@@ -346,6 +351,9 @@ namespace MCSMapConv
                 {
                     face.ScaleV = Scale / TextureRes;
                 }
+
+                face.ScaleU *= mdlSolid.Face(i).ScaleU;
+                face.ScaleV *= mdlSolid.Face(i).ScaleV;
 
                 var offU = tparams.OffsetU * TextureRes / face.ScaleU;
                 var offV = tparams.OffsetV * TextureRes / face.ScaleU;

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NamedBinaryTag;
 
 namespace MCSMapConv
 {
     public class BlockGroup : SolidID
     {
+        public Block Block { get; set; }
         public int Xmin { get; set; }
         public int Xmax { get; set; }
         public int Ymin { get; set; }
@@ -22,7 +24,7 @@ namespace MCSMapConv
         public bool XEndTouch { get; set; }
         public bool YEndTouch { get; set; }
         public Orient Orientation { get; set; }
-        public SolidType Type { get; set; }
+        public ModelType Type { get; set; }
 
         public enum Orient
         {
@@ -32,7 +34,7 @@ namespace MCSMapConv
             Z
         }
 
-        public enum SolidType
+        public enum ModelType
         {
             Normal,
             Pane,
@@ -40,17 +42,19 @@ namespace MCSMapConv
             Door,
             Liquid,
             Grass,
-            Special
+            Special,
+            Sign
         }
 
-        public static Dictionary<string, SolidType> SType = new Dictionary<string, SolidType>() {
-            { "NORMAL", SolidType.Normal },
-            { "PANE", SolidType.Pane },
-            { "FENCE", SolidType.Fence },
-            { "DOOR", SolidType.Door },
-            { "LIQUID", SolidType.Liquid },
-            { "GRASS", SolidType.Grass },
-            { "SPECIAL", SolidType.Special },
+        public static Dictionary<string, ModelType> SType = new Dictionary<string, ModelType>() {
+            { "NORMAL", ModelType.Normal },
+            { "PANE", ModelType.Pane },
+            { "FENCE", ModelType.Fence },
+            { "DOOR", ModelType.Door },
+            { "LIQUID", ModelType.Liquid },
+            { "GRASS", ModelType.Grass },
+            { "SPECIAL", ModelType.Special },
+            { "SIGN", ModelType.Sign },
         };
 
         public BlockGroup() { }
@@ -72,7 +76,7 @@ namespace MCSMapConv
             if (x >= Xmax)
             {
                 Xmax = x + 1;
-                if (Type == SolidType.Pane)
+                if (Type == ModelType.Pane)
                 {
                     Orientation = Orient.X;
                 }
@@ -81,7 +85,7 @@ namespace MCSMapConv
             if (y >= Ymax)
             {
                 Ymax = y + 1;
-                if (Type == SolidType.Pane)
+                if (Type == ModelType.Pane)
                 {
                     Orientation = Orient.Y;
                 }
@@ -142,7 +146,7 @@ namespace MCSMapConv
             return solids;
         }
 
-        public static SolidType GetSolidType(string typeName)
+        public static ModelType GetSolidType(string typeName)
         {
             return SType[typeName.ToUpper()];
         }

@@ -23,7 +23,8 @@ namespace MCSMapConv
             public Faces[] TexturedFaces { get; set; }
             public bool TextureLockOffsets { get; set; }
             public bool TextureOriented { get; set; }
-            public List<Face> Faces { private get; set; } = new List<Face>();
+            public float TextureScale { get; set; }
+            public List<Face> Faces { get; set; } = new List<Face>();
             public List<BlockTexture.TextureKey> Textures { get; set; } 
                 = new List<BlockTexture.TextureKey>();
 
@@ -60,6 +61,8 @@ namespace MCSMapConv
             public Faces Name { get; set; } = Faces.Undefined;
             public float OffsetU { get; set; }
             public float OffsetV { get; set; }
+            public float ScaleU { get; set; } = 1;
+            public float ScaleV { get; set; } = 1;
             public float Rotation { get; set; }
             public bool StretchU { get; set; }
             public bool StretchV { get; set; }

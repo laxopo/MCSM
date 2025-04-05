@@ -136,7 +136,7 @@ namespace MCSMapConv
             {
                 foreach (var txt in textures)
                 {
-                    if (solidName != null && solidName != txt.SolidName)
+                    if (txt.SolidName != null &&  solidName != null && solidName != txt.SolidName)
                     {
                         continue;
                     }
@@ -202,12 +202,17 @@ namespace MCSMapConv
             return null;
         }
 
+        public TextureKey GetSolidTK(string solidName)
+        {
+            return Textures.Find(t => ToUpper(t.SolidName) == ToUpper(solidName));
+        }
+
         public string GetTextureName(int data, string solidName = null, params string[] keys)
         {
             return GetTextureName(Textures, data, solidName, keys);
         }
 
-        public BlockGroup.SolidType GetSolidType()
+        public BlockGroup.ModelType GetSolidType()
         {
             return BlockGroup.GetSolidType(Model);
         }

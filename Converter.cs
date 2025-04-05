@@ -14,12 +14,17 @@ namespace MCSMapConv
         public static bool Debuging = false;
         public static float CSScale = 37;
         public static float TextureRes = 128;
-        public static bool SkyBoxEnable = true;
+        public static bool SkyBoxEnable = false;
 
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
 
         public static bool Aborted { get; private set; }
         public static int BlockCount { get; private set; }
+        public static int BlockProcessed { get; private set; }
+        public static int BlockCurrent { get; private set; }
+        public static int GroupCurrent { get; private set; }
+        public static int SolidsCurrent { get; private set; }
+        public static ProcessType Process { get; private set; }
 
         private static List<BlockTexture> Blocks;
         private static List<VHE.WAD> Wads;
@@ -29,7 +34,7 @@ namespace MCSMapConv
 
         private static World MCWorld;
         private static VHE.Map Map;
-        private static List<BlockGroup> BlockGroups;
+        public static List<BlockGroup> BlockGroups;
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, "models.json"},
@@ -48,12 +53,21 @@ namespace MCSMapConv
             SolidEntities
         }
 
-        public static VHE.Map ConvertToMap(World world, int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
+        public enum ProcessType
         {
-            Settings.DebugEnable = !Debuging;
-            BlockCount = 0;
+            Idle,
+            ScanBlocks,
+            GenerateSolids
+        }
+
+        public static VHE.Map ConvertToMap(string worldPath, int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
+        {
+            //BlockInspect(world, 68, 454, 55, -343, 456, 57, -341);
+
+            BlockProcessed = 0;
             Aborted = false;
-            MCWorld = world;
+            MCWorld = new World(worldPath);
+            Settings.DebugEnable = false;
             Xmin = mcxmin;
             Ymin = mcymin;
             Zmin = mczmin;
@@ -62,7 +76,12 @@ namespace MCSMapConv
             Zmax = mczmax;
 
             LoadResources(Resources.All);
-            Modelling.Initialize(CSScale, TextureRes, Map, Wads, Models, SolidEntities);
+            Modelling.Initialize(CSScale, TextureRes, Wads, Models, SolidEntities);
+            BlockCount = (Xmax - Xmin + 1) * (Zmax - Zmin + 1) * (Ymax - Ymin + 1);
+            BlockCurrent = 0;
+            GroupCurrent = 0;
+            SolidsCurrent = 0;
+            Process = ProcessType.ScanBlocks;
 
             Map = new VHE.Map();
             Map.AddString("worldspawn", "wad", @"\cstrike\minecraft.wad");
@@ -90,57 +109,16 @@ namespace MCSMapConv
                 {
                     new Model.Solid()
                     {
-                        Size = new VHE.Point(1.41f, 0.01f, 2),
-                        Offset = new VHE.Point(0.4f, 0.5f, 0),
-                        OriginAlign = new VHE.Point(0, 0, 1),
-                        Rotation = new VHE.Point(0, 0, -45),
-                        Faces = new Model.Face[]
-                        {
-                            new Model.Face(Model.Faces.Front)
-                            {
-                                StretchU = true,
-                                Frame = true,
-                            },
-                            new Model.Face(Model.Faces.Rear)
-                            {
-                                StretchU = true,
-                                Frame = true,
-                            }
-                        }
+                        Size = new VHE.Point(1, 1, 1),
                     },
                 },
-                Position = new VHE.Point(1, 1, 0)
+                Position = new VHE.Point(0, 0, 0)
             };
 
-            var mdl2 = new Model()
-            {
-                Solids =
-                {
-                    new Model.Solid()
-                    {
-                        Size = new VHE.Point(1.41f, 0.01f, 2),
-                        Offset = new VHE.Point(0.3f, 0.45f, 0.85f),
-                        OriginAlign = new VHE.Point(0, 0, 1),
-                        Rotation = new VHE.Point(0, 0, -45),
-                        Faces = new Model.Face[]
-                        {
-                            new Model.Face(Model.Faces.Front)
-                            {
-                                StretchU = true,
-                                //Frame = true,
-                            }
-                        }
-                    },
-                },
-                Position = new VHE.Point(1, 1, 0)
-            };
-
-            Map.AddSolid(Modelling.GenerateSolid(mdl, "brick2"));
+            Map.AddSolid(Modelling.GenerateSolid(mdl, "brick"));
             //Map.AddSolid(Modelling.GenerateSolid(mdl2, "brick2"));
-
-            Map.AddSolid(Modelling.GenerateSolid(bas, "blockgold"));
             //Map.AddSolid(Modelling.CreateSolid(new VHE.Point(4, 0, 0), ms, new string[] { "!lava" }));
-            return Map;
+            return Map;*/
             /*TEST END*/
 
             var missings = new BlockMissMsg();
@@ -152,14 +130,8 @@ namespace MCSMapConv
                 {
                     for (int x = 0; x <= Xmax - Xmin; x++)
                     {
-                        var block = world.GetBlock(0, x + Xmin, z + Ymin, y + Zmin);
-
-                        //object
-                        if (block.ID == 63)
-                        {
-                            GenerateSignEntity(block, x, y, z);
-                            block.ID = 0;
-                        }
+                        var block = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin);
+                        BlockCurrent++;
 
                         //check register
                     bt_chk:
@@ -193,14 +165,15 @@ namespace MCSMapConv
 
                         if (block.ID != 0)
                         {
-                            BlockCount++;
+                            BlockProcessed++;
                         }
 
                         var bt = Blocks.Find(a => a.ID == block.ID);
 
                         if (bt != null)
                         {
-                            switch (bt.Model.ToUpper())
+                            var type = bt.Model.ToUpper();
+                            switch (type)
                             {
                                 case "PANE":
                                 case "FENCE":
@@ -220,28 +193,14 @@ namespace MCSMapConv
                                         {
                                             data = block.Data + 8;
                                         }
-                                        BlockGroups.Add(new BlockGroup(block.ID, data, x, y, z) { 
-                                            Type = BlockGroup.SolidType.Door
-                                        });
+                                        GroupSingle(block, x, y, z, BlockGroup.ModelType.Door, data);
                                     }
                                     block.ID = 0;
                                     break;
 
                                 case "GRASS":
-                                    var grassSld = new BlockGroup(block.ID, block.Data, x, y, z) { 
-                                        Type = BlockGroup.SolidType.Grass,
-                                    };
-                                    var txt = Modelling.GetTexture(Wads, bt.GetTextureName(block.Data));
-                                    if (txt != null && txt.Height != -1)
-                                    {
-                                        int h = txt.Height / (int)TextureRes;
-                                        if (h != 0)
-                                        {
-                                            grassSld.Zmax = grassSld.Zmin + h;
-                                        }
-                                    }
-                                    BlockGroups.Add(grassSld);
-                                    block.ID = 0;
+                                case "SIGN":
+                                    GroupSingle(block, x, y, z, type);
                                     break;
                             }
                         }
@@ -268,14 +227,15 @@ namespace MCSMapConv
             }
 
             //Generate cs solids
+            Process = ProcessType.GenerateSolids;
             Aborted = false;
-            foreach (var mcsolid in BlockGroups)
+            foreach (var bg in BlockGroups)
             {
             pBegin:
-                var bt = GetBT(mcsolid.BlockID, mcsolid.BlockData);
+                var bt = GetBT(bg.BlockID, bg.BlockData);
                 if (bt == null)
                 {
-                    var res = missings.Message(mcsolid.BlockID, mcsolid.BlockData, "texture is not registered", false);
+                    var res = missings.Message(bg.BlockID, bg.BlockData, "texture is not registered", false);
                     switch (res)
                     {
                         case BlockMissMsg.Result.Retry:
@@ -303,7 +263,7 @@ namespace MCSMapConv
 
                     if (!found)
                     {
-                        var res = missings.Message(mcsolid.BlockID, mcsolid.BlockData, 
+                        var res = missings.Message(bg.BlockID, bg.BlockData, 
                             "wad texture " + tex.Texture + " not found", false);
                         switch (res)
                         {
@@ -318,31 +278,38 @@ namespace MCSMapConv
                     }
                 }
 
-                switch (mcsolid.Type)
+                switch (bg.Type)
                 {
-                    case BlockGroup.SolidType.Normal:
-                    case BlockGroup.SolidType.Liquid:
-                        GenerateModelNormal(mcsolid, bt);
+                    case BlockGroup.ModelType.Normal:
+                    case BlockGroup.ModelType.Liquid:
+                        ModelNormal(bg, bt);
                         break;
 
-                    case BlockGroup.SolidType.Pane:
-                        GenerateModelPane(mcsolid, bt);
+                    case BlockGroup.ModelType.Pane:
+                        ModelPane(bg, bt);
                         break;
 
-                    case BlockGroup.SolidType.Fence:
-                        GenerateModelFence(mcsolid, bt);
+                    case BlockGroup.ModelType.Fence:
+                        ModelFence(bg, bt);
                         break;
 
-                    case BlockGroup.SolidType.Door:
-                        GenerateModelDoor(mcsolid, bt);
+                    case BlockGroup.ModelType.Door:
+                        ModelDoor(bg, bt);
                         break;
 
-                    case BlockGroup.SolidType.Grass:
-                        GenerateModelGrass(mcsolid, bt);
+                    case BlockGroup.ModelType.Grass:
+                        ModelGrass(bg, bt);
                         break;
 
-                    case BlockGroup.SolidType.Special:
-                        GenerateModelSpecial(mcsolid, bt);
+                    case BlockGroup.ModelType.Special:
+                        ModelSpecial(bg, bt);
+                        break;
+
+                    case BlockGroup.ModelType.Sign:
+                        if (!GenerateSignEntity(bg))
+                        {
+                            ModelSign(bg, bt);
+                        }
                         break;
 
                     default:
@@ -399,6 +366,29 @@ namespace MCSMapConv
             }
 
             return Map;
+        }
+
+        /*Grouping*/
+
+        private static void GroupSingle(Block block, int x, int y, int z, string type, int data = -1)
+        {
+            GroupSingle(block, x, y, z, BlockGroup.SType[type], data);
+        }
+
+        private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type, int data = -1)
+        {
+            if (data == -1)
+            {
+                data = block.Data;
+            }
+
+            BlockGroups.Add(new BlockGroup(block.ID, data, x, y, z)
+            {
+                Block = block,
+                Type = type
+            });
+
+            block.ID = 0;
         }
 
         private static void GroupPaneFence(Block block, BlockTexture bt, int x, int y, int z)
@@ -524,7 +514,7 @@ namespace MCSMapConv
             }
 
             //Z
-            if (model == BlockGroup.SolidType.Fence)
+            if (model == BlockGroup.ModelType.Fence)
             {
                 var pillar = BlockGroups.Find(p => p.Type == model && !p.ZClosed && p.BlockID == block.ID &&
                     p.Orientation == BlockGroup.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
@@ -563,7 +553,7 @@ namespace MCSMapConv
             BlockGroup[] cuts = new BlockGroup[2];
             foreach (var solid in BlockGroups)
             {
-                if (solid.Type != BlockGroup.SolidType.Normal && solid.Type != BlockGroup.SolidType.Liquid)
+                if (solid.Type != BlockGroup.ModelType.Normal && solid.Type != BlockGroup.ModelType.Liquid)
                 {
                     continue;
                 }
@@ -630,7 +620,37 @@ namespace MCSMapConv
             }
         }
 
-        private static void GenerateModelNormal(BlockGroup mcsolid, BlockTexture bt)
+        private static bool PaneMerge(BlockGroup pane, int z)
+        {
+            if (pane.Type == BlockGroup.ModelType.Fence)
+            {
+                return false;
+            }
+
+            if (pane.XClosed || pane.YClosed)
+            {
+                //looking for the same pane in the previous Z layer
+                var paneZ = BlockGroups.Find(pz => pz.Type == BlockGroup.ModelType.Pane &&
+                    pz.Xmin == pane.Xmin && pz.Xmax == pane.Xmax &&
+                    pz.Ymin == pane.Ymin && pz.Ymax == pane.Ymax && pz.Zmax == z &&
+                    pz.XBegTouch == pane.XBegTouch && pz.XEndTouch == pane.XEndTouch &&
+                    pz.YBegTouch == pane.YBegTouch && pz.YEndTouch == pane.YEndTouch &&
+                    pz.BlockID == pane.BlockID && pz.BlockData == pane.BlockData);
+
+                if (paneZ != null)
+                {
+                    paneZ.Zmax++;
+                    BlockGroups.Remove(pane);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /*Models*/
+
+        private static void ModelNormal(BlockGroup bg, BlockTexture bt)
         {
             var model = new Model()
             {
@@ -639,22 +659,22 @@ namespace MCSMapConv
                     new Model.Solid() 
                     {
                         Size = new VHE.Point(
-                        mcsolid.Xmax - mcsolid.Xmin,
-                        mcsolid.Ymax - mcsolid.Ymin,
-                        mcsolid.Zmax - mcsolid.Zmin)
+                        bg.Xmax - bg.Xmin,
+                        bg.Ymax - bg.Ymin,
+                        bg.Zmax - bg.Zmin)
                     } 
                 }
             };
 
-            if (mcsolid.Type == BlockGroup.SolidType.Liquid)
+            if (bg.Type == BlockGroup.ModelType.Liquid)
             {
                 model.Solids[0].Size.Z -= 0.125f;
             }
 
-            MapAddObject(Modelling.GenerateSolid(bt, mcsolid, model), bt);
+            MapAddObject(Modelling.GenerateSolid(bt, bg, model), bt);
         }
 
-        private static void GenerateModelPane(BlockGroup mcsolid, BlockTexture bt)
+        private static void ModelPane(BlockGroup bg, BlockTexture bt)
         {
             const float th = 0.125f;
 
@@ -676,10 +696,10 @@ namespace MCSMapConv
                 }
             };
 
-            switch (mcsolid.Orientation)
+            switch (bg.Orientation)
             {
                 case BlockGroup.Orient.X:
-                    if (!mcsolid.XBegTouch)
+                    if (!bg.XBegTouch)
                     {
                         beg = edgeOffset;
                     }
@@ -687,7 +707,7 @@ namespace MCSMapConv
                     {
                         tl = edge;
                     }
-                    if (!mcsolid.XEndTouch)
+                    if (!bg.XEndTouch)
                     {
                         end = edgeOffset;
                     }
@@ -695,13 +715,13 @@ namespace MCSMapConv
                     {
                         tr = edge;
                     }
-                    length = mcsolid.Xmax - mcsolid.Xmin - beg - end;
+                    length = bg.Xmax - bg.Xmin - beg - end;
                     align = new VHE.Point(1, 0, 1);
                     offset = new VHE.Point(beg, 0.5f, 0);
                     break;
 
                 case BlockGroup.Orient.Y:
-                    if (!mcsolid.YBegTouch)
+                    if (!bg.YBegTouch)
                     {
                         beg = edgeOffset;
                     }
@@ -709,7 +729,7 @@ namespace MCSMapConv
                     {
                         tl = edge;
                     }
-                    if (!mcsolid.YEndTouch)
+                    if (!bg.YEndTouch)
                     {
                         end = edgeOffset;
                     }
@@ -717,7 +737,7 @@ namespace MCSMapConv
                     {
                         tr = edge;
                     }
-                    length = mcsolid.Ymax - mcsolid.Ymin - beg - end;
+                    length = bg.Ymax - bg.Ymin - beg - end;
                     align = new VHE.Point(1, 0, 1);
                     offset = new VHE.Point(0.5f, beg, 0);
                     rot = 90;
@@ -745,7 +765,7 @@ namespace MCSMapConv
                 { 
                     new Model.Solid() 
                     {
-                        Size = new VHE.Point(length, th, mcsolid.Zmax - mcsolid.Zmin),
+                        Size = new VHE.Point(length, th, bg.Zmax - bg.Zmin),
                         Rotation = new VHE.Point(0, 0, rot),
                         OriginAlign = align,
                         Offset = offset,
@@ -765,64 +785,64 @@ namespace MCSMapConv
                 }
             };
 
-            var solid = Modelling.GenerateSolid(bti, mcsolid, model);
+            var solid = Modelling.GenerateSolid(bti, bg, model);
             MapAddObject(solid, bti);
         }
 
-        private static void GenerateModelFence(BlockGroup mcsolid, BlockTexture bt)
+        private static void ModelFence(BlockGroup bg, BlockTexture bt)
         {
             //horizontal crossbars
-            if (mcsolid.Orientation != BlockGroup.Orient.Z)
+            if (bg.Orientation != BlockGroup.Orient.Z)
             {
-                float zmin = mcsolid.Zmin + 0.375f;
-                float zmax = mcsolid.Zmin + 0.5625f;
-                float xmin = mcsolid.Xmin + 0.4375f;
-                float xmax = mcsolid.Xmax - 0.4375f;
-                float ymin = mcsolid.Ymin + 0.4375f;
-                float ymax = mcsolid.Ymax - 0.4375f;
+                float zmin = bg.Zmin + 0.375f;
+                float zmax = bg.Zmin + 0.5625f;
+                float xmin = bg.Xmin + 0.4375f;
+                float xmax = bg.Xmax - 0.4375f;
+                float ymin = bg.Ymin + 0.4375f;
+                float ymax = bg.Ymax - 0.4375f;
 
-                if (mcsolid.Orientation == BlockGroup.Orient.X)
+                if (bg.Orientation == BlockGroup.Orient.X)
                 {
-                    if (mcsolid.XBegTouch)
+                    if (bg.XBegTouch)
                     {
-                        xmin = mcsolid.Xmin;
+                        xmin = bg.Xmin;
                     }
                     else
                     {
-                        xmin = mcsolid.Xmin + 0.5f;
+                        xmin = bg.Xmin + 0.5f;
                     }
 
-                    if (mcsolid.XEndTouch)
+                    if (bg.XEndTouch)
                     {
-                        xmax = mcsolid.Xmax;
+                        xmax = bg.Xmax;
                     }
                     else
                     {
-                        xmax = mcsolid.Xmax - 0.5f;
+                        xmax = bg.Xmax - 0.5f;
                     }
                 }
-                else if (mcsolid.Orientation == BlockGroup.Orient.Y)
+                else if (bg.Orientation == BlockGroup.Orient.Y)
                 {
-                    if (mcsolid.YBegTouch)
+                    if (bg.YBegTouch)
                     {
-                        ymin = mcsolid.Ymin;
+                        ymin = bg.Ymin;
                     }
                     else
                     {
-                        ymin = mcsolid.Ymin + 0.5f;
+                        ymin = bg.Ymin + 0.5f;
                     }
 
-                    if (mcsolid.YEndTouch)
+                    if (bg.YEndTouch)
                     {
-                        ymax = mcsolid.Ymax;
+                        ymax = bg.Ymax;
                     }
                     else
                     {
-                        ymax = mcsolid.Ymax - 0.5f;
+                        ymax = bg.Ymax - 0.5f;
                     }
                 }
 
-                if (mcsolid.Orientation != BlockGroup.Orient.None)
+                if (bg.Orientation != BlockGroup.Orient.None)
                 {
                     var mdl = new Model() {
                         Solids = { new Model.Solid() {
@@ -832,10 +852,10 @@ namespace MCSMapConv
                         },
                         Position = new VHE.Point(xmin, ymin, zmin),
                     };
-                    Map.AddSolid(Modelling.GenerateSolid(bt, mcsolid, mdl));
+                    Map.AddSolid(Modelling.GenerateSolid(bt, bg, mdl));
 
                     mdl.Position.Z += 0.375f;
-                    Map.AddSolid(Modelling.GenerateSolid(bt, mcsolid, mdl));
+                    Map.AddSolid(Modelling.GenerateSolid(bt, bg, mdl));
                 }
             }
             else //vertical pillars
@@ -843,24 +863,24 @@ namespace MCSMapConv
                 var mdl = new Model() {
                     Solids = {
                         new Model.Solid() {
-                            Size = new VHE.Point(0.25f, 0.25f, mcsolid.Zmax - mcsolid.Zmin),
+                            Size = new VHE.Point(0.25f, 0.25f, bg.Zmax - bg.Zmin),
                             Offset = new VHE.Point(0.375f, 0.375f, 0),
                             TextureLockOffsets = true
                         },
                     },       
                 };
-                Map.AddSolid(Modelling.GenerateSolid(bt, mcsolid, mdl));
+                Map.AddSolid(Modelling.GenerateSolid(bt, bg, mdl));
             }
         }
 
-        private static void GenerateModelDoor(BlockGroup mcsolid, BlockTexture bt)
+        private static void ModelDoor(BlockGroup bg, BlockTexture bt)
         {
             const float th = 0.1875f;
 
             float rotate = 0, orx = 0, ory = 0;
             bool mirror = false;
 
-            switch (mcsolid.BlockData)
+            switch (bg.BlockData)
             {
                 case 0:
                 case 13:
@@ -959,15 +979,15 @@ namespace MCSMapConv
                 },
             };
 
-            MapAddObject(Modelling.GenerateSolids(bt, mcsolid, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static void GenerateModelGrass(BlockGroup mcsolid, BlockTexture bt)
+        private static void ModelGrass(BlockGroup bg, BlockTexture bt)
         {
             float len = (float)Math.Sqrt(2);
 
-            var worldOffset = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
-            var texture = Modelling.GetTexture(Wads, bt.GetTextureName(mcsolid.BlockData));
+            var worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
+            var texture = Modelling.GetTexture(Wads, bt.GetTextureName(bg.BlockData));
             float height = texture.Height / (int)TextureRes;
 
             var model = new Model()
@@ -1029,16 +1049,16 @@ namespace MCSMapConv
                 },
             };
 
-            MapAddObject(Modelling.GenerateSolids(bt, mcsolid, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static void GenerateModelSpecial(BlockGroup mcsolid, BlockTexture bt)
+        private static void ModelSpecial(BlockGroup bg, BlockTexture bt)
         {
             var model = Models.Find(x => x.Name == bt.ModelName);
 
             if (bt.WorldOffset)
             {
-                var worldOffset = World.GetBlockXZOffset(mcsolid.Xmin + Xmin, mcsolid.Ymin + Zmin);
+                var worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
                 
                 foreach (var sld in model.Solids)
                 {
@@ -1047,123 +1067,83 @@ namespace MCSMapConv
                 }
             }
 
-            MapAddObject(Modelling.GenerateSolids(bt, mcsolid, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static VHE.Map.Solid CreateSolid(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax, 
-            string texture, bool rotate)
+        private static void ModelSign(BlockGroup bg, BlockTexture bt)
         {
-            if (xmax <= xmin || ymax <= ymin || zmax <= zmin)
-            {
-                throw new Exception("Invalid dimension points");
-            }
+            bool ground = bt.GetSolidTK("stick") != null;
 
-            var solid = new VHE.Map.Solid();
-            VHE.Point au, av;
+            VHE.Point origAligin, offset, rotOffset;
+            float rotate = 0;
 
-            if (rotate)
+            if (ground)
             {
-                au = new VHE.Point(0, -1, 0);
-                av = new VHE.Point(-1, 0, 0);
+                origAligin = new VHE.Point(0, 0, 1);
+                rotOffset = new VHE.Point();
+                offset = new VHE.Point(0.5f, 0.5f, 0.59f);
+                rotate = GetDataRotation(bg.BlockData);
             }
             else
             {
-                au = new VHE.Point(1, 0, 0);
-                av = new VHE.Point(0, -1, 0);
+                origAligin = new VHE.Point(1, 1, 0);
+                rotOffset = new VHE.Point(0.5f, 0.5f, 0);
+                offset = new VHE.Point(0, 0, 0.5f);
+
+                switch (bg.BlockData)
+                {
+                    case 2:
+                        rotate = 180;
+                        break;
+
+                    case 3:
+                        break;
+
+                    case 4:
+                        rotate = 90;
+                        break;
+
+                    case 5:
+                        rotate = 270;
+                        break;
+
+                    default:
+                        throw new Exception("Invalid block data value (sign)");
+                }
             }
 
-            //top
-            solid.Faces.Add(new VHE.Face()
+            var main = new Model.Solid()
             {
-                AxisU = au,
-                AxisV = av,
-                ScaleU = CSScale / TextureRes,
-                ScaleV = CSScale / TextureRes,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmax * CSScale),
-                        }
-            });
+                Name = "main",
+                Size = new VHE.Point(1, 0.081f, 0.49f),
+                Offset = offset,
+                OriginAlign = origAligin,
+                OriginRotOffset = rotOffset,
+                Rotation = new VHE.Point(0, 0, rotate),
+                TextureScale = 0.66f
+            };
 
-            //bottom
-            solid.Faces.Add(new VHE.Face()
+            var stick = new Model.Solid()
             {
-                AxisU = au,
-                AxisV = av,
-                ScaleU = CSScale / TextureRes,
-                ScaleV = CSScale / TextureRes,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
-                        }
-            });
+                Name = "stick",
+                Size = new VHE.Point(0.081f, 0.081f, 0.59f),
+                Offset = new VHE.Point(0.5f, 0.5f, 0),
+                OriginAlign = new VHE.Point(0, 0, 1),
+                Rotation = new VHE.Point(0, 0, rotate),
+                TextureScale = 0.66f
+            };
 
-            //left
-            solid.Faces.Add(new VHE.Face()
+            var model = new Model() { Solids = new List<Model.Solid>() { main } };
+
+            if (ground)
             {
-                AxisU = new VHE.Point(0, 1, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureRes,
-                ScaleV = CSScale / TextureRes,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmax * CSScale),
-                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
-                        }
-            });
+                model.Solids.Add(stick);
+            }
 
-            //right
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(0, 1, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureRes,
-                ScaleV = CSScale / TextureRes,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmin * CSScale),
-                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmax * CSScale),
-                        }
-            });
-
-            //rear
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(1, 0, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureRes,
-                ScaleV = CSScale / TextureRes,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(xmax * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmax * CSScale),
-                            new VHE.Point(xmin * CSScale, -ymin * CSScale, zmin * CSScale),
-                        }
-            });
-
-            //front
-            solid.Faces.Add(new VHE.Face()
-            {
-                AxisU = new VHE.Point(1, 0, 0),
-                AxisV = new VHE.Point(0, 0, -1),
-                ScaleU = CSScale / TextureRes,
-                ScaleV = CSScale / TextureRes,
-                Texture = texture,
-                Vertexes = new VHE.Point[] {
-                            new VHE.Point(xmax * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmin * CSScale),
-                            new VHE.Point(xmin * CSScale, -ymax * CSScale, zmax * CSScale),
-                        }
-            });
-
-            return solid;
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
+
+        /*Map methods*/
 
         private static void MapAddObject(VHE.Map.Solid solid, BlockTexture bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
@@ -1174,6 +1154,8 @@ namespace MCSMapConv
         private static void MapAddObject(List<VHE.Map.Solid> solids, BlockTexture bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
         {
+            SolidsCurrent += solids.Count;
+
             var se = GetSolidEntity(bt);
             if (se != null)
             {
@@ -1187,7 +1169,6 @@ namespace MCSMapConv
             }
         }
 
-
         private static EntityTemplate GetSolidEntity(BlockTexture bt)
         {
             if (bt.Entity != null)
@@ -1196,34 +1177,6 @@ namespace MCSMapConv
             }
 
             return null;
-        }
-
-        private static bool PaneMerge(BlockGroup pane, int z)
-        {
-            if (pane.Type == BlockGroup.SolidType.Fence)
-            {
-                return false;
-            }
-
-            if (pane.XClosed || pane.YClosed)
-            {
-                //looking for the same pane in the previous Z layer
-                var paneZ = BlockGroups.Find(pz => pz.Type == BlockGroup.SolidType.Pane &&
-                    pz.Xmin == pane.Xmin && pz.Xmax == pane.Xmax &&
-                    pz.Ymin == pane.Ymin && pz.Ymax == pane.Ymax && pz.Zmax == z &&
-                    pz.XBegTouch == pane.XBegTouch && pz.XEndTouch == pane.XEndTouch &&
-                    pz.YBegTouch == pane.YBegTouch && pz.YEndTouch == pane.YEndTouch &&
-                    pz.BlockID == pane.BlockID && pz.BlockData == pane.BlockData);
-
-                if (paneZ != null)
-                {
-                    paneZ.Zmax++;
-                    BlockGroups.Remove(pane);
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static BlockTexture GetBT(int id, int data)
@@ -1314,8 +1267,13 @@ namespace MCSMapConv
             return false;
         }
 
-        private static void GenerateSignEntity(Block block, int x, int y, int z)
+        private static bool GenerateSignEntity(BlockGroup bg)
         {
+            var block = bg.Block;
+            var x = bg.Xmin;
+            var y = bg.Ymin;
+            var z = bg.Zmin;
+
             var chunk = MCWorld.GetChunkAtBlock(0, block.X, block.Z);
             List<NBT> tes = chunk.NBTData.GetTag("Level/TileEntities");
 
@@ -1355,10 +1313,14 @@ namespace MCSMapConv
                             {
                                 Map.Data.Add(GenerateEntity(objt, block, x, y, z));
                             }
+
+                            return true;
                         }
                     }
                 }
             }
+
+            return false;
         }
 
         private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, int blockData, float x, float y, float z)
@@ -1423,15 +1385,7 @@ namespace MCSMapConv
                     switch (args[0].ToUpper())
                     {
                         case "ANGLE":
-                            int vali = ((int)((-block.Data * 22.5f) + 90));
-                            if (vali >= 360)
-                            {
-                                vali -= 360;
-                            }
-                            else if (vali < 0)
-                            {
-                                vali += 360;
-                            }
+                            int vali = GetDataRotation(block.Data) + 90;
                             res = vali.ToString();
                             break;
 
@@ -1485,7 +1439,23 @@ namespace MCSMapConv
             return entity;
         }
 
+        private static int GetDataRotation(int data)
+        {
+            int vali = (int)(-data * 22.5);
+            if (vali >= 360)
+            {
+                vali -= 360;
+            }
+            else if (vali < 0)
+            {
+                vali += 360;
+            }
+
+            return vali;
+        }
+
         /*Debug*/
+
         private static void Debug(int x, int y, int z)
         {
             Settings.DebugEnable = false;
@@ -1534,7 +1504,7 @@ namespace MCSMapConv
             for (int i = 0; i < BlockGroups.Count; i++)
             {
                 var sld = BlockGroups[i];
-                if (sld.Type != BlockGroup.SolidType.Normal)
+                if (sld.Type != BlockGroup.ModelType.Normal)
                 {
                     continue;
                 }
@@ -1582,7 +1552,7 @@ namespace MCSMapConv
             for (int i = 0; i < BlockGroups.Count; i++)
             {
                 var pane = BlockGroups[i];
-                if (pane.Type != BlockGroup.SolidType.Pane)
+                if (pane.Type != BlockGroup.ModelType.Pane)
                 {
                     continue;
                 }
@@ -1868,6 +1838,51 @@ namespace MCSMapConv
             else
             {
                 return (char)(value + 0x37);
+            }
+        }
+
+        private static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
+        {
+            Debuging = true;
+            Settings.DebugEnable = false;
+            Console.WriteLine("Debug mode. Block data inspect");
+
+            var list = new List<Block>();
+
+            for (int y = ymin; y <= ymax; y++)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Y = " + y);
+                for (int z = zmin; z <= zmax; z++)
+                {
+                    for (int x = xmin; x <= xmax; x++)
+                    {
+                        var block = world.GetBlock(0, x, y, z);
+
+                        if (block.ID != id)
+                        {
+                            if (block.ID == 0)
+                            {
+                                Console.Write("-");
+                            }
+                            else
+                            {
+                                Console.Write("+");
+                            }
+                            continue;
+                        }
+
+                        Console.Write(ToHex(block.Data));
+                        list.Add(block);
+                    }
+                    Console.WriteLine();
+                }
+            }
+
+            Console.WriteLine("Done");
+            while(true)
+            {
+                Console.ReadKey();
             }
         }
 
