@@ -12,17 +12,21 @@ namespace MCSMapConv
     {
         static string worldPath = @"F:\minecraft_new\UltimMC_5\instances\1.12.2_test\.minecraft\saves\mcsmap";
         static string mapOutput = @"D:\games\vhe\maps\out.map";
-        static Timer timer = new Timer(200);
-
+        static Timer timer = new Timer(100);
         static void Main(string[] args)
         {
+            Converter.LoadConfig("config.json");
+
+            Console.CursorVisible = false;
             timer.Elapsed += TimerEvent;
             timer.Start();
 
             var map = Converter.ConvertToMap(worldPath, 454, 54, -354, 498, 64, -316);
             //454, 54, -354, 498, 64, -316
 
-            timer.Stop();
+            while (timer.Enabled) { }
+
+            Console.CursorVisible = true;
 
             Console.WriteLine();
             if (!Converter.Aborted)
@@ -45,45 +49,72 @@ namespace MCSMapConv
         }
 
         static Converter.ProcessType pt = Converter.ProcessType.Idle;
+        static int row = 0;
         static void TimerEvent(object source, ElapsedEventArgs e)
         {
-            if (pt == Converter.ProcessType.Idle)
+            if (Converter.Aborted)
             {
-                Console.WriteLine();
+                timer.Stop();
+                return;
             }
+
+            if (Converter.Process == Converter.ProcessType.Idle)
+            {
+                return;
+            }
+
+            var b = Converter.BlockCurrent;
+            var bc = Converter.BlockCount;
+            var bp = Converter.BlockProcessed;
+            var gc = Converter.GroupCurrent;
+            var bgc = Converter.BlockGroups.Count;
+            var sc = Converter.SolidsCurrent;
+            var ec = Converter.EntitiesCurrent;
 
             if (pt != Converter.Process)
             {
                 pt = Converter.Process;
-                Console.WriteLine();
+
                 switch (pt)
                 {
                     case Converter.ProcessType.ScanBlocks:
                         Console.WriteLine("Scanning world area...");
+                        row = Console.CursorTop;
                         break;
 
                     case Converter.ProcessType.GenerateSolids:
-                        Console.WriteLine("Generating cs objects...");
+                        Console.CursorTop -= 2;
+                        Console.Write("Blocks:{0}, Used:{1}, Groups:{2}", bc, bp, bgc);
+                        FreeSpace();
+                        Console.Write("Generating cs objects...");
+                        FreeSpace();
+                        row = Console.CursorTop;
                         break;
+
+                    case Converter.ProcessType.Done:
+                        Console.CursorTop -= 2;
+                        Console.Write("Created solids:{0} (S:{1} E:{2})", sc + ec, sc, ec);
+                        FreeSpace();
+                        FreeSpace();
+                        Console.CursorTop -= 1;
+                        timer.Stop();
+                        return;
                 }
-                Console.WriteLine();
-                Console.WriteLine();
             }
 
-            ClearCurrentConsoleLine();
-            ClearCurrentConsoleLine();
+            Console.SetCursorPosition(0, row);
             switch (pt)
             {
                 case Converter.ProcessType.ScanBlocks:
-                    Console.WriteLine("{0} / {1} Blocks, Groups:{2}", 
-                        Converter.BlockCurrent, Converter.BlockCount, Converter.BlockGroups.Count);
-                    PrintProgressBar(Converter.BlockCurrent, Converter.BlockCount);
+                    Console.Write("{0} / {1} Blocks, Used:{2}, Groups:{3}", b, bc, bp, bgc);
+                    FreeSpace();
+                    PrintProgressBar(b, bc);
                     break;
 
                 case Converter.ProcessType.GenerateSolids:
-                    Console.WriteLine("{0} / {1} Groups, Solids:{2}",
-                        Converter.GroupCurrent, Converter.BlockGroups.Count, Converter.SolidsCurrent);
-                    PrintProgressBar(Converter.GroupCurrent, Converter.BlockGroups.Count);
+                    Console.Write("{0} / {1} Groups, Solids:{2} (S:{3} E:{4})", gc, bgc, sc + ec, sc, ec);
+                    FreeSpace();
+                    PrintProgressBar(gc, bgc);
                     break;
             }
 
@@ -95,12 +126,12 @@ namespace MCSMapConv
             int currentLineCursor = Console.CursorTop;
             Console.SetCursorPosition(0, Console.CursorTop);
             Console.Write(new string(' ', Console.WindowWidth));
-
-            if (currentLineCursor > 0)
-            {
-                currentLineCursor--;
-            }
             Console.SetCursorPosition(0, currentLineCursor);
+        }
+
+        static void FreeSpace()
+        {
+            Console.WriteLine(new string(' ', Console.WindowWidth - Console.CursorLeft - 1));
         }
 
         static void PrintProgressBar(int current, int count)
@@ -114,7 +145,7 @@ namespace MCSMapConv
             }
 
             int rem = barWidth - done;
-            Console.Write("{0}{1}{2}%", new string('#', done), new string('.', rem), (int)(proc * 100));
+            Console.Write("{0}{1}{2}%", new string('#', done), new string('-', rem), (int)(proc * 100));
         }
     }
 }

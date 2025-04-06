@@ -18,12 +18,14 @@ namespace MCSMapConv
 
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
 
+        public static Config Config { get; private set; }
         public static bool Aborted { get; private set; }
         public static int BlockCount { get; private set; }
         public static int BlockProcessed { get; private set; }
         public static int BlockCurrent { get; private set; }
         public static int GroupCurrent { get; private set; }
         public static int SolidsCurrent { get; private set; }
+        public static int EntitiesCurrent { get; private set; }
         public static ProcessType Process { get; private set; }
 
         private static List<BlockTexture> Blocks;
@@ -33,14 +35,14 @@ namespace MCSMapConv
         private static List<Model> Models;
 
         private static World MCWorld;
-        private static VHE.Map Map;
-        public static List<BlockGroup> BlockGroups;
+        public static VHE.Map Map;
+        public static List<BlockGroup> BlockGroups = new List<BlockGroup>();
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
-            {Resources.Models, "models.json"},
-            {Resources.Textures, "blocks.json"},
-            {Resources.SignEntities, "objects.json"},
-            {Resources.SolidEntities, "solid_entities.json"}
+            {Resources.Models, @"data\models.json"},
+            {Resources.Textures, @"data\blocks.json"},
+            {Resources.SignEntities, @"data\sign_entities.json"},
+            {Resources.SolidEntities, @"data\solid_entities.json"}
         };
 
         public enum Resources
@@ -57,12 +59,34 @@ namespace MCSMapConv
         {
             Idle,
             ScanBlocks,
-            GenerateSolids
+            GenerateSolids,
+            Done
+        }
+
+        public static void LoadConfig(string filePath)
+        {
+            Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath));
+
+            CSScale = Config.Scale;
+            TextureRes = Config.TextureResolution;
         }
 
         public static VHE.Map ConvertToMap(string worldPath, int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
         {
             //BlockInspect(world, 68, 454, 55, -343, 456, 57, -341);
+            /*var cfg = new Config() { 
+                CstrikePath = @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike",
+                MapOutputPath = @"D:\games\vhe\maps\out.map",
+                Scale = 37,
+                TextureResolution = 128,
+                Wads = new string[] {
+                    @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\minecraft.wad",
+                    @"D:\games\Counter-Strike 1.6 Chrome v3.11\zbotsnd\Editor\J.A.C.K\halflife\zhlt.wad",
+                    @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\decals.wad"
+                }
+            };
+
+            File.WriteAllText("config.json", JsonConvert.SerializeObject(cfg, Formatting.Indented));*/
 
             BlockProcessed = 0;
             Aborted = false;
@@ -81,10 +105,15 @@ namespace MCSMapConv
             BlockCurrent = 0;
             GroupCurrent = 0;
             SolidsCurrent = 0;
+            EntitiesCurrent = 0;
             Process = ProcessType.ScanBlocks;
 
             Map = new VHE.Map();
-            Map.AddString("worldspawn", "wad", @"\cstrike\minecraft.wad");
+            foreach (var wad in Config.Wads)
+            {
+                Map.AddString("worldspawn", "wad", wad);
+            }
+            
             BlockGroups = new List<BlockGroup>();
 
             /*TEST*/
@@ -231,6 +260,9 @@ namespace MCSMapConv
             Aborted = false;
             foreach (var bg in BlockGroups)
             {
+                GroupCurrent++;
+                //System.Threading.Thread.Sleep(10);
+
             pBegin:
                 var bt = GetBT(bg.BlockID, bg.BlockData);
                 if (bt == null)
@@ -365,6 +397,7 @@ namespace MCSMapConv
                 Map.AddSolids(Modelling.GenerateSolids(model, "sky"));
             }
 
+            Process = ProcessType.Done;
             return Map;
         }
 
@@ -852,10 +885,10 @@ namespace MCSMapConv
                         },
                         Position = new VHE.Point(xmin, ymin, zmin),
                     };
-                    Map.AddSolid(Modelling.GenerateSolid(bt, bg, mdl));
+                    MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
 
                     mdl.Position.Z += 0.375f;
-                    Map.AddSolid(Modelling.GenerateSolid(bt, bg, mdl));
+                    MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
                 }
             }
             else //vertical pillars
@@ -869,7 +902,7 @@ namespace MCSMapConv
                         },
                     },       
                 };
-                Map.AddSolid(Modelling.GenerateSolid(bt, bg, mdl));
+                MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
             }
         }
 
@@ -1154,19 +1187,23 @@ namespace MCSMapConv
         private static void MapAddObject(List<VHE.Map.Solid> solids, BlockTexture bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
         {
-            SolidsCurrent += solids.Count;
-
             var se = GetSolidEntity(bt);
+            var t = Map.GetSolidsCount().Solids;
+
             if (se != null)
             {
                 var entity = GenerateEntity(se, blockData, x, y, z);
                 solids.ForEach(s => entity.AddSolid(s));
                 Map.CreateEntity(entity);
+                EntitiesCurrent += solids.Count;
             }
             else
             {
                 solids.ForEach(s => Map.AddSolid(s));
+                SolidsCurrent += solids.Count;
             }
+
+            var test = Map.GetSolidsCount().Solids;
         }
 
         private static EntityTemplate GetSolidEntity(BlockTexture bt)
@@ -1893,8 +1930,10 @@ namespace MCSMapConv
             if (res == Resources.Wad || res == Resources.All)
             {
                 Wads = new List<VHE.WAD>();
-                Wads.Add(new VHE.WAD(@"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\minecraft.wad"));
-                Wads.Add(new VHE.WAD(@"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\cstrike.wad"));
+                foreach (var wad in Config.Wads)
+                {
+                    Wads.Add(new VHE.WAD(wad));
+                }
             }
             if (res == Resources.Textures || res == Resources.All)
             {

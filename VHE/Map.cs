@@ -204,7 +204,6 @@ namespace MCSMapConv.VHE
         public void AddSolid(string className, Solid solid)
         {
             var param = GetParameter(className, "Solids");
-
             (param.Value as List<Solid>).Add(solid);
         }
 
