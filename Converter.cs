@@ -14,9 +14,11 @@ namespace MCSMapConv
         public static bool Debuging = false;
         public static float CSScale = 37;
         public static float TextureRes = 128;
-        public static bool SkyBoxEnable = false;
+        public static bool SkyBoxEnable = true;
+        public static bool EntityNaming = false;  //(!) true can break down some entity functionality
 
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
+        public static int Dimension;
 
         public static Config Config { get; private set; }
         public static bool Aborted { get; private set; }
@@ -33,6 +35,7 @@ namespace MCSMapConv
         private static List<EntityTemplate> SignEntities;
         private static List<EntityTemplate> SolidEntities;
         private static List<Model> Models;
+        private static FontDim FontDim = new FontDim();
 
         private static World MCWorld;
         public static VHE.Map Map;
@@ -71,27 +74,16 @@ namespace MCSMapConv
             TextureRes = Config.TextureResolution;
         }
 
-        public static VHE.Map ConvertToMap(string worldPath, int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
+        public static VHE.Map ConvertToMap(string worldPath, int dimension, 
+            int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
         {
             //BlockInspect(world, 68, 454, 55, -343, 456, 57, -341);
-            /*var cfg = new Config() { 
-                CstrikePath = @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike",
-                MapOutputPath = @"D:\games\vhe\maps\out.map",
-                Scale = 37,
-                TextureResolution = 128,
-                Wads = new string[] {
-                    @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\minecraft.wad",
-                    @"D:\games\Counter-Strike 1.6 Chrome v3.11\zbotsnd\Editor\J.A.C.K\halflife\zhlt.wad",
-                    @"D:\games\Counter-Strike 1.6 Chrome v3.11\cstrike\decals.wad"
-                }
-            };
-
-            File.WriteAllText("config.json", JsonConvert.SerializeObject(cfg, Formatting.Indented));*/
 
             BlockProcessed = 0;
             Aborted = false;
             MCWorld = new World(worldPath);
             Settings.DebugEnable = false;
+            Dimension = dimension;
             Xmin = mcxmin;
             Ymin = mcymin;
             Zmin = mczmin;
@@ -130,8 +122,6 @@ namespace MCSMapConv
                 Position = new VHE.Point(0, 0, 0)
             };
 
-            var btx = Blocks.Find(t => t.ID == 1);
-
             var mdl = new Model()
             {
                 Solids =
@@ -139,15 +129,21 @@ namespace MCSMapConv
                     new Model.Solid()
                     {
                         Size = new VHE.Point(1, 1, 1),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Offset = new VHE.Point(0.5f, 0.5f, 0),
+                        OriginRotOffset = new VHE.Point(0.5f, -0.5f, 0),
+                        Rotation = new VHE.Point(0, 0, -45),
+                        AbsOffset = new VHE.Point(0, 1, 0)
                     },
                 },
                 Position = new VHE.Point(0, 0, 0)
             };
 
-            Map.AddSolid(Modelling.GenerateSolid(mdl, "brick"));
+            Map.AddSolid(Modelling.GenerateSolid(mdl, "pumpkin_face"));
+            Map.AddSolid(Modelling.GenerateSolid(bas, "blockgold"));
             //Map.AddSolid(Modelling.GenerateSolid(mdl2, "brick2"));
             //Map.AddSolid(Modelling.CreateSolid(new VHE.Point(4, 0, 0), ms, new string[] { "!lava" }));
-            return Map;*/
+            return Map;
             /*TEST END*/
 
             var missings = new BlockMissMsg();
@@ -338,9 +334,10 @@ namespace MCSMapConv
                         break;
 
                     case BlockGroup.ModelType.Sign:
-                        if (!GenerateSignEntity(bg))
+                        var text = GetSignText(Dimension, bg);
+                        if (!GenerateSignEntity(bg, text))
                         {
-                            ModelSign(bg, bt);
+                            ModelSign(bg, bt, text);
                         }
                         break;
 
@@ -363,32 +360,32 @@ namespace MCSMapConv
                     {
                         new Model.Solid()
                         {
-                            Offset = new VHE.Point(0, -1, 0),
+                            AbsOffset = new VHE.Point(0, -1, 0),
                             Size = new VHE.Point(sbx, 1, sbz),
                         },
                         new Model.Solid()
                         {
-                            Offset = new VHE.Point(sbx, -1, 0),
+                            AbsOffset = new VHE.Point(sbx, -1, 0),
                             Size = new VHE.Point(1, sby + 2, sbz),
                         },
                         new Model.Solid()
                         {
-                            Offset = new VHE.Point(0, sby, 0),
+                            AbsOffset = new VHE.Point(0, sby, 0),
                             Size = new VHE.Point(sbx, 1, sbz),
                         },
                         new Model.Solid()
                         {
-                            Offset = new VHE.Point(-1, -1, 0),
+                            AbsOffset = new VHE.Point(-1, -1, 0),
                             Size = new VHE.Point(1, sby + 2, sbz),
                         },
                         new Model.Solid()
                         {
-                            Offset = new VHE.Point(-1, -1, sbz),
+                            AbsOffset = new VHE.Point(-1, -1, sbz),
                             Size = new VHE.Point(sbx + 2, sby + 2, 1),
                         },
                         new Model.Solid()
                         {
-                            Offset = new VHE.Point(-1, -1, -1),
+                            AbsOffset = new VHE.Point(-1, -1, -1),
                             Size = new VHE.Point(sbx + 2, sby + 2, 1),
                         }
                     }
@@ -801,7 +798,7 @@ namespace MCSMapConv
                         Size = new VHE.Point(length, th, bg.Zmax - bg.Zmin),
                         Rotation = new VHE.Point(0, 0, rot),
                         OriginAlign = align,
-                        Offset = offset,
+                        AbsOffset = offset,
                         TextureLockOffsets = true,
                         Faces = new List<Model.Face>
                         {
@@ -897,7 +894,7 @@ namespace MCSMapConv
                     Solids = {
                         new Model.Solid() {
                             Size = new VHE.Point(0.25f, 0.25f, bg.Zmax - bg.Zmin),
-                            Offset = new VHE.Point(0.375f, 0.375f, 0),
+                            AbsOffset = new VHE.Point(0.375f, 0.375f, 0),
                             TextureLockOffsets = true
                         },
                     },       
@@ -960,7 +957,7 @@ namespace MCSMapConv
 
             if (mirror)
             {
-                Modelling.RotatingOffset(ref orx, ref ory, rotate);
+                Modelling.RotateOffset(ref orx, ref ory, rotate);
             }
             
             var model = new Model()
@@ -997,7 +994,7 @@ namespace MCSMapConv
                     new Model.Solid() //origin
                     {
                         Size = new VHE.Point(0.125f, 0.125f, 0.125f),
-                        Offset = new VHE.Point(0 + orx, th / 2 + ory, 1),
+                        AbsOffset = new VHE.Point(0 + orx, th / 2 + ory, 1),
                         OriginAlign = new VHE.Point(0, 0, 0),
                         OriginRotOffset = new VHE.Point(0.5f, 0.5f - th / 2, 0),
                         Rotation = new VHE.Point(0, 0, rotate),
@@ -1030,7 +1027,7 @@ namespace MCSMapConv
                     new Model.Solid()
                     {
                         Size = new VHE.Point(len, 0, height),
-                        Offset = new VHE.Point(0.5f + worldOffset[0], 0.5f + worldOffset[1], 0),
+                        AbsOffset = new VHE.Point(0.5f + worldOffset[0], 0.5f + worldOffset[1], 0),
                         OriginAlign = new VHE.Point(0, 0, 1),
                         Rotation = new VHE.Point(0, 0, 45),
                         TextureOriented = true,
@@ -1056,7 +1053,7 @@ namespace MCSMapConv
                     new Model.Solid()
                     {
                         Size = new VHE.Point(len, 0, height),
-                        Offset = new VHE.Point(0.5f + worldOffset[0], 0.5f + worldOffset[1], 0),
+                        AbsOffset = new VHE.Point(0.5f + worldOffset[0], 0.5f + worldOffset[1], 0),
                         OriginAlign = new VHE.Point(0, 0, 1),
                         Rotation = new VHE.Point(0, 0, -45),
                         TextureOriented = true,
@@ -1095,33 +1092,36 @@ namespace MCSMapConv
                 
                 foreach (var sld in model.Solids)
                 {
-                    sld.Offset.X += worldOffset[0];
-                    sld.Offset.Y += worldOffset[1];
+                    sld.AbsOffset.X += worldOffset[0];
+                    sld.AbsOffset.Y += worldOffset[1];
                 }
             }
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static void ModelSign(BlockGroup bg, BlockTexture bt)
+        private static void ModelSign(BlockGroup bg, BlockTexture bt, string[] text)
         {
+            /*generate base model*/
+            const float tScale = 0.66f;
+            const float msx = 1, msy = 0.081f, msz = 0.49f;
+            const float ssz = 0.59f;
+
             bool ground = bt.GetSolidTK("stick") != null;
 
-            VHE.Point origAligin, offset, rotOffset;
+            VHE.Point morigAligin, moffset;
             float rotate = 0;
 
             if (ground)
             {
-                origAligin = new VHE.Point(0, 0, 1);
-                rotOffset = new VHE.Point();
-                offset = new VHE.Point(0.5f, 0.5f, 0.59f);
+                morigAligin = new VHE.Point(0, 0, 1);
+                moffset = new VHE.Point(0.5f, 0.5f, ssz);
                 rotate = GetDataRotation(bg.BlockData);
             }
             else
             {
-                origAligin = new VHE.Point(1, 1, 0);
-                rotOffset = new VHE.Point(0.5f, 0.5f, 0);
-                offset = new VHE.Point(0, 0, 0.5f);
+                morigAligin = new VHE.Point(0, 1, 0);
+                moffset = new VHE.Point(0.5f, 0, 0.5f);
 
                 switch (bg.BlockData)
                 {
@@ -1148,22 +1148,22 @@ namespace MCSMapConv
             var main = new Model.Solid()
             {
                 Name = "main",
-                Size = new VHE.Point(1, 0.081f, 0.49f),
-                Offset = offset,
-                OriginAlign = origAligin,
-                OriginRotOffset = rotOffset,
+                Size = new VHE.Point(msx, msy, msz),
+                OriginAlign = morigAligin,
+                Offset = moffset,
+                OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
                 Rotation = new VHE.Point(0, 0, rotate),
-                TextureScale = 0.66f
+                TextureScale = tScale
             };
 
             var stick = new Model.Solid()
             {
                 Name = "stick",
-                Size = new VHE.Point(0.081f, 0.081f, 0.59f),
-                Offset = new VHE.Point(0.5f, 0.5f, 0),
+                Size = new VHE.Point(msy, msy, ssz),
                 OriginAlign = new VHE.Point(0, 0, 1),
                 Rotation = new VHE.Point(0, 0, rotate),
-                TextureScale = 0.66f
+                AbsOffset = new VHE.Point(0.5f, 0.5f, 0),
+                TextureScale = tScale
             };
 
             var model = new Model() { Solids = new List<Model.Solid>() { main } };
@@ -1174,6 +1174,132 @@ namespace MCSMapConv
             }
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+
+            /*generate text*/
+            if (text.Length > 0)
+            {
+                string fontTextureName = "{font";
+                var texture = Modelling.GetTexture(Wads, fontTextureName);
+                const int sch = 8; //char size in font pixels
+                float mScale = 1.0f / 16 * tScale; //sign pixel scale
+                float pScale = 0.25f * mScale; //font pixel scale
+                float min = Modelling.MinSize;
+
+                var textModel = new Model();
+
+                //char offsets
+                float zoff = Modelling.GetEdgeMax(msz, morigAligin.Z) + moffset.Z - mScale;// - sch * pScale;
+                float yoff = Modelling.GetEdgeMax(msy, morigAligin.Y) + moffset.Y;
+                var fontScale = texture.Width / 16;
+
+                bool uwarn = false;
+
+                for (int r = 0; r < text.Length; r++)
+                {
+                    var row = text[r];
+                    
+                    //unicode to ascii convert
+                    while (row.IndexOf("\\u") != -1)
+                    {
+                        int idx = row.IndexOf("\\u");
+                        if (row.Length <= idx + 5)
+                        {
+                            Console.WriteLine("Warning [{0}, {1}, {2}]: invalid unicode char code",
+                                    bg.Block.X, bg.Block.Y, bg.Block.Z);
+                            break;
+                        }
+
+                        var strcode = row.Substring(idx + 2, 4);
+
+                        uint ascii;
+                        try
+                        {
+                            ascii = uint.Parse(strcode, System.Globalization.NumberStyles.HexNumber) & 0x00FF;
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Warning [{0}, {1}, {2}]: invalid unicode char code",
+                                    bg.Block.X, bg.Block.Y, bg.Block.Z);
+                            break;
+                        }
+
+                        if (!uwarn)
+                        {
+                            Console.WriteLine("Warning [{0}, {1}, {2}]: unicode char(s) converted to ASCII",
+                                bg.Block.X, bg.Block.Y, bg.Block.Z);
+                            uwarn = true;
+                        }
+
+                        row = row.Replace("\\u" + strcode, ((char)ascii).ToString());
+                    }
+
+                    //char offset and row align
+                    float tzoff = (sch + 2) * r * pScale;
+                    float txl = (float)(FontDim.GetStringWidth(texture, row) * pScale) + (row.Length - 1) * pScale;
+                    float xShift = 0;
+
+                    //generate char solids
+                    for (int ch = 0; ch < row.Length; ch++)
+                    {
+                        int ascii = row[ch]; //char ascii code
+                        var dim = FontDim.GetCharDim(texture, ascii);
+
+                        //texture offset
+                        float otx = 0, oty = 0;
+
+                        //char size & offset
+                        float oy = dim.OffsetY * pScale;
+                        float sx = dim.Width * pScale;
+                        float sy = dim.Height * pScale;
+                        if (dim.Width == 1)
+                        {
+                            sx *= 1.3f;
+                            otx = -0.325f * texture.Height / 128;
+                        }
+                        if (dim.Height == 1)
+                        {
+                            sy *= 1.3f;
+                            oty = (float)(-0.325 * texture.Height / 128);
+                        }
+
+                        //char full offset x
+                        float txoff = 0.5f - txl / 2 + xShift + sx / 2;
+
+                        var chr = new Model.Solid()
+                        {
+                            Name = "char",
+                            Size = new VHE.Point(sx, min * 2, sy),
+                            OriginAlign = new VHE.Point(0, 0, -1),
+                            Offset = new VHE.Point(txoff, yoff, zoff - tzoff - oy),
+                            OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
+                            Rotation = new VHE.Point(0, 0, rotate),
+                            TextureScale = pScale / fontScale * 128 * (TextureRes / 16),
+                            Faces = new List<Model.Face>()
+                            {
+                                new Model.Face(Model.Faces.Front)
+                                {
+                                    Texture = fontTextureName,
+                                    OffsetU = ascii % 16 * fontScale + otx,
+                                    OffsetV = ascii / 16 * fontScale + oty + dim.OffsetY * texture.Height / 128,
+                                    UnscaledOffset = true
+                                }
+                            }
+                        };
+
+                        //update char row offset x
+                        xShift += sx + 1 * pScale;
+
+                        textModel.Solids.Add(chr);
+                    }
+                }
+
+                var btt = new BlockTexture()
+                {
+                    Entity = "illusionary"
+                };
+
+                MapAddObject(Modelling.GenerateSolids(null, bg, textModel), btt);
+            }
         }
 
         /*Map methods*/
@@ -1192,7 +1318,7 @@ namespace MCSMapConv
 
             if (se != null)
             {
-                var entity = GenerateEntity(se, blockData, x, y, z);
+                var entity = GenerateEntity(se, blockData, x, y, z, "E" + Map.Data.Count);
                 solids.ForEach(s => entity.AddSolid(s));
                 Map.CreateEntity(entity);
                 EntitiesCurrent += solids.Count;
@@ -1304,14 +1430,14 @@ namespace MCSMapConv
             return false;
         }
 
-        private static bool GenerateSignEntity(BlockGroup bg)
+        private static string[] GetSignText(int dimension, BlockGroup bg)
         {
-            var block = bg.Block;
-            var x = bg.Xmin;
-            var y = bg.Ymin;
-            var z = bg.Zmin;
+            var x = bg.Block.X;
+            var y = bg.Block.Y;
+            var z = bg.Block.Z;
 
-            var chunk = MCWorld.GetChunkAtBlock(0, block.X, block.Z);
+            var buf = new List<string>();
+            var chunk = MCWorld.GetChunkAtBlock(dimension, x, z);
             List<NBT> tes = chunk.NBTData.GetTag("Level/TileEntities");
 
             foreach (var te in tes)
@@ -1322,55 +1448,86 @@ namespace MCSMapConv
                     int tey = te.GetTag("y");
                     int tez = te.GetTag("z");
 
-                    if (block.X == tex && block.Y == tey && block.Z == tez)
+                    if (x == tex && y == tey && z == tez)
                     {
-                        string text = "";
-                        for (int i = 1; i <= 4; i++)
+                        for (int i = 4; i >= 1; i--)
                         {
-                            string buf = te.GetTag("Text" + i);
-                            int idx = buf.IndexOf("\"text\":");
-                            int beg = buf.IndexOf("\"", idx + 7);
-                            int end = buf.IndexOf("\"", beg + 1);
-                            buf = buf.Substring(beg + 1, end - beg - 1);
-                            text += buf + " ";
-                        }
-
-                        if (text.IndexOf("$") == 0)
-                        {
-                            int mend = text.IndexOf(" ");
-                            var macros = text.Substring(1, mend - 1);
-
-                            var objt = SignEntities.Find(o => o.Macros == macros);
-                            if (objt == null)
+                            string row = te.GetTag("Text" + i);
+                            if (row == null)
                             {
-                                Console.WriteLine("Undefined macros {0} at {1} {2} {3}", macros,
-                                    block.X, block.Y, block.Z);
-                            }
-                            else
-                            {
-                                Map.Data.Add(GenerateEntity(objt, block, x, y, z));
+                                continue;
                             }
 
-                            return true;
+                            int idx = row.IndexOf("\"text\":");
+                            int beg = row.IndexOf("\"", idx + 7);
+                            int end = row.IndexOf("\"", beg + 1);
+                            row = row.Substring(beg + 1, end - beg - 1);
+
+                            if (row != "")
+                            {
+                                buf.Add(row);
+                            }
                         }
+
+                        buf.Reverse();
+                        break;
                     }
                 }
+            }
+
+            return buf.ToArray();
+        }
+
+        private static bool GenerateSignEntity(BlockGroup bg, string[] text)
+        {
+            if (text.Length == 0)
+            {
+                return false;
+            }
+
+            var block = bg.Block;
+            var x = bg.Xmin;
+            var y = bg.Ymin;
+            var z = bg.Zmin;
+
+            if (text[0].IndexOf("$") == 0)
+            {
+                List<string> args = new List<string>();
+                foreach (var row in text)
+                {
+                    args.AddRange(row.Split(' '));
+                }
+
+                var macros = args[0].Trim('$');
+
+                var objt = SignEntities.Find(o => o.Macros == macros);
+                if (objt == null)
+                {
+                    Console.WriteLine("Undefined macros {0} at {1} {2} {3}", macros,
+                        block.X, block.Y, block.Z);
+                }
+                else
+                {
+                    Map.Data.Add(GenerateEntity(objt, block, x, y, z));
+                }
+
+                return true;
             }
 
             return false;
         }
 
-        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, int blockData, float x, float y, float z)
+        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, int blockData, float x, float y, float z, string name = null)
         {
             var block = new Block() { 
                 ID = 0,
                 Data = (byte)blockData
             };
 
-            return GenerateEntity(entityTemplate, block, x, y, z);
+            return GenerateEntity(entityTemplate, block, x, y, z, name);
         }
 
-        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, Block block, float x, float y, float z)
+        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, Block block, float x, float y, float z, string name = null)
         {
             var entity = new VHE.Entity(entityTemplate.ClassName);
 
@@ -1422,7 +1579,7 @@ namespace MCSMapConv
                     switch (args[0].ToUpper())
                     {
                         case "ANGLE":
-                            int vali = GetDataRotation(block.Data) + 90;
+                            int vali = -GetDataRotation(block.Data) + 90;
                             res = vali.ToString();
                             break;
 
@@ -1473,12 +1630,17 @@ namespace MCSMapConv
                 entity.Parameters.Add(par);
             }
 
+            if (EntityNaming && name != null)
+            {
+                entity.AddParameter("targetname", name, VHE.Entity.Type.String);
+            }
+
             return entity;
         }
 
         private static int GetDataRotation(int data)
         {
-            int vali = (int)(-data * 22.5);
+            int vali = (int)(data * 22.5);
             if (vali >= 360)
             {
                 vali -= 360;

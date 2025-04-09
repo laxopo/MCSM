@@ -24,6 +24,17 @@ namespace MCSMapConv.VHE
             public bool Sky { get; set; }
             public int Height { get; set; }
             public int Width { get; set; }
+            public BMP Data { get; set; }
+            public byte Type { get; set; }
+        }
+
+        public class BMP
+        {
+            public byte[,] Main { get; set; }
+            public byte[,] Mip1 { get; set; }
+            public byte[,] Mip2 { get; set; }
+            public byte[,] Mip3 { get; set; }
+            public int[] Palette { get; set; }
         }
 
         public WAD(string filepath)
@@ -41,20 +52,37 @@ namespace MCSMapConv.VHE
             for (int i = 0; i < Count; i++)
             {
                 var texture = new Texture();
+                var name = GetString(fs, DataOffset + i * 32 + 16, 16);
 
                 int imgOffset = GetInt(fs, DataOffset + i * 32);
-                int type = GetInt(fs, DataOffset + i * 32 + 12);
+                texture.Type = (byte)GetInt(fs, DataOffset + i * 32 + 12);
 
-                switch (type)
+                switch (texture.Type)
                 {
                     case 0x42://qpic
                         texture.Width = GetInt(fs, imgOffset);
                         texture.Height = GetInt(fs, imgOffset + 4);
+                        texture.Data = new BMP()
+                        {
+                            Main = ReadBMP(fs, imgOffset + 8, texture.Width, texture.Height),
+                            Palette = ReadPalette(fs, (int)fs.Position + 2)
+                        };
                         break;
 
                     case 0x43://miptex
                         texture.Width = GetInt(fs, imgOffset + 16);
                         texture.Height = GetInt(fs, imgOffset + 20);
+                        var offm = GetInt(fs, imgOffset + 24) + imgOffset;
+                        var offm1 = GetInt(fs, imgOffset + 28) + imgOffset;
+                        var offm2 = GetInt(fs, imgOffset + 32) + imgOffset;
+                        var offm3 = GetInt(fs, imgOffset + 36) + imgOffset;
+                        texture.Data = new BMP() {
+                            Main = ReadBMP(fs, offm, texture.Width, texture.Height),
+                            Mip1 = ReadBMP(fs, offm1, texture.Width / 2, texture.Height / 2),
+                            Mip2 = ReadBMP(fs, offm2, texture.Width / 4, texture.Height / 4),
+                            Mip3 = ReadBMP(fs, offm3, texture.Width / 8, texture.Height / 8),
+                            Palette = ReadPalette(fs, (int)fs.Position + 2)
+                        };
                         break;
 
                     default:
@@ -63,7 +91,7 @@ namespace MCSMapConv.VHE
                         break;
                 }           
 
-                var name = GetString(fs, DataOffset + i * 32 + 16, 16);
+                
 
                 switch (name[0])
                 {
@@ -129,6 +157,35 @@ namespace MCSMapConv.VHE
             byte[] buf = new byte[4];
             fs.Read(buf, 0, 4);
             return BitConverter.ToInt32(buf, 0);
+        }
+
+        private byte[,] ReadBMP(FileStream fs, int offset, int width, int height)
+        {
+            fs.Position = offset;
+
+            var data = new byte[width, height];
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    data[x, y] = (byte)fs.ReadByte();
+                }
+            }
+
+            return data;
+        }
+
+        private int[] ReadPalette(FileStream fs, int offset)
+        {
+            fs.Position = offset;
+
+            var data = new int[256];
+            for (int i = 0; i < 256; i++)
+            {
+                data[i] = GetInt(fs);
+            }
+
+            return data;
         }
     }
 }

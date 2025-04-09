@@ -50,6 +50,7 @@
     <Compile Include="BlockMissMsg.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Converter.cs" />
+    <Compile Include="FontDim.cs" />
     <Compile Include="Modelling.cs" />
     <Compile Include="Model.cs" />
     <Compile Include="NormalFace.cs" />

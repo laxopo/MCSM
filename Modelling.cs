@@ -60,39 +60,26 @@ namespace MCSMapConv
 
         public static VHE.Map.Solid GenerateSolid(Model model, string texture)
         {
-
-            var textures = new string[6];
-            for (int i = 0; i < 6; i++)
-            {
-                textures[i] = texture;
-            }
-
-            return GenerateSolids(new BlockTexture(), null, model, textures)[0];
+            return GenerateSolids(new BlockTexture(), null, model, texture)[0];
         }
 
-        public static VHE.Map.Solid GenerateSolid(BlockTexture bt, BlockGroup bg, Model model = null, string[] textures = null)
+        public static VHE.Map.Solid GenerateSolid(BlockTexture bt, BlockGroup bg, Model model = null, string texture = null)
         {
             if (model == null)
             {
                 model = CreateModel(bg);
             }
  
-            return GenerateSolids(bt, bg, model, textures)[0];
+            return GenerateSolids(bt, bg, model, texture)[0];
         }
 
         public static List<VHE.Map.Solid> GenerateSolids(Model model, string texture)
         {
-            var textures = new string[6];
-            for (int i = 0; i < 6; i++)
-            {
-                textures[i] = texture;
-            }
-
-            return GenerateSolids(null, null, model, textures);
+            return GenerateSolids(null, null, model, texture);
         }
 
         public static List<VHE.Map.Solid> GenerateSolids(BlockTexture bt, BlockGroup bg, 
-            Model model, string[] textures = null)
+            Model model, string texture = null)
         {
             if (model == null)
             {
@@ -131,16 +118,26 @@ namespace MCSMapConv
             }
 
             List<VHE.Map.Solid> solids = new List<VHE.Map.Solid>();
-            bool textureInput = textures != null;
+            bool textureInput = texture != null;
 
             foreach (var mdlSolid in model.Solids)
             {
                 //get textures
-                if (!textureInput)
+                if (textureInput)
+                {
+                    foreach (var face in mdlSolid.GetFaces())
+                    {
+                        if (face.Texture == null)
+                        {
+                            face.Texture = texture;
+                        }
+                    }
+                }
+                else
                 {
                     if (mdlSolid.TextureScale > 0)
                     {
-                        foreach (var face in mdlSolid.Faces)
+                        foreach (var face in mdlSolid.GetFaces())
                         {
                             face.ScaleU = mdlSolid.TextureScale;
                             face.ScaleV = mdlSolid.TextureScale;
@@ -158,8 +155,6 @@ namespace MCSMapConv
                         mdlSolid.Face(Model.Faces.Right).MirrorV ^= true;
                     }
 
-                    textures = new string[6];
-
                     for (int i = 0; i < 6; i++)
                     {
                         if (mdlSolid.TexturedFaces != null)
@@ -172,27 +167,34 @@ namespace MCSMapConv
 
                         if (mdlSolid.Textures.Count > 0)
                         {
-                            textures[i] = TextureBySide(i, mdlSolid.Name, mdlSolid.Textures, blockData);
+                            mdlSolid.Face(i).Texture = TextureBySide(i, mdlSolid.Name, mdlSolid.Textures, blockData);
                         }
                         else
                         {
-                            if (bt == null)
+                            /*if (bt == null)
                             {
                                 throw new Exception("Block mapper is not specified");
-                            }
+                            }*/
 
-                            textures[i] = TextureBySide(i, mdlSolid.Name, bt.Textures, blockData);
+                            if (bt != null)
+                            {
+                                var face = mdlSolid.Face(i);
+                                if (face.Texture == null)
+                                {
+                                    face.Texture = TextureBySide(i, mdlSolid.Name, bt.Textures, blockData);
+                                }
+                            }
                         }
                     }
                 }
 
-                solids.Add(CreateSolid(pos, mdlSolid, textures));
+                solids.Add(CreateSolid(pos, mdlSolid));
             }
 
             return solids;
         }
 
-        public static VHE.Map.Solid CreateSolid(VHE.Point pos, Model.Solid mdlSolid, string[] textures)
+        public static VHE.Map.Solid CreateSolid(VHE.Point pos, Model.Solid mdlSolid)
         {
             if (mdlSolid.Size.X < 0 || mdlSolid.Size.Y < 0 || mdlSolid.Size.Z < 0)
             {
@@ -215,12 +217,12 @@ namespace MCSMapConv
             }
 
             //set origin
-            float xmin = mdlSolid.Size.X * (float)(-0.5 + 0.5 * mdlSolid.OriginAlign.X) - mdlSolid.OriginRotOffset.X, 
-                xmax = mdlSolid.Size.X * (float)(0.5 + 0.5 * mdlSolid.OriginAlign.X) - mdlSolid.OriginRotOffset.X,
-                ymin = mdlSolid.Size.Y * (float)(-0.5 + 0.5 * mdlSolid.OriginAlign.Y) - mdlSolid.OriginRotOffset.Y, 
-                ymax = mdlSolid.Size.Y * (float)(0.5 + 0.5 * mdlSolid.OriginAlign.Y) - mdlSolid.OriginRotOffset.Y,
-                zmin = mdlSolid.Size.Z * (float)(-0.5 + 0.5 * mdlSolid.OriginAlign.Z) - mdlSolid.OriginRotOffset.Z, 
-                zmax = mdlSolid.Size.Z * (float)(0.5 + 0.5 * mdlSolid.OriginAlign.Z) - mdlSolid.OriginRotOffset.Z;
+            float xmin = GetEdgeMin(mdlSolid.Size.X, mdlSolid.OriginAlign.X) - mdlSolid.OriginRotOffset.X + mdlSolid.Offset.X, 
+                xmax = GetEdgeMax(mdlSolid.Size.X, mdlSolid.OriginAlign.X) - mdlSolid.OriginRotOffset.X + mdlSolid.Offset.X,
+                ymin = GetEdgeMin(mdlSolid.Size.Y, mdlSolid.OriginAlign.Y) - mdlSolid.OriginRotOffset.Y + mdlSolid.Offset.Y, 
+                ymax = GetEdgeMax(mdlSolid.Size.Y, mdlSolid.OriginAlign.Y) - mdlSolid.OriginRotOffset.Y + mdlSolid.Offset.Y,
+                zmin = GetEdgeMin(mdlSolid.Size.Z, mdlSolid.OriginAlign.Z) - mdlSolid.OriginRotOffset.Z + mdlSolid.Offset.Z, 
+                zmax = GetEdgeMax(mdlSolid.Size.Z, mdlSolid.OriginAlign.Z) - mdlSolid.OriginRotOffset.Z + mdlSolid.Offset.Z;
            
             //create faces points
             var pts = new VHE.Point[] {
@@ -268,9 +270,9 @@ namespace MCSMapConv
             //Move
             foreach (var pt in pts)
             {
-                pt.X = (pt.X + pos.X + mdlSolid.Offset.X + mdlSolid.OriginRotOffset.X) * Scale;
-                pt.Y = (pt.Y - pos.Y - mdlSolid.Offset.Y - mdlSolid.OriginRotOffset.Y) * Scale;
-                pt.Z = (pt.Z + pos.Z + mdlSolid.Offset.Z + mdlSolid.OriginRotOffset.Z) * Scale;
+                pt.X = (pt.X + pos.X + mdlSolid.AbsOffset.X + mdlSolid.OriginRotOffset.X) * Scale;
+                pt.Y = (pt.Y - pos.Y - mdlSolid.AbsOffset.Y - mdlSolid.OriginRotOffset.Y) * Scale;
+                pt.Z = (pt.Z + pos.Z + mdlSolid.AbsOffset.Z + mdlSolid.OriginRotOffset.Z) * Scale;
             }
 
             //create a solid
@@ -308,7 +310,7 @@ namespace MCSMapConv
                 face.AxisU = aus[i];
                 face.AxisV = avs[i];
 
-                face.Texture = GetTextureName(textures, i);
+                face.Texture = GetTextureName(mdlSolid, i);
 
                 var wadTexture = GetTexture(Wads, face.Texture);
                 if (wadTexture == null)
@@ -352,11 +354,17 @@ namespace MCSMapConv
                     face.ScaleV = Scale / TextureRes;
                 }
 
-                face.ScaleU *= mdlSolid.Face(i).ScaleU;
-                face.ScaleV *= mdlSolid.Face(i).ScaleV;
+                face.ScaleU *= tparams.ScaleU;
+                face.ScaleV *= tparams.ScaleV;
 
-                var offU = tparams.OffsetU * TextureRes / face.ScaleU;
-                var offV = tparams.OffsetV * TextureRes / face.ScaleU;
+                float k = 1;
+                if (!tparams.UnscaledOffset)
+                {
+                    k = TextureRes / 16;
+                }
+
+                var offU = tparams.OffsetU * k;
+                var offV = tparams.OffsetV * k;
 
                 var pt = face.Vertexes[0];
                 var u = (pt.X * aus[i].X + pt.Y * aus[i].Y + pt.Z * aus[i].Z) / face.ScaleU;
@@ -370,8 +378,8 @@ namespace MCSMapConv
                     v = v % th - v % TextureRes;
                 }
 
-                face.OffsetU = tw / 2 - (u - uf + offU + fou * -Sign(mdlSolid.Face(i).MirrorV)) % tw;
-                face.OffsetV = th / 2 - (v - vf + offV + fov * -Sign(mdlSolid.Face(i).MirrorU)) % th;
+                face.OffsetU = tw / 2 - (u - uf - offU - fou * Sign(tparams.MirrorV)) % tw;
+                face.OffsetV = th / 2 - (v - vf - offV - fov * Sign(tparams.MirrorU)) % th;
             }
 
             return solid;
@@ -394,6 +402,16 @@ namespace MCSMapConv
             }
 
             return null;
+        }
+
+        public static float GetEdgeMin(float size, float originAlign)
+        {
+            return size * (float)(-0.5 + 0.5 * originAlign);
+        }
+
+        public static float GetEdgeMax(float size, float originAlign)
+        {
+            return size * (float)(0.5 + 0.5 * originAlign);
         }
 
         /**/
@@ -435,25 +453,21 @@ namespace MCSMapConv
             return BlockTexture.GetTextureName(tks, blockData, solidName, keys);
         }
 
-        private static string GetTextureName(string[] array, int index)
+        private static string GetTextureName(Model.Solid sld, int index)
         {
-            if (array == null)
-            {
-                return null;
-            }    
+            var face = sld.Face(index);
 
-            if (index >= array.Length)
+            if (face == null)
             {
                 return null;
             }
 
-            var txt = array[index];
-            if (txt == "")
+            if (face.Texture == "")
             {
                 return null;
             }
 
-            return txt;
+            return face.Texture;
         }
 
         private static int Sign(bool value)
@@ -468,7 +482,7 @@ namespace MCSMapConv
 
         /*Geometry*/
 
-        public static void RotatingOffset(ref float x, ref float y, float angle)
+        public static void RotateOffset(ref float x, ref float y, float angle)
         {
             x = (float)Cos(angle);
             y = (float)Sin(angle);

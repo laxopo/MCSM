@@ -44,5 +44,14 @@ namespace MCSMapConv.VHE
         {
             return Clone() as Point;
         }
+
+        public Point GetShifted(float x, float y, float z)
+        {
+            var buf = Copy();
+            buf.X += x;
+            buf.Y += y;
+            buf.Z += z;
+            return buf;
+        }
     }
 }

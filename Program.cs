@@ -19,9 +19,9 @@ namespace MCSMapConv
 
             Console.CursorVisible = false;
             timer.Elapsed += TimerEvent;
-            timer.Start();
+            //timer.Start();
 
-            var map = Converter.ConvertToMap(worldPath, 454, 54, -354, 498, 64, -316);
+            var map = Converter.ConvertToMap(worldPath, 0, 454, 54, -354, 498, 64, -316);
             //454, 54, -354, 498, 64, -316
 
             while (timer.Enabled) { }

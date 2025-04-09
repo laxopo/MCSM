@@ -15,6 +15,7 @@ namespace MCSMapConv
         public class Solid
         {
             public string Name { get; set; }
+            public VHE.Point AbsOffset { get; set; } = new VHE.Point();
             public VHE.Point Offset { get; set; } = new VHE.Point();
             public VHE.Point Size { get; set; } = new VHE.Point();
             public VHE.Point OriginAlign { get; set; } = new VHE.Point(1, 1, 1);
@@ -24,7 +25,7 @@ namespace MCSMapConv
             public bool TextureLockOffsets { get; set; }
             public bool TextureOriented { get; set; }
             public float TextureScale { get; set; }
-            public List<Face> Faces { get; set; } = new List<Face>();
+            public List<Face> Faces { private get; set; } = new List<Face>();
             public List<BlockTexture.TextureKey> Textures { get; set; } 
                 = new List<BlockTexture.TextureKey>();
 
@@ -54,13 +55,27 @@ namespace MCSMapConv
 
                 return fc;
             }
+
+            public List<Face> GetFaces()
+            {
+                var list = new List<Face>();
+
+                for (int i = 0; i < 6; i++)
+                {
+                    list.Add(Face(i));
+                }
+
+                return list;
+            }
         }
 
         public class Face
         {
             public Faces Name { get; set; } = Faces.Undefined;
+            public string Texture { get; set; }
             public float OffsetU { get; set; }
             public float OffsetV { get; set; }
+            public bool UnscaledOffset { get; set; }
             public float ScaleU { get; set; } = 1;
             public float ScaleV { get; set; } = 1;
             public float Rotation { get; set; }
