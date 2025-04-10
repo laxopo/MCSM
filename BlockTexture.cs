@@ -14,10 +14,11 @@ namespace MCSMapConv
         public string Entity { get; set; }
         public int DataMask { get; set; }
         public int DataMax { get; set; }
-        public bool IgnoreExcluded { get; set; }
         public int[] DataExceptions { get; set; }
+        public bool IgnoreExcluded { get; set; }
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
+        public bool GroupByData { get; set; }
 
         public class TextureKey
         {
@@ -96,120 +97,29 @@ namespace MCSMapConv
             tk.Texture = textureName;
         }
 
-        public string GetTextureName(params string[] keys)
+        public string GetTextureName(int blockdata, string solidName = null, params string[] keys)
         {
-            foreach (var key in keys)
-            {
-                if (key == null)
-                {
-                    return Textures[0].Texture;
-                }
-
-                var tk = Textures.Find(x => ToUpper(x.Key) == ToUpper(key));
-                if (tk != null)
-                {
-                    return tk.Texture;
-                }
-            }
-
-            return null;
+            return GetTextureName(Textures, blockdata, solidName, keys);
         }
 
         /// <summary>
         /// data = -1 : ignore the data value
         /// </summary>
         /// <param name="bt"></param>
-        /// <param name="data"></param>
+        /// <param name="blockdata"></param>
         /// <param name="keys"></param>
         /// <returns></returns>
         /// 
-        public static string GetTextureName(List<TextureKey> textures, int data, 
-            string solidName = null, params string[] keys)
+        public static string GetTextureName(List<TextureKey> textures, int blockdata, 
+            string solidName, params string[] keys)
         {
-            var mac = "";
-            if (data > -1)
-            {
-                mac = "$d" + data;
-            }
-
-            string GetDataTexture(string key = null)
-            {
-                foreach (var txt in textures)
-                {
-                    if (txt.SolidName != null &&  solidName != null && solidName != txt.SolidName)
-                    {
-                        continue;
-                    }
-
-                    if (txt.Key == null)
-                    {
-                        if (key == null)
-                        {
-                            return txt.Texture;
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
-
-                    var args = txt.Key.Split(' ');
-                    if (args[0] == mac)
-                    {
-                        if (key != null && args.Length > 1)
-                        {
-                            if (args[1] == key)
-                            {
-                                return txt.Texture;
-                            }
-                        }
-                        else
-                        {
-                            return txt.Texture;
-                        }
-                    }
-                    else if (args[0] == key)
-                    {
-                        return txt.Texture;
-                    }
-                }
-
-                return null;
-            }
-
-            if (keys.Length == 0)
-            {
-                if (data > 0)
-                {
-                    return GetDataTexture();
-                }
-                else
-                {
-                    return textures[0].Texture;
-                }
-            }
-
-            foreach (var key in keys)
-            {
-                var txt = GetDataTexture(key);
-
-                if (txt != null)
-                {
-                    return txt;
-                }
-            }
-
-            return null;
+            var name = TextureName(textures, blockdata, solidName, keys);
+            return TextureMacross(name, blockdata);
         }
 
         public TextureKey GetSolidTK(string solidName)
         {
             return Textures.Find(t => ToUpper(t.SolidName) == ToUpper(solidName));
-        }
-
-        public string GetTextureName(int data, string solidName = null, params string[] keys)
-        {
-            return GetTextureName(Textures, data, solidName, keys);
         }
 
         public BlockGroup.ModelType GetSolidType()
@@ -227,6 +137,137 @@ namespace MCSMapConv
             }
 
             return text.ToUpper();
+        }
+
+        private static string TextureName(List<TextureKey> textures, int blockdata,
+            string solidName, params string[] keys)
+        {
+            var macKey = "";
+            if (blockdata > -1)
+            {
+                macKey = "$d" + blockdata;
+            }
+
+            if (keys.Length == 0)
+            {
+                if (blockdata > 0)
+                {
+                    return GetDataTexture(textures, macKey, solidName);
+                }
+                else
+                {
+                    return textures[0].Texture;
+                }
+            }
+
+            foreach (var key in keys)
+            {
+                var txt = GetDataTexture(textures, macKey, solidName, key);
+
+                if (txt != null)
+                {
+                    return txt;
+                }
+            }
+
+            return null;
+        }
+
+        private static string GetDataTexture(List<TextureKey> textures, string macKey, string solidName = null, string key = null)
+        {
+            foreach (var txt in textures)
+            {
+                if (txt.SolidName != null && solidName != null && solidName != txt.SolidName)
+                {
+                    continue;
+                }
+
+                if (txt.Key == null)
+                {
+                    if (key == null)
+                    {
+                        return txt.Texture;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                var args = txt.Key.Split(' ');
+                if (args[0] == macKey)
+                {
+                    if (key != null && args.Length > 1)
+                    {
+                        if (args[1] == key)
+                        {
+                            return txt.Texture;
+                        }
+                    }
+                    else
+                    {
+                        return txt.Texture;
+                    }
+                }
+                else if (args[0] == key)
+                {
+                    return txt.Texture;
+                }
+            }
+
+            return null;
+        }
+
+        private static string TextureMacross(string name, int blockData)
+        {
+            if (name == null || blockData == -1)
+            {
+                return name;
+            }
+
+            int end = name.IndexOf('}');
+            if (end == -1)
+            {
+                return name;
+            }
+
+            int beg = LastIndexOf(name, "{", end);
+            if (beg == -1)
+            {
+                return name;
+            }
+
+            var mac = name.Substring(beg + 1, end - beg - 1);
+            string res;
+
+            switch (mac)
+            {
+                case "d":
+                    res = blockData.ToString();
+                    break;
+
+                default:
+                    throw new Exception("Unknown texture name macros: " + mac);
+            }
+
+            return name.Replace("{" + mac + "}", res);
+        }
+
+        private static int LastIndexOf(string text, string sign, int endIndex)
+        {
+            int idx = 0, last = -1;
+
+            cycle:
+            idx = text.IndexOf(sign, idx);
+            if (idx == -1 || idx >= endIndex)
+            {
+                return last;
+            }
+            else
+            {
+                last = idx++;
+                goto cycle;
+            }
         }
     }
 }

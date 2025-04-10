@@ -714,8 +714,8 @@ namespace MCSMapConv
             float beg = 0, end = 0;
             VHE.Point align = new VHE.Point(0, 0, 1);
             VHE.Point offset = new VHE.Point(0.5f, 0.5f, 0);
-            var face = bt.GetTextureName("face", null);
-            var edge = bt.GetTextureName("edge", null);
+            var face = bt.GetTextureName(bg.BlockData, null, "face", null);
+            var edge = bt.GetTextureName(bg.BlockData, null, "edge", null);
             string tl = face, tr = face, tf = face;
 
             var bti = bt.Copy();
@@ -1395,36 +1395,43 @@ namespace MCSMapConv
 
         private static bool CompareID(Block block, int id, int data)
         {
+            if (block.ID != id)
+            {
+                return false;
+            }
+
             foreach (var bt in Blocks)
             {
-                if (block.ID == id)
+                if (bt.ID != block.ID)
                 {
-                    if (bt.Data == -1) //Ignore the data value
-                    {
-                        return true;
-                    }
+                    continue;
+                }
 
-                    int dat;
-                    if (bt.DataMask != 0)
+                if (bt.Data == -1 && !bt.GroupByData) //Ignore the data value
+                {
+                    return true;
+                }
+
+                int dat;
+                if (bt.DataMask != 0)
+                {
+                    dat = data & bt.DataMask;
+                }
+                else
+                {
+                    if (bt.DataMax != 0 && data > bt.DataMax)
                     {
-                        dat = data & bt.DataMask;
+                        dat = -1;
                     }
                     else
                     {
-                        if (bt.DataMax != 0 && data > bt.DataMax)
-                        {
-                            dat = -1;
-                        }
-                        else
-                        {
-                            dat = data;
-                        }
+                        dat = data;
                     }
+                }
 
-                    if (block.Data == dat)
-                    {
-                        return true;
-                    }
+                if (block.Data == dat)
+                {
+                    return true;
                 }
             }
 
