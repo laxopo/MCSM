@@ -35,7 +35,7 @@ namespace MCSMapConv
         private static List<VHE.WAD> Wads;
         private static List<EntityScript> SignEntities;
         private static List<EntityScript> SolidEntities;
-        private static List<Model> Models;
+        private static List<ModelScript> Models;
         private static FontDim FontDim = new FontDim();
 
         private static World MCWorld;
@@ -90,7 +90,7 @@ namespace MCSMapConv
 
             LoadResources(Resources.All);
             Macros.Initialize(CSScale);
-            Modelling.Initialize(CSScale, TextureRes, Wads, Models, SolidEntities);
+            Modelling.Initialize(CSScale, TextureRes, Wads, SolidEntities);
             BlockCount = (Xmax - Xmin + 1) * (Zmax - Zmin + 1) * (Ymax - Ymin + 1);
             BlockCurrent = 0;
             GroupCurrent = 0;
@@ -1092,7 +1092,14 @@ namespace MCSMapConv
 
         private static void ModelSpecial(BlockGroup bg, BlockDecsriptor bt)
         {
-            var model = Models.Find(x => x.Name == bt.ModelName);
+            var modelScr = Models.Find(x => x.Name == bt.ModelName);
+            if (modelScr == null)
+            {
+                throw new Exception("Model not found");
+            }
+
+            var model = modelScr.GetModel();
+
 
             if (bt.WorldOffset)
             {
@@ -2081,7 +2088,7 @@ namespace MCSMapConv
             }
             if (res == Resources.Models || res == Resources.All)
             {
-                Models = JsonConvert.DeserializeObject<List<Model>>(
+                Models = JsonConvert.DeserializeObject<List<ModelScript>>(
                     File.ReadAllText(Resource[Resources.Models]));
             }
             if (res == Resources.SignEntities || res == Resources.All)

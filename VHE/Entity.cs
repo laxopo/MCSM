@@ -32,81 +32,7 @@ namespace MCSMapConv.VHE
 
             public void SetValue(string value)
             {
-                switch (ValueType)
-                {
-                    case Type.Float:
-                        Value = Convert.ToSingle(value);
-                        break;
-
-                    case Type.Int:
-                        Value = Convert.ToInt32(value);
-                        break;
-
-                    case Type.String:
-                        Value = value;
-                        break;
-
-                    case Type.Vector:
-                        float x = 0, y = 0, z = 0;
-                        int digit = 0;
-                        bool active = false;
-                        string buf = "";
-                        for (int i = 0; i <= value.Length; i++)
-                        {
-                            char ch;
-                            if (i < value.Length)
-                            {
-                                ch = value[i];
-                            }
-                            else
-                            {
-                                ch = ' ';
-                            }
-
-                            if (char.IsDigit(ch) || ch == ',' || ch == '-')
-                            {
-                                active = true;
-                                buf += ch;
-                            }
-                            else
-                            {
-                                if (active)
-                                {
-                                    active = false;
-                                    var val = Convert.ToSingle(buf);
-                                    buf = "";
-
-                                    switch (digit)
-                                    {
-                                        case 0:
-                                            x = val;
-                                            break;
-
-                                        case 1:
-                                            y = val;
-                                            break;
-
-                                        case 2:
-                                            z = val;
-                                            break;
-                                    }
-
-                                    digit++;
-                                }
-                            }
-
-                            if (digit > 2)
-                            {
-                                break;
-                            }
-                        }
-
-                        Value = new Point(x, y, z);
-                        break;
-
-                    default:
-                        throw new Exception("Undefined value type.");
-                }
+                Value = DeserializeValue(value, ValueType);
             }
 
             public void SetType(string type)
@@ -138,7 +64,7 @@ namespace MCSMapConv.VHE
                         }
                         return buf;
 
-                    case Type.Vector:
+                    case Type.Point:
                         var vect = Value as Point;
                         return Map.Str(vect.X) + " " + Map.Str(vect.Y) + " " + Map.Str(vect.Z);
 
@@ -189,7 +115,7 @@ namespace MCSMapConv.VHE
             Int,
             String,
             StringArray,
-            Vector,
+            Point,
             SolidArray
         }
 
@@ -198,7 +124,7 @@ namespace MCSMapConv.VHE
             {"INT", Type.Int },
             {"STRING", Type.String },
             {"STRINGARRAY", Type.StringArray },
-            {"VECTOR", Type.Vector },
+            {"VECTOR", Type.Point },
             {"SOLIDARRAY", Type.SolidArray }
         };
 
@@ -207,7 +133,7 @@ namespace MCSMapConv.VHE
             ClassName = className;
         }
 
-        public Entity(MCSMapConv.EntityScript entityTemplate)
+        public Entity(EntityScript entityTemplate)
         {
             ClassName = entityTemplate.ClassName;
             
@@ -236,6 +162,83 @@ namespace MCSMapConv.VHE
             }
 
             (par.Value as List<Map.Solid>).Add(solid);
+        }
+
+        public static dynamic DeserializeValue(string data, ValueType type)
+        {
+            switch (type)
+            {
+                case Type.Float:
+                    data = data.Replace('.', ',');
+                    return Convert.ToSingle(data);
+
+                case Type.Int:
+                    return Convert.ToInt32(data);
+
+                case Type.String:
+                    return data;
+
+                case Type.Point:
+                    data = data.Replace('.', ',');
+                    float x = 0, y = 0, z = 0;
+                    int digit = 0;
+                    bool active = false;
+                    string buf = "";
+                    for (int i = 0; i <= data.Length; i++)
+                    {
+                        char ch;
+                        if (i < data.Length)
+                        {
+                            ch = data[i];
+                        }
+                        else
+                        {
+                            ch = ' ';
+                        }
+
+                        if (char.IsDigit(ch) || ch == ',' || ch == '-')
+                        {
+                            active = true;
+                            buf += ch;
+                        }
+                        else
+                        {
+                            if (active)
+                            {
+                                active = false;
+                                var val = Convert.ToSingle(buf);
+                                buf = "";
+
+                                switch (digit)
+                                {
+                                    case 0:
+                                        x = val;
+                                        break;
+
+                                    case 1:
+                                        y = val;
+                                        break;
+
+                                    case 2:
+                                        z = val;
+                                        break;
+                                }
+
+                                digit++;
+                            }
+                        }
+
+                        if (digit > 2)
+                        {
+                            break;
+                        }
+                    }
+
+                    return new Point(x, y, z);
+
+                default:
+                    throw new Exception("Undefined value type.");
+            }
         }
     }
 }

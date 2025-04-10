@@ -12,7 +12,6 @@ namespace MCSMapConv
         public static float TextureRes { get; set; }
         public static float MinSize { get; set; }
         public static List<VHE.WAD> Wads { get; set; }
-        public static List<Model> Models { get; set; }
         public static List<EntityScript> SolidEntities { get; set; }
 
         public static readonly double Sqrt2 = Math.Sqrt(2);
@@ -36,12 +35,12 @@ namespace MCSMapConv
             };
 
         public static void Initialize(float scale, float textureSize, 
-            List<VHE.WAD> wads, List<Model> models, List<EntityScript> solidEntities)
+            List<VHE.WAD> wads, List<EntityScript> solidEntities)
         {
             Scale = scale;
             TextureRes = textureSize;
             Wads = wads;
-            Models = models;
+
             SolidEntities = solidEntities;
             MinSize = 0.11f / Scale;
         }
@@ -83,7 +82,9 @@ namespace MCSMapConv
         {
             if (model == null)
             {
-                if (bt == null)
+                throw new Exception("Model not found");
+
+                /*if (bt == null)
                 {
                     throw new Exception("Model not found");
                 }
@@ -93,7 +94,7 @@ namespace MCSMapConv
                 if (model == null)
                 {
                     throw new Exception("Model not found");
-                }
+                }*/
             }
 
             VHE.Point pos;

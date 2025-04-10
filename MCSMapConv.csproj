@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="Blk\BlockDataParse.cs" />
     <Compile Include="Blk\BlockIDs.cs" />
+    <Compile Include="ModelScript.cs" />
     <Compile Include="Msg\BlockMissMsg.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Converter.cs" />

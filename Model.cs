@@ -105,5 +105,37 @@ namespace MCSMapConv
         }
 
         public Model() { }
+
+        public static Faces GetFaceEnum(string name)
+        {
+            if (name == null)
+            {
+                return Faces.Undefined;
+            }
+
+            switch (name.ToUpper())
+            {
+                case "TOP":
+                    return Faces.Top;
+
+                case "BOTTOM":
+                    return Faces.Bottom;
+
+                case "LEFT":
+                    return Faces.Left;
+
+                case "RIGHT":
+                    return Faces.Right;
+
+                case "REAR":
+                    return Faces.Rear;
+
+                case "FRONT":
+                    return Faces.Front;
+
+                default:
+                    throw new Exception("Invalid face name: " + name);
+            }
+        }
     }
 }
