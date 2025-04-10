@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv
 {
-    public class EntityTemplate
+    public class EntityScript
     {
         public string Macros { get; set; }
         public string ClassName { get; set; }

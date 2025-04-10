@@ -114,7 +114,7 @@ namespace MCSMapConv
             string solidName, params string[] keys)
         {
             var name = TextureName(textures, blockdata, solidName, keys);
-            return TextureMacross(name, blockdata);
+            return Macros.TextureName(name, blockdata);
         }
 
         public TextureKey GetSolidTK(string solidName)
@@ -125,6 +125,52 @@ namespace MCSMapConv
         public BlockGroup.ModelType GetSolidType()
         {
             return BlockGroup.GetSolidType(ModelClass);
+        }
+
+        public List<string> GetTexureNamesList()
+        {
+            var list = new List<string>();
+            var values = new List<string>();
+
+            //get all tk values
+            foreach (var tk in Textures)
+            {
+                values.Add(tk.Texture);
+            }
+
+            int max = DataMax;
+            if (DataMax == 0)
+            {
+                max = 15;
+            }
+
+            //convert macroses
+            foreach (var val in values)
+            {
+                //get all value variants 
+                for (int d = 0; d <= max; d++)
+                {
+                    int dat = d;
+                    if (DataMask > 0)
+                    {
+                        dat &= DataMask;
+                    }
+
+                    var macVal = Macros.TextureName(val, dat);
+                    if (val == macVal) //no macros
+                    {
+                        list.Add(val);
+                        break;
+                    }
+
+                    if (!list.Contains(macVal))
+                    {
+                        list.Add(macVal);
+                    }
+                }
+            }
+
+            return list;
         }
 
         /**/
@@ -216,58 +262,6 @@ namespace MCSMapConv
             }
 
             return null;
-        }
-
-        private static string TextureMacross(string name, int blockData)
-        {
-            if (name == null || blockData == -1)
-            {
-                return name;
-            }
-
-            int end = name.IndexOf('}');
-            if (end == -1)
-            {
-                return name;
-            }
-
-            int beg = LastIndexOf(name, "{", end);
-            if (beg == -1)
-            {
-                return name;
-            }
-
-            var mac = name.Substring(beg + 1, end - beg - 1);
-            string res;
-
-            switch (mac)
-            {
-                case "d":
-                    res = blockData.ToString();
-                    break;
-
-                default:
-                    throw new Exception("Unknown texture name macros: " + mac);
-            }
-
-            return name.Replace("{" + mac + "}", res);
-        }
-
-        private static int LastIndexOf(string text, string sign, int endIndex)
-        {
-            int idx = 0, last = -1;
-
-            cycle:
-            idx = text.IndexOf(sign, idx);
-            if (idx == -1 || idx >= endIndex)
-            {
-                return last;
-            }
-            else
-            {
-                last = idx++;
-                goto cycle;
-            }
         }
     }
 }

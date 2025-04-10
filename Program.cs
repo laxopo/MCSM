@@ -53,6 +53,7 @@ namespace MCSMapConv
         static Converter.ProcessType pt = Converter.ProcessType.Idle;
         static int row = 0;
         static bool frame = false;
+        static bool urgentStt = false;
         static void TimerEvent(object source, ElapsedEventArgs e)
         {
             if (Converter.Aborted)
@@ -118,9 +119,35 @@ namespace MCSMapConv
                 row = Console.CursorTop;
             }
 
-            RenderProgress();
-
+            if (Converter.Message.UrgentState)
+            {
+                urgentStt = true;
+                if (Converter.Message.UnreadUrgent)
+                {
+                    Console.SetCursorPosition(0, row + 5);
+                    Converter.Message.Read(Messaging.MessageType.Urgent);
+                }
+            }
+            else
+            {
+                if (urgentStt)
+                {
+                    EraseRows(row, Console.CursorTop);
+                    urgentStt = false;
+                }
+                RenderProgress();
+            }
+            
             timer.Start();
+        }
+
+        static void EraseRows(int begin, int end)
+        {
+            Console.SetCursorPosition(0, begin);
+            for (int i = begin; i <= end; i++)
+            {
+                EraseSpace();
+            }
         }
 
         static void EraseRender()

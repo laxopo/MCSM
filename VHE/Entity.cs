@@ -207,7 +207,7 @@ namespace MCSMapConv.VHE
             ClassName = className;
         }
 
-        public Entity(EntityTemplate entityTemplate)
+        public Entity(MCSMapConv.EntityScript entityTemplate)
         {
             ClassName = entityTemplate.ClassName;
             

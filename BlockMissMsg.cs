@@ -10,6 +10,12 @@ namespace MCSMapConv
     {
         private List<string> Messages { get; set; } = new List<string>();
         private List<BlockIDs> BlockID { get; set; } = new List<BlockIDs>();
+        private Messaging Messaging { get; set; }
+
+        public BlockMissMsg(Messaging messaging)
+        {
+            Messaging = messaging;
+        }
 
         public enum Result
         {
@@ -35,17 +41,16 @@ namespace MCSMapConv
 
             if (!present)
             {
-                Console.WriteLine(msg);
-                Console.WriteLine("[R]etry, [S]kip, [A]bort ?");
+                Messaging.WriteUrgent(msg);
+                Messaging.WriteUrgent("[R]etry, [S]kip, [A]bort ?");
 
                 ConsoleKeyInfo k = new ConsoleKeyInfo();
                 while (k.Key != ConsoleKey.R && k.Key != ConsoleKey.S && k.Key != ConsoleKey.A)
                 {
-                    Console.SetCursorPosition(0, Console.CursorTop);
-                    Console.Write(' ');
-                    Console.SetCursorPosition(0, Console.CursorTop);
                     k = Console.ReadKey();
                 }
+
+                Messaging.UrgentState = false;
 
                 switch (k.Key)
                 {

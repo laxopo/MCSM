@@ -31,10 +31,10 @@ namespace MCSMapConv
         public static ProcessType Process { get; private set; }
         public static Messaging Message { get; private set; } = new Messaging();
 
-        private static List<BlockDecsriptor> Blocks;
+        private static List<BlockDecsriptor> BlockDescriptors;
         private static List<VHE.WAD> Wads;
-        private static List<EntityTemplate> SignEntities;
-        private static List<EntityTemplate> SolidEntities;
+        private static List<EntityScript> SignEntities;
+        private static List<EntityScript> SolidEntities;
         private static List<Model> Models;
         private static FontDim FontDim = new FontDim();
 
@@ -78,12 +78,8 @@ namespace MCSMapConv
         public static VHE.Map ConvertToMap(string worldPath, int dimension, 
             int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
         {
-            //BlockInspect(world, 68, 454, 55, -343, 456, 57, -341);
-
             BlockProcessed = 0;
             Aborted = false;
-            MCWorld = new World(worldPath);
-            Settings.DebugEnable = false;
             Dimension = dimension;
             Xmin = mcxmin;
             Ymin = mcymin;
@@ -93,14 +89,25 @@ namespace MCSMapConv
             Zmax = mczmax;
 
             LoadResources(Resources.All);
+            Macros.Initialize(CSScale);
             Modelling.Initialize(CSScale, TextureRes, Wads, Models, SolidEntities);
             BlockCount = (Xmax - Xmin + 1) * (Zmax - Zmin + 1) * (Ymax - Ymin + 1);
             BlockCurrent = 0;
             GroupCurrent = 0;
             SolidsCurrent = 0;
             EntitiesCurrent = 0;
-            Process = ProcessType.ScanBlocks;
 
+            /*if (!CheckWads())
+            {
+                Aborted = true;
+                Process = ProcessType.Done;
+            }*/
+
+            MCWorld = new World(worldPath);
+            Settings.DebugEnable = false;
+            //BlockInspect(MCWorld, 0x1A,  430, 56, -345, 437, 56, -338); //TEST
+
+            Process = ProcessType.ScanBlocks;
             Map = new VHE.Map();
             foreach (var wad in Config.Wads)
             {
@@ -146,8 +153,8 @@ namespace MCSMapConv
             //Map.AddSolid(Modelling.CreateSolid(new VHE.Point(4, 0, 0), ms, new string[] { "!lava" }));
             return Map;
             /*TEST END*/
-
-            var missings = new BlockMissMsg();
+            
+            var missings = new BlockMissMsg(Message);
             
             //coordinates of cs map
             for (int z = 0; z <= Ymax - Ymin; z++)
@@ -161,7 +168,7 @@ namespace MCSMapConv
 
                         //check register
                     bt_chk:
-                        var btm = GetBT(block.ID, block.Data);
+                        var btm = GetBT(block, true);
                         if (block.ID != 0 && btm == null)
                         {
                             var res = missings.Message(block.ID, block.Data, "at " + (x + Xmin) + " " + 
@@ -194,7 +201,7 @@ namespace MCSMapConv
                             BlockProcessed++;
                         }
 
-                        var bt = Blocks.Find(a => a.ID == block.ID);
+                        var bt = BlockDescriptors.Find(a => a.ID == block.ID);
 
                         if (bt != null)
                         {
@@ -438,10 +445,10 @@ namespace MCSMapConv
 
                 //X
                 var bmx = MCWorld.GetBlock(0, x + Xmin - 1, z + Ymin, y + Zmin);
-                var btmx = Blocks.Find(e => e.ID == bmx.ID);
+                var btmx = BlockDescriptors.Find(e => e.ID == bmx.ID);
                 var nbmx = btmx != null && btmx.ModelClass == "Normal";
                 var bpx = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
-                var btpx = Blocks.Find(e => e.ID == bpx.ID);
+                var btpx = BlockDescriptors.Find(e => e.ID == bpx.ID);
                 var nbpx = btpx != null && btpx.ModelClass == "Normal";
                 px = nbmx || nbpx || bpx.ID == block.ID;
 
@@ -465,7 +472,7 @@ namespace MCSMapConv
                 px = true;
 
                 var bp = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
-                var btp = Blocks.Find(e => e.ID == bp.ID);
+                var btp = BlockDescriptors.Find(e => e.ID == bp.ID);
                 var nbp = btp != null && btp.ModelClass == "Normal";
 
                 if (bp.ID != block.ID)
@@ -492,10 +499,10 @@ namespace MCSMapConv
 
                 //Y
                 var bmy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin - 1);
-                var btmy = Blocks.Find(e => e.ID == bmy.ID);
+                var btmy = BlockDescriptors.Find(e => e.ID == bmy.ID);
                 var nbmy = btmy != null && btmy.ModelClass == "Normal";
                 var bpy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
-                var btpy = Blocks.Find(e => e.ID == bpy.ID);
+                var btpy = BlockDescriptors.Find(e => e.ID == bpy.ID);
                 var nbpy = btpy != null && btpy.ModelClass == "Normal";
                 py = nbmy || nbpy || bpy.ID == block.ID;
 
@@ -519,7 +526,7 @@ namespace MCSMapConv
                 py = true;
 
                 var bp = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
-                var btp = Blocks.Find(e => e.ID == bp.ID);
+                var btp = BlockDescriptors.Find(e => e.ID == bp.ID);
                 var nbp = btp != null && btp.ModelClass == "Normal";
 
                 if (bp.ID != block.ID)
@@ -557,7 +564,7 @@ namespace MCSMapConv
                     pillar.Orientation = BlockGroup.Orient.Z;
 
                     var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
-                    var btmy = Blocks.Find(e => e.ID == bpz.ID);
+                    var btmy = BlockDescriptors.Find(e => e.ID == bpz.ID);
                     if (btmy == null || btmy.ID != block.ID)
                     {
                         pillar.ZClosed = true;
@@ -569,7 +576,7 @@ namespace MCSMapConv
                 {
                     pillar.Expand(x, y, z);
                     var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
-                    var btmy = Blocks.Find(e => e.ID == bpz.ID);
+                    var btmy = BlockDescriptors.Find(e => e.ID == bpz.ID);
                     if (btmy == null || btmy.ID != block.ID)
                     {
                         pillar.ZClosed = true;
@@ -1117,7 +1124,7 @@ namespace MCSMapConv
             {
                 morigAligin = new VHE.Point(0, 0, 1);
                 moffset = new VHE.Point(0.5f, 0.5f, ssz);
-                rotate = GetDataRotation(bg.BlockData);
+                rotate = BlockDataParse.Rotation16(bg.BlockData);
             }
             else
             {
@@ -1333,7 +1340,7 @@ namespace MCSMapConv
             var test = Map.GetSolidsCount().Solids;
         }
 
-        private static EntityTemplate GetSolidEntity(BlockDecsriptor bt)
+        private static EntityScript GetSolidEntity(BlockDecsriptor bt)
         {
             if (bt.Entity != null)
             {
@@ -1345,32 +1352,40 @@ namespace MCSMapConv
 
         private static BlockDecsriptor GetBT(int id, int data)
         {
-            int CheckData(BlockDecsriptor bt)
+            var blk = new Block() { ID = (byte)id, Data = (byte)data };
+            return GetBT(blk);
+        }
+
+        private static BlockDecsriptor GetBT(Block block, bool suppressData = false)
+        {
+            int maskedData = block.Data;
+            bool CheckData(BlockDecsriptor bt)
             {
-                if (bt.DataMask != 0)
+                if (bt.DataMask > 0)
                 {
-                    return data & bt.DataMask;
+                    maskedData &= bt.DataMask;
                 }
-                else
+
+                if (bt.DataMax > 0 && maskedData > bt.DataMax)
                 {
-                    if (bt.DataMax != 0 && data > bt.DataMax)
-                    {
-                        return -1;
-                    }
-                    else
-                    {
-                        return data;
-                    }
+                    return false;
                 }
+
+                if (suppressData)
+                {
+                    block.Data = (byte)maskedData;
+                }
+
+                return true;
             }
 
-            foreach (var bt in Blocks)
+            foreach (var bt in BlockDescriptors)
             {
-                if (bt.ID == id)
+                if (bt.ID == block.ID)
                 {
-                    if (bt.Data == -1) //Ignore the data value
+                    if (bt.Data == -1 && CheckData(bt)) //Ignore the data value
                     {
-                        if (bt.IgnoreExcluded && CheckData(bt) == -1)
+                        if (bt.IgnoreExcluded && bt.DataExceptions.Contains(maskedData))
                         {
                             return new BlockDecsriptor();
                         }
@@ -1378,7 +1393,12 @@ namespace MCSMapConv
                         return bt;
                     }
 
-                    if (bt.Data == CheckData(bt))
+                    if (bt.Data != -1 && bt.Data != block.Data)
+                    {
+                        continue;
+                    }
+
+                    if (CheckData(bt))
                     {
                         return bt;
                     }
@@ -1400,7 +1420,7 @@ namespace MCSMapConv
                 return false;
             }
 
-            foreach (var bt in Blocks)
+            foreach (var bt in BlockDescriptors)
             {
                 if (bt.ID != block.ID)
                 {
@@ -1498,34 +1518,29 @@ namespace MCSMapConv
             var y = bg.Ymin;
             var z = bg.Zmin;
 
-            if (text[0].IndexOf("$") == 0)
+            try
             {
-                List<string> args = new List<string>();
-                foreach (var row in text)
+                var se = Macros.GetSignEntity(SignEntities, text);
+
+                if (se != null)
                 {
-                    args.AddRange(row.Split(' '));
+                    Map.Data.Add(GenerateEntity(se, block, x, y, z));
+                    return true;
                 }
-
-                var macros = args[0].Trim('$');
-
-                var objt = SignEntities.Find(o => o.Macros == macros);
-                if (objt == null)
+            }
+            catch (Exception e)
+            {
+                if (e.InnerException == Macros.Exceptions.ESNotFound)
                 {
-                    Message.Write("Undefined macros {0} at {1} {2} {3}", macros,
+                    Message.Write("Undefined macros {0} at {1} {2} {3}", e.Message,
                         block.X, block.Y, block.Z);
                 }
-                else
-                {
-                    Map.Data.Add(GenerateEntity(objt, block, x, y, z));
-                }
-
-                return true;
             }
-
+            
             return false;
         }
 
-        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, int blockData, float x, float y, float z, string name = null)
+        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, int blockData, float x, float y, float z, string name = null)
         {
             var block = new Block() { 
                 ID = 0,
@@ -1535,107 +1550,34 @@ namespace MCSMapConv
             return GenerateEntity(entityTemplate, block, x, y, z, name);
         }
 
-        private static VHE.Entity GenerateEntity(EntityTemplate entityTemplate, Block block, float x, float y, float z, string name = null)
+        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, Block block, float x, float y, float z, string name = null)
         {
             var entity = new VHE.Entity(entityTemplate.ClassName);
 
             foreach (var part in entityTemplate.Parameters)
             {
                 var par = new VHE.Entity.Parameter(part.Name);
-
                 par.SetType(part.ValueType);
 
                 string value = part.Value;
 
-                while (value.IndexOf("{") != -1)
+                try
                 {
-                    int beg = value.IndexOf("{");
-                    int end = value.IndexOf("}", beg + 1);
-
-                    if (beg == -1 || end == -1)
+                    value = Macros.EntityValue(value, block.Data, x, y, z);
+                    par.SetValue(value);
+                    entity.Parameters.Add(par);
+                }
+                catch (Exception e)
+                {
+                    if (e == Macros.Exceptions.SubMacrosUndef)
                     {
-                        break;
-                    }
-
-                    List<string> args = new List<string>();
-                    var mac = value.Substring(beg + 1, end - beg - 1);
-
-                    int sep = mac.IndexOf(" ");
-                    if (sep == -1)
-                    {
-                        args.Add(mac);
+                        Message.Write(e.InnerException.Message + e.Message + " at " + x + " " + y + " " + z);
                     }
                     else
                     {
-                        int ab = 0;
-                        while (sep != -1)
-                        {
-                            args.Add(mac.Substring(ab, sep - ab));
-                            ab = sep + 1;
-                            sep = mac.IndexOf(" ", ab);
-
-                            if (sep == -1)
-                            {
-                                args.Add(mac.Substring(ab, mac.Length - ab));
-                            }
-                        }
+                        throw e;
                     }
-
-                    value = value.Remove(beg, end - beg + 1);
-
-                    string res = "";
-                    switch (args[0].ToUpper())
-                    {
-                        case "ANGLE":
-                            int vali = -GetDataRotation(block.Data) + 90;
-                            res = vali.ToString();
-                            break;
-
-                        case "X":
-                            double val = x + 0.5;
-                            if (args.Count > 1)
-                            {
-                                val += Convert.ToDouble(args[1]);
-                            }
-                            res = (val * CSScale).ToString();
-                            break;
-
-                        case "Y":
-                            val = -y - 0.5;
-                            if (args.Count > 1)
-                            {
-                                val += Convert.ToDouble(args[1]);
-                            }
-                            res = (val * CSScale).ToString();
-                            break;
-
-                        case "Z":
-                            val = z + 0.5;
-                            if (args.Count > 1)
-                            {
-                                val += Convert.ToDouble(args[1]);
-                            }
-                            res = (val * CSScale).ToString();
-                            break;
-
-                        default:
-                            if (block.ID == 0)
-                            {
-                                Message.Write("Undefined submacros \"{0}\" at {1} {2} {3}", mac, x, y, z);
-                            }
-                            else
-                            {
-                                Message.Write("Undefined submacros \"{0}\" at block {1} {2} {3}", mac,
-                                    block.X, block.Y, block.Z);
-                            }
-                            break;
-                    }
-
-                    value = value.Insert(beg, res);
                 }
-
-                par.SetValue(value);
-                entity.Parameters.Add(par);
             }
 
             if (EntityNaming && name != null)
@@ -1644,21 +1586,6 @@ namespace MCSMapConv
             }
 
             return entity;
-        }
-
-        private static int GetDataRotation(int data)
-        {
-            int vali = (int)(data * 22.5);
-            if (vali >= 360)
-            {
-                vali -= 360;
-            }
-            else if (vali < 0)
-            {
-                vali += 360;
-            }
-
-            return vali;
         }
 
         /*Debug*/
@@ -2048,6 +1975,18 @@ namespace MCSMapConv
             }
         }
 
+        private static string ToHexStr(int value)
+        {
+            if (value < 0x10)
+            {
+                return "0" + ToHex(value);
+            }
+            else
+            {
+                return "" + ToHex(value / 16) + ToHex(value % 16);
+            }
+        }
+
         private static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
         {
             Debuging = true;
@@ -2056,35 +1995,65 @@ namespace MCSMapConv
 
             var list = new List<Block>();
 
-            for (int y = ymin; y <= ymax; y++)
+            if (id == -1)
             {
-                Console.WriteLine();
-                Console.WriteLine("Y = " + y);
-                for (int z = zmin; z <= zmax; z++)
+                for (int y = ymin; y <= ymax; y++)
                 {
-                    for (int x = xmin; x <= xmax; x++)
+                    Console.WriteLine();
+                    Console.WriteLine("Y = " + y);
+                    for (int z = zmin; z <= zmax; z++)
                     {
-                        var block = world.GetBlock(0, x, y, z);
-
-                        if (block.ID != id)
+                        for (int x = xmin; x <= xmax; x++)
                         {
-                            if (block.ID == 0)
+                            var block = world.GetBlock(0, x, y, z);
+                            Console.CursorLeft = (x - xmin) * 3;
+
+                            if (block.ID != 0)
                             {
-                                Console.Write("-");
+                                Console.Write(ToHexStr(block.ID));
                             }
                             else
                             {
-                                Console.Write("+");
+                                Console.Write("--");
                             }
-                            continue;
                         }
-
-                        Console.Write(ToHex(block.Data));
-                        list.Add(block);
+                        Console.WriteLine();
                     }
-                    Console.WriteLine();
                 }
             }
+            else
+            {
+                for (int y = ymin; y <= ymax; y++)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Y = " + y);
+                    for (int z = zmin; z <= zmax; z++)
+                    {
+                        for (int x = xmin; x <= xmax; x++)
+                        {
+                            var block = world.GetBlock(0, x, y, z);
+
+                            if (block.ID != id)
+                            {
+                                if (block.ID == 0)
+                                {
+                                    Console.Write("- ");
+                                }
+                                else
+                                {
+                                    Console.Write("+ ");
+                                }
+                                continue;
+                            }
+
+                            Console.Write(ToHex(block.Data) + " ");
+                            list.Add(block);
+                        }
+                        Console.WriteLine();
+                    }
+                }
+            }
+            
 
             Console.WriteLine("Done");
             while(true)
@@ -2107,7 +2076,7 @@ namespace MCSMapConv
             }
             if (res == Resources.Textures || res == Resources.All)
             {
-                Blocks = JsonConvert.DeserializeObject<List<BlockDecsriptor>>(
+                BlockDescriptors = JsonConvert.DeserializeObject<List<BlockDecsriptor>>(
                     File.ReadAllText(Resource[Resources.Textures]));
             }
             if (res == Resources.Models || res == Resources.All)
@@ -2117,14 +2086,80 @@ namespace MCSMapConv
             }
             if (res == Resources.SignEntities || res == Resources.All)
             {
-                SignEntities = JsonConvert.DeserializeObject<List<EntityTemplate>>(
+                SignEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SignEntities]));
             }
             if (res == Resources.SignEntities || res == Resources.All)
             {
-                SolidEntities = JsonConvert.DeserializeObject<List<EntityTemplate>>(
+                SolidEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SolidEntities]));
             }
+        }
+
+        private static bool CheckWads()
+        {
+            bool fault = false;
+            Console.Write("Checking WADs...");
+
+            var texList = new List<string>();
+
+            //check texture availability in wads
+            foreach (var bd in BlockDescriptors)
+            {
+                var texs = bd.GetTexureNamesList();
+                
+                foreach (var tex in texs)
+                {
+                    if (!texList.Contains(tex))
+                    {
+                        texList.Add(tex);
+                    }
+                }
+
+                foreach (var tex in texs)
+                {
+                    if (Modelling.GetTexture(Wads, tex) == null)
+                    {
+                        if (!fault)
+                        {
+                            fault = true;
+                            Console.WriteLine();
+                        }
+
+                        Console.WriteLine("Error: texture \"{0}\" not found. ID:{1}, Data:{2}",
+                            tex, bd.ID, bd.Data);
+                        Console.ReadKey();
+                    }
+                }
+            }
+
+            //validate textures
+            foreach (var texName in texList)
+            {
+                var tex = Modelling.GetTexture(Wads, texName);
+                if (tex == null)
+                {
+                    continue;
+                }
+
+                //transparent
+                if (tex.Transparent)
+                {
+                    var rgb = tex.Data.Palette[255];
+
+                    if (rgb.R != 0 || rgb.G != 0 || rgb.B != 255)
+                    {
+                        Console.WriteLine("Error: invalid tansparent color in texture \"{0}\"", texName);
+                    }
+                }
+            }
+
+            if (!fault)
+            {
+                Console.WriteLine("OK");
+            }
+
+            return !fault;
         }
     }
 }

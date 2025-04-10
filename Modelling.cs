@@ -13,7 +13,7 @@ namespace MCSMapConv
         public static float MinSize { get; set; }
         public static List<VHE.WAD> Wads { get; set; }
         public static List<Model> Models { get; set; }
-        public static List<EntityTemplate> SolidEntities { get; set; }
+        public static List<EntityScript> SolidEntities { get; set; }
 
         public static readonly double Sqrt2 = Math.Sqrt(2);
 
@@ -36,7 +36,7 @@ namespace MCSMapConv
             };
 
         public static void Initialize(float scale, float textureSize, 
-            List<VHE.WAD> wads, List<Model> models, List<EntityTemplate> solidEntities)
+            List<VHE.WAD> wads, List<Model> models, List<EntityScript> solidEntities)
         {
             Scale = scale;
             TextureRes = textureSize;

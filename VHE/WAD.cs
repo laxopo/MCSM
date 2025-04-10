@@ -34,7 +34,14 @@ namespace MCSMapConv.VHE
             public byte[,] Mip1 { get; set; }
             public byte[,] Mip2 { get; set; }
             public byte[,] Mip3 { get; set; }
-            public int[] Palette { get; set; }
+            public RGB[] Palette { get; set; }
+        }
+
+        public class RGB
+        {
+            public int R { get; set; }
+            public int G { get; set; }
+            public int B { get; set; }
         }
 
         public WAD(string filepath)
@@ -43,7 +50,7 @@ namespace MCSMapConv.VHE
 
             if (GetString(fs, 0x00, 4) != "WAD3")
             {
-                throw new Exception("WAD: invalid file format");
+                throw new Exception("Error: invalid file format " + filepath);
             }
 
             Count = GetInt(fs);
@@ -175,14 +182,21 @@ namespace MCSMapConv.VHE
             return data;
         }
 
-        private int[] ReadPalette(FileStream fs, int offset)
+        private RGB[] ReadPalette(FileStream fs, int offset)
         {
             fs.Position = offset;
 
-            var data = new int[256];
+            var data = new RGB[256];
             for (int i = 0; i < 256; i++)
             {
-                data[i] = GetInt(fs);
+                var rgb = new byte[3];
+                fs.Read(rgb, 0, 3);
+                data[i] = new RGB()
+                {
+                    R = rgb[0],
+                    G = rgb[1],
+                    B = rgb[2]
+                };
             }
 
             return data;

@@ -46,16 +46,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BlockDataParse.cs" />
     <Compile Include="BlockIDs.cs" />
     <Compile Include="BlockMissMsg.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Converter.cs" />
     <Compile Include="FontDim.cs" />
+    <Compile Include="Macros.cs" />
     <Compile Include="Messaging.cs" />
     <Compile Include="Modelling.cs" />
     <Compile Include="Model.cs" />
-    <Compile Include="NormalFace.cs" />
-    <Compile Include="EntityTemplate.cs" />
+    <Compile Include="EntityScript.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Random.cs" />

@@ -234,7 +234,7 @@ namespace MCSMapConv.VHE
             return stat;
         }
 
-        public void CreateEntity(EntityTemplate entityTemplate)
+        public void CreateEntity(MCSMapConv.EntityScript entityTemplate)
         {
             Data.Add(new Entity(entityTemplate));
         }
