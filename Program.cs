@@ -13,22 +13,23 @@ namespace MCSMapConv
         static string worldPath = @"F:\minecraft_new\UltimMC_5\instances\1.12.2_test\.minecraft\saves\mcsmap";
         static string mapOutput = @"D:\games\vhe\maps\out.map";
         static Timer timer = new Timer(100);
+        static bool done = false;
+
         static void Main(string[] args)
         {
             Converter.LoadConfig("config.json");
 
             Console.CursorVisible = false;
             timer.Elapsed += TimerEvent;
-            //timer.Start();
+            timer.Start();
 
             var map = Converter.ConvertToMap(worldPath, 0, 454, 54, -354, 498, 64, -316);
             //454, 54, -354, 498, 64, -316
 
-            while (timer.Enabled) { }
-
+            while (!done) { }
+            Console.WriteLine();
             Console.CursorVisible = true;
 
-            Console.WriteLine();
             if (!Converter.Aborted)
             {
                 if (!Converter.Debuging)
@@ -37,7 +38,8 @@ namespace MCSMapConv
                 }
 
                 var stat = map.GetSolidsCount();
-                Console.WriteLine("Done! Blocks:{2}, Solids:{0}, Faces:{1} ", stat.Solids, stat.Faces, Converter.BlockProcessed);
+                Console.WriteLine("Done! Blocks:{2}, Solids:{0}, Faces:{1}, Entities:{3}", 
+                    stat.Solids, stat.Faces, Converter.BlockProcessed, Converter.Map.Data.Count - 1);
             }
             else
             {
@@ -50,11 +52,12 @@ namespace MCSMapConv
 
         static Converter.ProcessType pt = Converter.ProcessType.Idle;
         static int row = 0;
+        static bool frame = false;
         static void TimerEvent(object source, ElapsedEventArgs e)
         {
             if (Converter.Aborted)
             {
-                timer.Stop();
+                done = true;
                 return;
             }
 
@@ -62,6 +65,8 @@ namespace MCSMapConv
             {
                 return;
             }
+
+            timer.Stop();
 
             var b = Converter.BlockCurrent;
             var bc = Converter.BlockCount;
@@ -75,50 +80,90 @@ namespace MCSMapConv
             {
                 pt = Converter.Process;
 
+                if (frame)
+                {
+                    EraseRender();
+                }
+
                 switch (pt)
                 {
                     case Converter.ProcessType.ScanBlocks:
+                        Console.WriteLine();
                         Console.WriteLine("Scanning world area...");
                         row = Console.CursorTop;
                         break;
 
                     case Converter.ProcessType.GenerateSolids:
-                        Console.CursorTop -= 2;
-                        Console.Write("Blocks:{0}, Used:{1}, Groups:{2}", bc, bp, bgc);
-                        FreeSpace();
-                        Console.Write("Generating cs objects...");
-                        FreeSpace();
+                        Console.WriteLine("Blocks:{0}, Used:{1}, Groups:{2}", bc, bp, bgc);
+                        Console.WriteLine();
+                        Console.WriteLine("Generating cs objects...");
                         row = Console.CursorTop;
                         break;
 
                     case Converter.ProcessType.Done:
-                        Console.CursorTop -= 2;
-                        Console.Write("Created solids:{0} (S:{1} E:{2})", sc + ec, sc, ec);
-                        FreeSpace();
-                        FreeSpace();
-                        Console.CursorTop -= 1;
-                        timer.Stop();
+                        Console.WriteLine("Created solids:{0} (S:{1} E:{2})", sc + ec, sc, ec);
+                        done = true;
                         return;
                 }
             }
 
+            if (Converter.Message.Unread)
+            {
+                if (frame)
+                {
+                    EraseRender();
+                }
+
+                Converter.Message.Read();
+                row = Console.CursorTop;
+            }
+
+            RenderProgress();
+
+            timer.Start();
+        }
+
+        static void EraseRender()
+        {
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            EraseSpace();
+            EraseSpace();
             Console.SetCursorPosition(0, row);
+            frame = false;
+        }
+
+        static void RenderProgress()
+        {
+            var b = Converter.BlockCurrent;
+            var bc = Converter.BlockCount;
+            var bp = Converter.BlockProcessed;
+            var gc = Converter.GroupCurrent;
+            var bgc = Converter.BlockGroups.Count;
+            var sc = Converter.SolidsCurrent;
+            var ec = Converter.EntitiesCurrent;
+
+            Console.SetCursorPosition(0, row + 2);
+
             switch (pt)
             {
                 case Converter.ProcessType.ScanBlocks:
-                    Console.Write("{0} / {1} Blocks, Used:{2}, Groups:{3}", b, bc, bp, bgc);
-                    FreeSpace();
+                    ConsoleWriteRow("{0} / {1} Blocks, Used:{2}, Groups:{3}", b, bc, bp, bgc);
                     PrintProgressBar(b, bc);
                     break;
 
                 case Converter.ProcessType.GenerateSolids:
-                    Console.Write("{0} / {1} Groups, Solids:{2} (S:{3} E:{4})", gc, bgc, sc + ec, sc, ec);
-                    FreeSpace();
+                    ConsoleWriteRow("{0} / {1} Groups, Solids:{2} (S:{3} E:{4})", gc, bgc, sc + ec, sc, ec);
                     PrintProgressBar(gc, bgc);
                     break;
             }
 
-            Console.WriteLine("");
+            frame = true;
+        }
+
+        static void ConsoleWriteRow(string text, params object[] args)
+        {
+            Console.Write(text, args);
+            EraseSpace();
         }
 
         static void ClearCurrentConsoleLine()
@@ -129,7 +174,7 @@ namespace MCSMapConv
             Console.SetCursorPosition(0, currentLineCursor);
         }
 
-        static void FreeSpace()
+        static void EraseSpace()
         {
             Console.WriteLine(new string(' ', Console.WindowWidth - Console.CursorLeft - 1));
         }

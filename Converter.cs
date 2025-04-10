@@ -14,7 +14,7 @@ namespace MCSMapConv
         public static bool Debuging = false;
         public static float CSScale = 37;
         public static float TextureRes = 128;
-        public static bool SkyBoxEnable = true;
+        public static bool SkyBoxEnable = false;
         public static bool EntityNaming = false;  //(!) true can break down some entity functionality
 
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
@@ -29,6 +29,7 @@ namespace MCSMapConv
         public static int SolidsCurrent { get; private set; }
         public static int EntitiesCurrent { get; private set; }
         public static ProcessType Process { get; private set; }
+        public static Messaging Message { get; private set; } = new Messaging();
 
         private static List<BlockTexture> Blocks;
         private static List<VHE.WAD> Wads;
@@ -38,8 +39,8 @@ namespace MCSMapConv
         private static FontDim FontDim = new FontDim();
 
         private static World MCWorld;
-        public static VHE.Map Map;
-        public static List<BlockGroup> BlockGroups = new List<BlockGroup>();
+        public static VHE.Map Map { get; private set; }
+        public static List<BlockGroup> BlockGroups { get; private set; } = new List<BlockGroup>();
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, @"data\models.json"},
@@ -1204,7 +1205,7 @@ namespace MCSMapConv
                         int idx = row.IndexOf("\\u");
                         if (row.Length <= idx + 5)
                         {
-                            Console.WriteLine("Warning [{0}, {1}, {2}]: invalid unicode char code",
+                            Message.Write("Warning [{0}, {1}, {2}]: invalid unicode char code",
                                     bg.Block.X, bg.Block.Y, bg.Block.Z);
                             break;
                         }
@@ -1218,14 +1219,14 @@ namespace MCSMapConv
                         }
                         catch
                         {
-                            Console.WriteLine("Warning [{0}, {1}, {2}]: invalid unicode char code",
+                            Message.Write("Warning [{0}, {1}, {2}]: invalid unicode char code",
                                     bg.Block.X, bg.Block.Y, bg.Block.Z);
                             break;
                         }
 
                         if (!uwarn)
                         {
-                            Console.WriteLine("Warning [{0}, {1}, {2}]: unicode char(s) converted to ASCII",
+                            Message.Write("Warning [{0}, {1}, {2}]: unicode char(s) converted to ASCII",
                                 bg.Block.X, bg.Block.Y, bg.Block.Z);
                             uwarn = true;
                         }
@@ -1503,7 +1504,7 @@ namespace MCSMapConv
                 var objt = SignEntities.Find(o => o.Macros == macros);
                 if (objt == null)
                 {
-                    Console.WriteLine("Undefined macros {0} at {1} {2} {3}", macros,
+                    Message.Write("Undefined macros {0} at {1} {2} {3}", macros,
                         block.X, block.Y, block.Z);
                 }
                 else
@@ -1613,11 +1614,11 @@ namespace MCSMapConv
                         default:
                             if (block.ID == 0)
                             {
-                                Console.WriteLine("Undefined submacros \"{0}\" at {1} {2} {3}", mac, x, y, z);
+                                Message.Write("Undefined submacros \"{0}\" at {1} {2} {3}", mac, x, y, z);
                             }
                             else
                             {
-                                Console.WriteLine("Undefined submacros \"{0}\" at block {1} {2} {3}", mac,
+                                Message.Write("Undefined submacros \"{0}\" at block {1} {2} {3}", mac,
                                     block.X, block.Y, block.Z);
                             }
                             break;
