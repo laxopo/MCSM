@@ -78,7 +78,7 @@ namespace MCSMapConv
 
         public static string EntityValue(string rawValue, int blockData, float x, float y, float z)
         {
-            string value = rawValue;
+            string value = rawValue.Replace('.', ',');
 
             while (value.IndexOf("{") != -1)
             {

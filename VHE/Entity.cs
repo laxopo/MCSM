@@ -124,7 +124,7 @@ namespace MCSMapConv.VHE
             {"INT", Type.Int },
             {"STRING", Type.String },
             {"STRINGARRAY", Type.StringArray },
-            {"VECTOR", Type.Point },
+            {"POINT", Type.Point },
             {"SOLIDARRAY", Type.SolidArray }
         };
 
