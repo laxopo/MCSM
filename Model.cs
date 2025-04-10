@@ -26,8 +26,8 @@ namespace MCSMapConv
             public bool TextureOriented { get; set; }
             public float TextureScale { get; set; }
             public List<Face> Faces { private get; set; } = new List<Face>();
-            public List<BlockTexture.TextureKey> Textures { get; set; } 
-                = new List<BlockTexture.TextureKey>();
+            public List<BlockDecsriptor.TextureKey> Textures { get; set; } 
+                = new List<BlockDecsriptor.TextureKey>();
 
             public Solid()
             {

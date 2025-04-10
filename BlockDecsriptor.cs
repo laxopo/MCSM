@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv
 {
-    public class BlockTexture : BlockIDs
+    public class BlockDecsriptor : BlockIDs
     {
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
         public string ModelClass { get; set; }
@@ -37,9 +37,9 @@ namespace MCSMapConv
             }
         }
 
-        public BlockTexture Copy()
+        public BlockDecsriptor Copy()
         {
-            var bt = new BlockTexture();
+            var bt = new BlockDecsriptor();
             bt.ModelClass = ModelClass;
             bt.ModelName = ModelName;
             bt.Entity = Entity;

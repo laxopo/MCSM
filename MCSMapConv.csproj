@@ -60,7 +60,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Random.cs" />
     <Compile Include="BlockGroup.cs" />
-    <Compile Include="BlockTexture.cs" />
+    <Compile Include="BlockDecsriptor.cs" />
     <Compile Include="SolidID.cs" />
     <Compile Include="VHE\Face.cs" />
     <Compile Include="VHE\Map.cs" />
