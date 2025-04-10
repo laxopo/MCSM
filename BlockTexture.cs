@@ -9,7 +9,7 @@ namespace MCSMapConv
     public class BlockTexture : BlockIDs
     {
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
-        public string Model { get; set; }
+        public string ModelClass { get; set; }
         public string ModelName { get; set; }
         public string Entity { get; set; }
         public int DataMask { get; set; }
@@ -39,7 +39,7 @@ namespace MCSMapConv
         public BlockTexture Copy()
         {
             var bt = new BlockTexture();
-            bt.Model = Model;
+            bt.ModelClass = ModelClass;
             bt.ModelName = ModelName;
             bt.Entity = Entity;
             bt.DataMask = DataMask;
@@ -214,7 +214,7 @@ namespace MCSMapConv
 
         public BlockGroup.ModelType GetSolidType()
         {
-            return BlockGroup.GetSolidType(Model);
+            return BlockGroup.GetSolidType(ModelClass);
         }
 
         /**/

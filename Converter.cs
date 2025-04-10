@@ -183,7 +183,7 @@ namespace MCSMapConv
                             }
                         }
 
-                        if (btm != null && btm.Model == null)
+                        if (btm != null && btm.ModelClass == null)
                         {
                             block.ID = 0;
                         }
@@ -197,7 +197,7 @@ namespace MCSMapConv
 
                         if (bt != null)
                         {
-                            var type = bt.Model.ToUpper();
+                            var type = bt.ModelClass.ToUpper();
                             switch (type)
                             {
                                 case "PANE":
@@ -424,7 +424,7 @@ namespace MCSMapConv
         private static void GroupPaneFence(Block block, BlockTexture bt, int x, int y, int z)
         {
             bool px = false, py = false;
-            var model = BlockGroup.SType[bt.Model.ToUpper()];
+            var model = BlockGroup.SType[bt.ModelClass.ToUpper()];
 
             //X
             var paneX = BlockGroups.Find(p => p.Type == model && !p.XClosed &&
@@ -438,10 +438,10 @@ namespace MCSMapConv
                 //X
                 var bmx = MCWorld.GetBlock(0, x + Xmin - 1, z + Ymin, y + Zmin);
                 var btmx = Blocks.Find(e => e.ID == bmx.ID);
-                var nbmx = btmx != null && btmx.Model == "Normal";
+                var nbmx = btmx != null && btmx.ModelClass == "Normal";
                 var bpx = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
                 var btpx = Blocks.Find(e => e.ID == bpx.ID);
-                var nbpx = btpx != null && btpx.Model == "Normal";
+                var nbpx = btpx != null && btpx.ModelClass == "Normal";
                 px = nbmx || nbpx || bpx.ID == block.ID;
 
                 if (px)
@@ -465,7 +465,7 @@ namespace MCSMapConv
 
                 var bp = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
                 var btp = Blocks.Find(e => e.ID == bp.ID);
-                var nbp = btp != null && btp.Model == "Normal";
+                var nbp = btp != null && btp.ModelClass == "Normal";
 
                 if (bp.ID != block.ID)
                 {
@@ -492,10 +492,10 @@ namespace MCSMapConv
                 //Y
                 var bmy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin - 1);
                 var btmy = Blocks.Find(e => e.ID == bmy.ID);
-                var nbmy = btmy != null && btmy.Model == "Normal";
+                var nbmy = btmy != null && btmy.ModelClass == "Normal";
                 var bpy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
                 var btpy = Blocks.Find(e => e.ID == bpy.ID);
-                var nbpy = btpy != null && btpy.Model == "Normal";
+                var nbpy = btpy != null && btpy.ModelClass == "Normal";
                 py = nbmy || nbpy || bpy.ID == block.ID;
 
                 if (py)
@@ -519,7 +519,7 @@ namespace MCSMapConv
 
                 var bp = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
                 var btp = Blocks.Find(e => e.ID == bp.ID);
-                var nbp = btp != null && btp.Model == "Normal";
+                var nbp = btp != null && btp.ModelClass == "Normal";
 
                 if (bp.ID != block.ID)
                 {
