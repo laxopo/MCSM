@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv
 {
-    public class SolidID
+    public class BGroupID
     {
         public int BlockID { get; set; }
         public int BlockData { get; set; }

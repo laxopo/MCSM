@@ -7,7 +7,7 @@ using NamedBinaryTag;
 
 namespace MCSMapConv
 {
-    public class BlockGroup : SolidID
+    public class BlockGroup : BGroupID
     {
         public Block Block { get; set; }
         public int Xmin { get; set; }
