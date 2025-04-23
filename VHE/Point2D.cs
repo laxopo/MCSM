@@ -6,33 +6,29 @@ using System.Threading.Tasks;
 
 namespace MCSMapConv.VHE
 {
-    public class Point : ICloneable
+    public class Point2D : ICloneable
     {
         public float X { get; set; }
         public float Y { get; set; }
-        public float Z { get; set; }
 
-        public Point() { }
+        public Point2D() { }
 
-        public Point(Point point)
+        public Point2D(Point2D point)
         {
             X = point.X;
             Y = point.Y;
-            Z = point.Z;
         }
 
-        public Point(float x, float y, float z)
+        public Point2D(float x, float y)
         {
             X = x;
             Y = y;
-            Z = z;
         }
 
-        public Point(float[] xyz)
+        public Point2D(float[] xy)
         {
-            X = xyz[0];
-            Y = xyz[1];
-            Z = xyz[2];
+            X = xy[0];
+            Y = xy[1];
         }
 
         public object Clone()
@@ -40,17 +36,16 @@ namespace MCSMapConv.VHE
             return MemberwiseClone();
         }
 
-        public Point Copy()
+        public Point2D Copy()
         {
-            return Clone() as Point;
+            return Clone() as Point2D;
         }
 
-        public Point GetShifted(float dx, float dy, float dz)
+        public Point2D GetShifted(float dx, float dy)
         {
             var buf = Copy();
             buf.X += dx;
             buf.Y += dy;
-            buf.Z += dz;
             return buf;
         }
     }

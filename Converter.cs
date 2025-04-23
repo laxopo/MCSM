@@ -117,7 +117,7 @@ namespace MCSMapConv
             BlockGroups = new List<BlockGroup>();
 
             /*TEST*/
-            /*var bas = new Model()
+            var bas = new Model()
             {
                 Solids =
                 {
@@ -136,21 +136,34 @@ namespace MCSMapConv
                 {
                     new Model.Solid()
                     {
-                        Size = new VHE.Point(1, 1, 1),
-                        OriginAlign = new VHE.Point(0, 0, 1),
-                        Offset = new VHE.Point(0.5f, 0.5f, 0),
-                        OriginRotOffset = new VHE.Point(0.5f, -0.5f, 0),
-                        Rotation = new VHE.Point(0, 0, -45),
-                        AbsOffset = new VHE.Point(0, 1, 0)
+                        Size = new VHE.Point(0.5f, 0.25f, 1),
+                        OriginAlign = new VHE.Point(1, 1, 1),
+                        Offset = new VHE.Point(-1, -1, 0),
+                        //OriginRotOffset = new VHE.Point(1, 1, 0),
+                        Rotation = new VHE.Point(0, 0, -22),
+                        //AbsOffset = new VHE.Point(0, 1, 0)
                     },
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(0.5f, 0.25f, 1),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Offset = new VHE.Point(1, 1, 0),
+                        //OriginRotOffset = new VHE.Point(0, 0, 0),
+                        Rotation = new VHE.Point(0, 0, 22),
+                        //AbsOffset = new VHE.Point(0, 1, 0)
+                    }
+                    
                 },
-                Position = new VHE.Point(0, 0, 0)
+                Position = new VHE.Point(0, 0, 0),
+                //Origin = new VHE.Point(-1, -1, 0),
+                //Rotation = new VHE.Point(0, 0, -45)
             };
 
-            Map.AddSolid(Modelling.GenerateSolid(mdl, "pumpkin_face"));
-            Map.AddSolid(Modelling.GenerateSolid(bas, "blockgold"));
+            Map.AddSolids(Modelling.GenerateSolids(mdl, "pumpkin_face"));
+            Map.AddSolids(Modelling.GenerateSolids(bas, "blockgold"));
             //Map.AddSolid(Modelling.GenerateSolid(mdl2, "brick2"));
             //Map.AddSolid(Modelling.CreateSolid(new VHE.Point(4, 0, 0), ms, new string[] { "!lava" }));
+            Process = ProcessType.Done;
             return Map;
             /*TEST END*/
             
@@ -965,9 +978,9 @@ namespace MCSMapConv
 
             if (mirror)
             {
-                Modelling.RotateOffset(ref orx, ref ory, rotate);
+                Modelling.Rotate2D(ref orx, ref ory, rotate);
             }
-            
+
             var model = new Model()
             {
                 Solids =
@@ -1001,20 +1014,22 @@ namespace MCSMapConv
                     },
                     new Model.Solid() //origin
                     {
+                        Name = "origin",
                         Size = new VHE.Point(0.125f, 0.125f, 0.125f),
                         AbsOffset = new VHE.Point(0 + orx, th / 2 + ory, 1),
                         OriginAlign = new VHE.Point(0, 0, 0),
                         OriginRotOffset = new VHE.Point(0.5f, 0.5f - th / 2, 0),
                         Rotation = new VHE.Point(0, 0, rotate),
-                        Textures =
-                        {
-                            new BlockDecsriptor.TextureKey()
-                            {
-                                Texture = "origin"
-                            }
-                        }
                     }
                 },
+                TextureKeys =
+                {
+                    new BlockDecsriptor.TextureKey()
+                    {
+                        SolidName = "origin",
+                        Texture = "origin"
+                    }
+                }
             };
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
@@ -1098,7 +1113,7 @@ namespace MCSMapConv
                 throw new Exception("Model not found");
             }
 
-            var model = modelScr.GetModel();
+            var model = modelScr.ToModel();
 
 
             if (bt.WorldOffset)
@@ -1390,29 +1405,47 @@ namespace MCSMapConv
             {
                 if (bt.ID == block.ID)
                 {
-                    if (bt.Data == -1 && CheckData(bt)) //Ignore the data value
+                    var chk = CheckData(bt);
+                    if (bt.DataExceptions != null)
                     {
-                        if (bt.IgnoreExcluded && bt.DataExceptions.Contains(maskedData))
+                        if (bt.DataExceptions.Contains(maskedData))
                         {
-                            return new BlockDecsriptor();
+                            continue;
+                        }
+                    }
+
+                    if (bt.Data == -1) //Ignore the data value
+                    {
+                        if (!chk)
+                        {
+                            if (bt.IgnoreExcluded)
+                            {
+                                return new BlockDecsriptor();
+                            }
+                            else
+                            {
+                                continue;
+                            }
                         }
 
                         return bt;
                     }
-
-                    if (bt.Data != -1 && bt.Data != block.Data)
+                    else
                     {
-                        continue;
-                    }
+                        if (bt.Data != block.Data)
+                        {
+                            continue;
+                        }
 
-                    if (CheckData(bt))
-                    {
-                        return bt;
-                    }
+                        if (chk)
+                        {
+                            return bt;
+                        }
 
-                    if (bt.IgnoreExcluded)
-                    {
-                        return new BlockDecsriptor();
+                        if (bt.IgnoreExcluded)
+                        {
+                            return new BlockDecsriptor();
+                        }
                     }
                 }
             }
@@ -2053,7 +2086,23 @@ namespace MCSMapConv
                                 continue;
                             }
 
-                            Console.Write(ToHex(block.Data) + " ");
+                            var ch = MCWorld.GetChunkAtBlock(0, x, z);
+                            List<NBT> tes = ch.NBTData.GetTag("Level/TileEntities");
+                            foreach (var te in tes)
+                            {
+                                int bx = te.GetTag("x");
+                                int by = te.GetTag("y");
+                                int bz = te.GetTag("z");
+                                string bid = te.GetTag("id");
+
+                                if (bx == x && by == y && bz == z && bid == "minecraft:bed")
+                                {
+                                    int c = te.GetTag("color");
+                                    Console.Write(ToHex(c) + " ");
+                                }
+                            }
+
+                            //Console.Write(ToHex(block.Data) + " ");
                             list.Add(block);
                         }
                         Console.WriteLine();

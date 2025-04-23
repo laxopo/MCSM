@@ -42,69 +42,7 @@ namespace MCSMapConv.VHE
 
             public string SerializeValue()
             {
-                string buf = "";
-
-                switch (ValueType)
-                {
-                    case Type.Float:
-                        return Map.Str(Value);
-
-                    case Type.Int:
-                    case Type.String:
-                        return Value.ToString();
-
-                    case Type.StringArray:
-                        foreach (var str in Value as List<string>)
-                        {
-                            if (buf != "")
-                            {
-                                buf += ";";
-                            }
-                            buf += str;
-                        }
-                        return buf;
-
-                    case Type.Point:
-                        var vect = Value as Point;
-                        return Map.Str(vect.X) + " " + Map.Str(vect.Y) + " " + Map.Str(vect.Z);
-
-                    case Type.SolidArray:
-                        foreach (var sld in Value as List<Map.Solid>)
-                        {
-                            if (buf != "")
-                            {
-                                buf += Environment.NewLine;
-                            }
-
-                            buf += "{" + Environment.NewLine;
-                            foreach (var face in sld.Faces)
-                            {
-                                string texture;
-                                if (face.Texture == null)
-                                {
-                                    texture = "NULL";
-                                }
-                                else
-                                {
-                                    texture = face.Texture.ToUpper();
-                                }
-
-                                buf +=
-                                    "( " + Map.Str(face.Vertexes[0].X) + " " + Map.Str(face.Vertexes[0].Y) + " " + Map.Str(face.Vertexes[0].Z) + " ) " +
-                                    "( " + Map.Str(face.Vertexes[1].X) + " " + Map.Str(face.Vertexes[1].Y) + " " + Map.Str(face.Vertexes[1].Z) + " ) " +
-                                    "( " + Map.Str(face.Vertexes[2].X) + " " + Map.Str(face.Vertexes[2].Y) + " " + Map.Str(face.Vertexes[2].Z) + " ) " +
-                                    texture + " " +
-                                    "[ " + Map.Str(face.AxisU.X) + " " + Map.Str(face.AxisU.Y) + " " + Map.Str(face.AxisU.Z) + " " + Map.Str(face.OffsetU) + " ] " +
-                                    "[ " + Map.Str(face.AxisV.X) + " " + Map.Str(face.AxisV.Y) + " " + Map.Str(face.AxisV.Z) + " " + Map.Str(face.OffsetV) + " ] " +
-                                    Map.Str(face.Rotation) + " " + Map.Str(face.ScaleU) + " " + Map.Str(face.ScaleV) + " " + Environment.NewLine;
-                            }
-                            buf += "}";
-                        }
-                        return buf;
-
-                    default:
-                        throw new Exception("Undefined value type.");
-                }
+                return Entity.SerializeValue(Value, ValueType);
             }
         }
 
@@ -116,6 +54,7 @@ namespace MCSMapConv.VHE
             String,
             StringArray,
             Point,
+            Point2D,
             SolidArray
         }
 
@@ -125,6 +64,7 @@ namespace MCSMapConv.VHE
             {"STRING", Type.String },
             {"STRINGARRAY", Type.StringArray },
             {"POINT", Type.Point },
+            {"POINT2D", Type.Point2D },
             {"SOLIDARRAY", Type.SolidArray }
         };
 
@@ -164,21 +104,38 @@ namespace MCSMapConv.VHE
             (par.Value as List<Map.Solid>).Add(solid);
         }
 
-        public static dynamic DeserializeValue(string data, ValueType type)
+        public static dynamic DeserializeValue(string data, Type type)
         {
             switch (type)
             {
                 case Type.Float:
                     data = data.Replace('.', ',');
-                    return Convert.ToSingle(data);
+                    try
+                    {
+                        return Convert.ToSingle(data);
+                    }
+                    catch { }
+                    return 0.0f;
 
                 case Type.Int:
-                    return Convert.ToInt32(data);
+                    try
+                    {
+                        return Convert.ToInt32(data);
+                    }
+                    catch { }
+                    return 0;
 
                 case Type.String:
                     return data;
 
                 case Type.Point:
+                case Type.Point2D:
+                    int digitCount = 2;
+                    if (type == Type.Point)
+                    {
+                        digitCount++;
+                    }
+
                     data = data.Replace('.', ',');
                     float x = 0, y = 0, z = 0;
                     int digit = 0;
@@ -228,13 +185,92 @@ namespace MCSMapConv.VHE
                             }
                         }
 
-                        if (digit > 2)
+                        if (digit == digitCount)
                         {
                             break;
                         }
                     }
 
-                    return new Point(x, y, z);
+                    if (type == Type.Point2D)
+                    {
+                        return new Point2D(x, y);
+                    }
+                    else
+                    {
+                        return new Point(x, y, z);
+                    }
+                    
+
+                default:
+                    throw new Exception("Undefined value type.");
+            }
+        }
+
+        public static string SerializeValue(object value, Type valueType)
+        {
+            string buf = "";
+
+            switch (valueType)
+            {
+                case Type.Float:
+                    return Map.Str(value);
+
+                case Type.Int:
+                case Type.String:
+                    return value.ToString();
+
+                case Type.StringArray:
+                    foreach (var str in value as List<string>)
+                    {
+                        if (buf != "")
+                        {
+                            buf += ";";
+                        }
+                        buf += str;
+                    }
+                    return buf;
+
+                case Type.Point:
+                    var vect = value as Point;
+                    return Map.Str(vect.X) + " " + Map.Str(vect.Y) + " " + Map.Str(vect.Z);
+
+                case Type.Point2D:
+                    var vect2D = value as Point2D;
+                    return Map.Str(vect2D.X) + " " + Map.Str(vect2D.Y);
+
+                case Type.SolidArray:
+                    foreach (var sld in value as List<Map.Solid>)
+                    {
+                        if (buf != "")
+                        {
+                            buf += Environment.NewLine;
+                        }
+
+                        buf += "{" + Environment.NewLine;
+                        foreach (var face in sld.Faces)
+                        {
+                            string texture;
+                            if (face.Texture == null)
+                            {
+                                texture = "NULL";
+                            }
+                            else
+                            {
+                                texture = face.Texture.ToUpper();
+                            }
+
+                            buf +=
+                                "( " + Map.Str(face.Vertexes[0].X) + " " + Map.Str(face.Vertexes[0].Y) + " " + Map.Str(face.Vertexes[0].Z) + " ) " +
+                                "( " + Map.Str(face.Vertexes[1].X) + " " + Map.Str(face.Vertexes[1].Y) + " " + Map.Str(face.Vertexes[1].Z) + " ) " +
+                                "( " + Map.Str(face.Vertexes[2].X) + " " + Map.Str(face.Vertexes[2].Y) + " " + Map.Str(face.Vertexes[2].Z) + " ) " +
+                                texture + " " +
+                                "[ " + Map.Str(face.AxisU.X) + " " + Map.Str(face.AxisU.Y) + " " + Map.Str(face.AxisU.Z) + " " + Map.Str(face.OffsetU) + " ] " +
+                                "[ " + Map.Str(face.AxisV.X) + " " + Map.Str(face.AxisV.Y) + " " + Map.Str(face.AxisV.Z) + " " + Map.Str(face.OffsetV) + " ] " +
+                                Map.Str(face.Rotation) + " " + Map.Str(face.ScaleU) + " " + Map.Str(face.ScaleV) + " " + Environment.NewLine;
+                        }
+                        buf += "}";
+                    }
+                    return buf;
 
                 default:
                     throw new Exception("Undefined value type.");

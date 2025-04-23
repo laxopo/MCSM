@@ -207,6 +207,11 @@ namespace MCSMapConv.VHE
             (param.Value as List<Solid>).Add(solid);
         }
 
+        public void AddStrings(string className, string paramName, List<string> values)
+        {
+            values.ForEach(val => AddString(className, paramName, val));
+        }
+
         public void AddString(string className, string paramName, string value)
         {
             var param = GetParameter(className, paramName);
@@ -234,7 +239,7 @@ namespace MCSMapConv.VHE
             return stat;
         }
 
-        public void CreateEntity(MCSMapConv.EntityScript entityTemplate)
+        public void CreateEntity(EntityScript entityTemplate)
         {
             Data.Add(new Entity(entityTemplate));
         }

@@ -9,7 +9,11 @@ namespace MCSMapConv
     public class Model
     {
         public string Name { get; set; }
+        public VHE.Point Origin { get; set; } = new VHE.Point();
+        public VHE.Point Rotation { get; set; } = new VHE.Point();
         public List<Solid> Solids { get; set; } = new List<Solid>();
+        public List<BlockDecsriptor.TextureKey> TextureKeys { get; set; }
+                = new List<BlockDecsriptor.TextureKey>();
         public VHE.Point Position { get; set; }
 
         public class Solid
@@ -17,7 +21,7 @@ namespace MCSMapConv
             public string Name { get; set; }
             public VHE.Point AbsOffset { get; set; } = new VHE.Point();
             public VHE.Point Offset { get; set; } = new VHE.Point();
-            public VHE.Point Size { get; set; } = new VHE.Point();
+            public VHE.Point Size { get; set; } = new VHE.Point(1, 1, 1);
             public VHE.Point OriginAlign { get; set; } = new VHE.Point(1, 1, 1);
             public VHE.Point OriginRotOffset { get; set; } = new VHE.Point();
             public VHE.Point Rotation { get; set; } = new VHE.Point();
@@ -26,15 +30,31 @@ namespace MCSMapConv
             public bool TextureOriented { get; set; }
             public float TextureScale { get; set; }
             public List<Face> Faces { private get; set; } = new List<Face>();
-            public List<BlockDecsriptor.TextureKey> Textures { get; set; } 
-                = new List<BlockDecsriptor.TextureKey>();
 
-            public Solid()
+
+            public Solid Copy()
             {
-                for (int i = 0; i < 6; i++)
+                var solid = new Solid();
+
+                solid.Name = Name;
+                solid.AbsOffset = AbsOffset.Copy();
+                solid.Offset = Offset.Copy();
+                solid.Size = Size.Copy();
+                solid.OriginAlign = OriginAlign.Copy();
+                solid.OriginRotOffset = OriginRotOffset.Copy();
+                solid.Rotation = Rotation.Copy();
+                solid.TextureLockOffsets = TextureLockOffsets;
+                solid.TextureOriented = TextureOriented;
+                solid.TextureScale = TextureScale;
+
+                if (TexturedFaces != null)
                 {
-                    Faces.Add(new Face() { Name = (Faces)i });
+                    solid.TexturedFaces = (Faces[])TexturedFaces.Clone();
                 }
+                
+                Faces.ForEach(x => solid.Faces.Add(x.Copy()));
+
+                return solid;
             }
 
             public Face Face(int faceIndex)
@@ -79,6 +99,7 @@ namespace MCSMapConv
             public float ScaleU { get; set; } = 1;
             public float ScaleV { get; set; } = 1;
             public float Rotation { get; set; }
+            public VHE.Point2D Origin { get; set; } = new VHE.Point2D();
             public bool StretchU { get; set; }
             public bool StretchV { get; set; }
             public bool MirrorU { get; set; }
@@ -90,6 +111,28 @@ namespace MCSMapConv
             public Face(Faces name)
             {
                 Name = name;
+            }
+
+            public Face Copy()
+            {
+                var face = new Face();
+
+                face.Name = Name;
+                face.Texture = Texture;
+                face.OffsetU = OffsetU;
+                face.OffsetV = OffsetV;
+                face.UnscaledOffset = UnscaledOffset;
+                face.ScaleU = ScaleU;
+                face.ScaleV = ScaleV;
+                face.Origin = Origin.Copy();
+                face.Rotation = Rotation;
+                face.StretchU = StretchU;
+                face.StretchV = StretchV;
+                face.MirrorU = MirrorU;
+                face.MirrorV = MirrorV;
+                face.Frame = Frame;
+
+                return face;
             }
         }
 
@@ -105,6 +148,16 @@ namespace MCSMapConv
         }
 
         public Model() { }
+
+        public Model(Model source)
+        {
+            Name = source.Name;
+            Origin = source.Origin.Copy();
+            Rotation = source.Rotation.Copy();
+            Position = source.Position.Copy();
+            source.Solids.ForEach(s => Solids.Add(s.Copy()));
+            source.TextureKeys.ForEach(x => TextureKeys.Add(x.Copy()));
+        }
 
         public static Faces GetFaceEnum(string name)
         {

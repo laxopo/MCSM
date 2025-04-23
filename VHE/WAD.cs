@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace MCSMapConv.VHE
 {
@@ -26,11 +28,55 @@ namespace MCSMapConv.VHE
             public int Width { get; set; }
             public BMP Data { get; set; }
             public byte Type { get; set; }
+
+            public Bitmap GetTextureBitmap()
+            {
+                if (Data.MainBMP == null)
+                {
+                    Data.MainBMP = new Bitmap(Width, Height, PixelFormat.Format8bppIndexed);
+
+                    //set palette
+                    var pal = Data.MainBMP.Palette;
+                    for (int i = 0; i < 256; i++)
+                    {
+                        var rgb = Data.Palette[i];
+                        var color = Color.FromArgb(rgb.R, rgb.G, rgb.B);
+                        pal.Entries[i] = color;
+                    }
+
+                    Data.MainBMP.Palette = pal;
+
+                    //set indexes
+                    var data = Data.MainBMP.LockBits(new Rectangle(0, 0, Data.MainBMP.Width, Data.MainBMP.Height),
+                        ImageLockMode.ReadWrite, Data.MainBMP.PixelFormat);
+
+                    for (int y = 0; y < Height; y++)
+                    {
+                        for (int x = 0; x < Width; x++)
+                        {
+                            SetPixel(data, x, y, Data.Main[x, y]);
+                        }
+                    }
+
+                    Data.MainBMP.UnlockBits(data);
+                }
+
+                
+                return Data.MainBMP;
+            }
+
+            private unsafe void SetPixel(BitmapData data, int x, int y, byte color)
+            {
+                byte* p = (byte*)data.Scan0.ToPointer();
+                int offset = y * data.Stride + x;
+                p[offset] = color;
+            }
         }
 
         public class BMP
         {
             public byte[,] Main { get; set; }
+            public Bitmap MainBMP { get; set; }
             public byte[,] Mip1 { get; set; }
             public byte[,] Mip2 { get; set; }
             public byte[,] Mip3 { get; set; }
@@ -42,6 +88,11 @@ namespace MCSMapConv.VHE
             public int R { get; set; }
             public int G { get; set; }
             public int B { get; set; }
+
+            public Color GetColor()
+            {
+                return Color.FromArgb(255, R, G, B);
+            }
         }
 
         public WAD(string filepath)
@@ -139,6 +190,13 @@ namespace MCSMapConv.VHE
 
             fs.Close();
         }
+
+        public Texture GetTexture(string name)
+        {
+            return Textures.Find(t => t.Name.ToUpper() == name.ToUpper());
+        }
+
+        /**/
 
         private string GetString(FileStream fs, int offset, int count)
         {
