@@ -31,7 +31,7 @@ namespace MCSMapConv
         public static ProcessType Process { get; private set; }
         public static Messaging Message { get; private set; } = new Messaging();
 
-        private static List<BlockDecsriptor> BlockDescriptors;
+        private static List<BlockDescriptor> BlockDescriptors;
         private static List<VHE.WAD> Wads;
         private static List<EntityScript> SignEntities;
         private static List<EntityScript> SolidEntities;
@@ -442,7 +442,7 @@ namespace MCSMapConv
             block.ID = 0;
         }
 
-        private static void GroupPaneFence(Block block, BlockDecsriptor bt, int x, int y, int z)
+        private static void GroupPaneFence(Block block, BlockDescriptor bt, int x, int y, int z)
         {
             bool px = false, py = false;
             var model = BlockGroup.SType[bt.ModelClass.ToUpper()];
@@ -598,7 +598,7 @@ namespace MCSMapConv
             }
         }
 
-        private static void GroupNormal(Block block, int x, int y, int z, BlockDecsriptor bt)
+        private static void GroupNormal(Block block, int x, int y, int z, BlockDescriptor bt)
         {
             bool found = false;
             BlockGroup[] cuts = new BlockGroup[2];
@@ -701,7 +701,7 @@ namespace MCSMapConv
 
         /*Models*/
 
-        private static void ModelNormal(BlockGroup bg, BlockDecsriptor bt)
+        private static void ModelNormal(BlockGroup bg, BlockDescriptor bt)
         {
             var model = new Model()
             {
@@ -725,7 +725,7 @@ namespace MCSMapConv
             MapAddObject(Modelling.GenerateSolid(bt, bg, model), bt);
         }
 
-        private static void ModelPane(BlockGroup bg, BlockDecsriptor bt)
+        private static void ModelPane(BlockGroup bg, BlockDescriptor bt)
         {
             const float th = 0.125f;
 
@@ -739,8 +739,8 @@ namespace MCSMapConv
             string tl = face, tr = face, tf = face;
 
             var bti = bt.Copy();
-            bti.Textures = new List<BlockDecsriptor.TextureKey>() { 
-                new BlockDecsriptor.TextureKey() 
+            bti.Textures = new List<BlockDescriptor.TextureKey>() { 
+                new BlockDescriptor.TextureKey() 
                 { 
                     Key = "vert",
                     Texture = edge
@@ -795,17 +795,17 @@ namespace MCSMapConv
                     break;
             }
 
-            bti.Textures.Add(new BlockDecsriptor.TextureKey()
+            bti.Textures.Add(new BlockDescriptor.TextureKey()
             {
                 Key = "face",
                 Texture = tf
             });
-            bti.Textures.Add(new BlockDecsriptor.TextureKey()
+            bti.Textures.Add(new BlockDescriptor.TextureKey()
             {
                 Key = "left",
                 Texture = tl
             });
-            bti.Textures.Add(new BlockDecsriptor.TextureKey()
+            bti.Textures.Add(new BlockDescriptor.TextureKey()
             {
                 Key = "right",
                 Texture = tr
@@ -840,7 +840,7 @@ namespace MCSMapConv
             MapAddObject(solid, bti);
         }
 
-        private static void ModelFence(BlockGroup bg, BlockDecsriptor bt)
+        private static void ModelFence(BlockGroup bg, BlockDescriptor bt)
         {
             //horizontal crossbars
             if (bg.Orientation != BlockGroup.Orient.Z)
@@ -924,7 +924,7 @@ namespace MCSMapConv
             }
         }
 
-        private static void ModelDoor(BlockGroup bg, BlockDecsriptor bt)
+        private static void ModelDoor(BlockGroup bg, BlockDescriptor bt)
         {
             const float th = 0.1875f;
 
@@ -1024,7 +1024,7 @@ namespace MCSMapConv
                 },
                 TextureKeys =
                 {
-                    new BlockDecsriptor.TextureKey()
+                    new BlockDescriptor.TextureKey()
                     {
                         SolidName = "origin",
                         Texture = "origin"
@@ -1035,7 +1035,7 @@ namespace MCSMapConv
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static void ModelGrass(BlockGroup bg, BlockDecsriptor bt)
+        private static void ModelGrass(BlockGroup bg, BlockDescriptor bt)
         {
             float len = (float)Math.Sqrt(2);
 
@@ -1105,7 +1105,7 @@ namespace MCSMapConv
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static void ModelSpecial(BlockGroup bg, BlockDecsriptor bt)
+        private static void ModelSpecial(BlockGroup bg, BlockDescriptor bt)
         {
             var modelScr = Models.Find(x => x.Name == bt.ModelName);
             if (modelScr == null)
@@ -1130,7 +1130,7 @@ namespace MCSMapConv
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
         }
 
-        private static void ModelSign(BlockGroup bg, BlockDecsriptor bt, string[] text)
+        private static void ModelSign(BlockGroup bg, BlockDescriptor bt, string[] text)
         {
             /*generate base model*/
             const float tScale = 0.66f;
@@ -1323,7 +1323,7 @@ namespace MCSMapConv
                     }
                 }
 
-                var btt = new BlockDecsriptor()
+                var btt = new BlockDescriptor()
                 {
                     Entity = "illusionary"
                 };
@@ -1334,13 +1334,13 @@ namespace MCSMapConv
 
         /*Map methods*/
 
-        private static void MapAddObject(VHE.Map.Solid solid, BlockDecsriptor bt, 
+        private static void MapAddObject(VHE.Map.Solid solid, BlockDescriptor bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
         {
             MapAddObject(new List<VHE.Map.Solid>() { solid }, bt, blockData, x, y, z);
         }
 
-        private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDecsriptor bt, 
+        private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDescriptor bt, 
             int blockData = 0, float x = 0, float y = 0, float z = 0)
         {
             var se = GetSolidEntity(bt);
@@ -1362,7 +1362,7 @@ namespace MCSMapConv
             var test = Map.GetSolidsCount().Solids;
         }
 
-        private static EntityScript GetSolidEntity(BlockDecsriptor bt)
+        private static EntityScript GetSolidEntity(BlockDescriptor bt)
         {
             if (bt.Entity != null)
             {
@@ -1372,16 +1372,16 @@ namespace MCSMapConv
             return null;
         }
 
-        private static BlockDecsriptor GetBT(int id, int data)
+        private static BlockDescriptor GetBT(int id, int data)
         {
             var blk = new Block() { ID = (byte)id, Data = (byte)data };
             return GetBT(blk);
         }
 
-        private static BlockDecsriptor GetBT(Block block, bool suppressData = false)
+        private static BlockDescriptor GetBT(Block block, bool suppressData = false)
         {
             int maskedData = block.Data;
-            bool CheckData(BlockDecsriptor bt)
+            bool CheckData(BlockDescriptor bt)
             {
                 if (bt.DataMask > 0)
                 {
@@ -1420,7 +1420,7 @@ namespace MCSMapConv
                         {
                             if (bt.IgnoreExcluded)
                             {
-                                return new BlockDecsriptor();
+                                return new BlockDescriptor();
                             }
                             else
                             {
@@ -1444,7 +1444,7 @@ namespace MCSMapConv
 
                         if (bt.IgnoreExcluded)
                         {
-                            return new BlockDecsriptor();
+                            return new BlockDescriptor();
                         }
                     }
                 }
@@ -2132,7 +2132,7 @@ namespace MCSMapConv
             }
             if (res == Resources.Textures || res == Resources.All)
             {
-                BlockDescriptors = JsonConvert.DeserializeObject<List<BlockDecsriptor>>(
+                BlockDescriptors = JsonConvert.DeserializeObject<List<BlockDescriptor>>(
                     File.ReadAllText(Resource[Resources.Textures]));
             }
             if (res == Resources.Models || res == Resources.All)

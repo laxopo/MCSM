@@ -12,8 +12,8 @@ namespace MCSMapConv
         public VHE.Point Origin { get; set; } = new VHE.Point();
         public VHE.Point Rotation { get; set; } = new VHE.Point();
         public List<Solid> Solids { get; set; } = new List<Solid>();
-        public List<BlockDecsriptor.TextureKey> TextureKeys { get; set; }
-                = new List<BlockDecsriptor.TextureKey>();
+        public List<BlockDescriptor.TextureKey> TextureKeys { get; set; }
+                = new List<BlockDescriptor.TextureKey>();
         public VHE.Point Position { get; set; }
 
         public class Solid

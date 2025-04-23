@@ -59,10 +59,10 @@ namespace MCSMapConv
 
         public static VHE.Map.Solid GenerateSolid(Model model, string texture)
         {
-            return GenerateSolids(new BlockDecsriptor(), null, model, texture)[0];
+            return GenerateSolids(new BlockDescriptor(), null, model, texture)[0];
         }
 
-        public static VHE.Map.Solid GenerateSolid(BlockDecsriptor bt, BlockGroup bg, Model model = null, string texture = null)
+        public static VHE.Map.Solid GenerateSolid(BlockDescriptor bt, BlockGroup bg, Model model = null, string texture = null)
         {
             if (model == null)
             {
@@ -77,7 +77,7 @@ namespace MCSMapConv
             return GenerateSolids(null, null, model, texture);
         }
 
-        public static List<VHE.Map.Solid> GenerateSolids(BlockDecsriptor bt, BlockGroup bg, 
+        public static List<VHE.Map.Solid> GenerateSolids(BlockDescriptor bt, BlockGroup bg, 
             Model model, string texture = null)
         {
             var modelBuf = new Model(model);
@@ -470,7 +470,7 @@ namespace MCSMapConv
             return -1;
         }
 
-        private static string TextureBySide(int side, string solidName, List<BlockDecsriptor.TextureKey> tks, int blockData)
+        private static string TextureBySide(int side, string solidName, List<BlockDescriptor.TextureKey> tks, int blockData)
         {
             string[] keys;
 
@@ -504,7 +504,7 @@ namespace MCSMapConv
                     throw new Exception("Side index out of range");
             }
 
-            return BlockDecsriptor.GetTextureName(tks, blockData, solidName, keys);
+            return BlockDescriptor.GetTextureName(tks, blockData, solidName, keys);
         }
 
         private static string GetTextureName(Model.Solid sld, int index)

@@ -14,7 +14,7 @@ namespace MCSMapConv
         public string Origin { get; set; }
         public string Rotation { get; set; }
         public List<Solid> Solids { get; set; } = new List<Solid>();
-        public BlockDecsriptor.TextureKey[] TextureKeys { get; set; }
+        public BlockDescriptor.TextureKey[] TextureKeys { get; set; }
 
         public class Solid
         {
