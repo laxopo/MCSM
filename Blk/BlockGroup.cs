@@ -48,10 +48,10 @@ namespace MCSMapConv
 
         public static Dictionary<string, ModelType> SType = new Dictionary<string, ModelType>() {
             { "NORMAL", ModelType.Normal },
+            { "LIQUID", ModelType.Liquid },
             { "PANE", ModelType.Pane },
             { "FENCE", ModelType.Fence },
             { "DOOR", ModelType.Door },
-            { "LIQUID", ModelType.Liquid },
             { "GRASS", ModelType.Grass },
             { "SPECIAL", ModelType.Special },
             { "SIGN", ModelType.Sign },
