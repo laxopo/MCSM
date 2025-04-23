@@ -65,7 +65,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Blk\BlockGroup.cs" />
-    <Compile Include="Blk\BlockDecsriptor.cs" />
+    <Compile Include="Blk\BlockDescriptor.cs" />
     <Compile Include="Blk\BGroupID.cs" />
     <Compile Include="VHE\Face.cs" />
     <Compile Include="VHE\Map.cs" />
