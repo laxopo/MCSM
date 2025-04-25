@@ -14,6 +14,6 @@ namespace MCSMapConv
         public int TextureResolution { get; set; }
         public string CstrikePath { get; set; }
         public string MapOutputPath { get; set; }
-        public List<string> WadFiles;
+        public List<string> WadFiles { get; set; } = new List<string>();
     }
 }
