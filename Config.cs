@@ -10,10 +10,10 @@ namespace MCSMapConv
 {
     public class Config
     {
-        public float Scale { get; set; }
+        public float BlockScale { get; set; }
         public int TextureResolution { get; set; }
         public string CstrikePath { get; set; }
         public string MapOutputPath { get; set; }
-        public string[] Wads;
+        public List<string> WadFiles;
     }
 }

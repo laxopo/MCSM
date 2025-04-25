@@ -71,7 +71,7 @@ namespace MCSMapConv
         {
             Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath));
 
-            CSScale = Config.Scale;
+            CSScale = Config.BlockScale;
             TextureRes = Config.TextureResolution;
         }
 
@@ -109,7 +109,7 @@ namespace MCSMapConv
 
             Process = ProcessType.ScanBlocks;
             Map = new VHE.Map();
-            foreach (var wad in Config.Wads)
+            foreach (var wad in Config.WadFiles)
             {
                 Map.AddString("worldspawn", "wad", wad);
             }
@@ -2125,7 +2125,7 @@ namespace MCSMapConv
             if (res == Resources.Wad || res == Resources.All)
             {
                 Wads = new List<VHE.WAD>();
-                foreach (var wad in Config.Wads)
+                foreach (var wad in Config.WadFiles)
                 {
                     Wads.Add(new VHE.WAD(wad));
                 }
