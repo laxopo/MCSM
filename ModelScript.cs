@@ -292,6 +292,11 @@ namespace MCSMapConv
             return JsonConvert.DeserializeObject<ModelScript>(data);
         }
 
+        public ModelScript Copy()
+        {
+            return FromJson(Serialize());
+        }
+
         /**/
 
         private static bool Compare(object obj1, object obj2)
