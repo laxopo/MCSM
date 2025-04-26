@@ -11,6 +11,7 @@ namespace MCSMapConv.VHE
 {
     public class WAD
     {
+        public string FilePath { get; set; }
         public List<Texture> Textures { get; set; } = new List<Texture>();
         private int Count { get; set; }
         private int DataOffset { get; set; }
@@ -97,6 +98,7 @@ namespace MCSMapConv.VHE
 
         public WAD(string filepath)
         {
+            FilePath = filepath;
             var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read);
 
             if (GetString(fs, 0x00, 4) != "WAD3")
