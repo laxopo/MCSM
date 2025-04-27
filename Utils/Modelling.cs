@@ -135,7 +135,8 @@ namespace MCSMapConv
                         }
                     }
 
-                    if (modelBuf.TextureKeys.Count == 0 && bt != null && bt.TextureOriented)
+                    //if (modelBuf.TextureKeys.Count == 0 && bt != null && bt.TextureOriented)
+                    if (bt != null && bt.TextureOriented)
                     {
                         mdlSolid.TextureOriented = true;
                     }
@@ -156,7 +157,17 @@ namespace MCSMapConv
                             }
                         }
 
-                        if (modelBuf.TextureKeys.Count > 0)
+                        if (bt != null)
+                        {
+                            bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
+                        }
+
+                        if (mdlSolid.Face(i).Texture == null)
+                        {
+                            mdlSolid.Face(i).Texture = TextureBySide(i, mdlSolid.Name, modelBuf.TextureKeys, blockData);
+                        }
+
+                        /*if (modelBuf.TextureKeys.Count > 0)
                         {
                             if (mdlSolid.Face(i).Texture == null)
                             {
@@ -165,11 +176,6 @@ namespace MCSMapConv
                         }
                         else
                         {
-                            /*if (bt == null)
-                            {
-                                throw new Exception("Block mapper is not specified");
-                            }*/
-
                             if (bt != null)
                             {
                                 var face = mdlSolid.Face(i);
@@ -178,7 +184,7 @@ namespace MCSMapConv
                                     face.Texture = TextureBySide(i, mdlSolid.Name, bt.Textures, blockData);
                                 }
                             }
-                        }
+                        }*/
                     }
                 }
 
@@ -367,7 +373,7 @@ namespace MCSMapConv
 
                 if (mdlFace.StretchU)
                 {
-                    face.ScaleU = Scale / (tw + fou * 2) * faceSize[0];
+                    face.ScaleU = Scale / (tw - fou * 2) * faceSize[0];
                 }
                 else
                 {
@@ -376,7 +382,7 @@ namespace MCSMapConv
 
                 if (mdlFace.StretchV)
                 {
-                    face.ScaleV = Scale / (th + fov * 2) * faceSize[1];
+                    face.ScaleV = Scale / (th - fov * 2) * faceSize[1];
                 }
                 else
                 {
