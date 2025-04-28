@@ -13,8 +13,8 @@ namespace MCSMapConv.VHE
         public Point AxisV { get; set; }
         public float OffsetU { get; set; }
         public float OffsetV{ get; set; }
-        public float ScaleU { get; set; }
-        public float ScaleV { get; set; }
+        public float ScaleU { get; set; } = 1;
+        public float ScaleV { get; set; } = 1;
         public float Rotation { get; set; }
         public Point[] Vertexes { get; set; } = new Point[3];
 
