@@ -416,16 +416,46 @@ namespace MCSMapConv
 
                 if (face.Rotation != 0)
                 {
+                    //input
                     var kf = TextureRes / 16;
-                    mdlFace.Origin.X *= us * kf / mdlFace.ScaleU;
-                    mdlFace.Origin.Y *= vs * kf / mdlFace.ScaleV;
+                    var r = new VHE.Point2D()
+                    {
+                        X = mdlFace.Origin.X * us * kf,
+                        Y = mdlFace.Origin.Y * vs * kf
+                    };
+                    var kt = Scale / TextureRes;
+                    var sc = new VHE.Point2D()
+                    {
+                        X = face.ScaleU / kt,
+                        Y = face.ScaleV / kt,
+                    };
 
-                    u -= mdlFace.Origin.X;
-                    v -= mdlFace.Origin.Y;
-                    Rotate2D(ref u, ref v, mdlFace.Rotation);
-                    u += mdlFace.Origin.X;
-                    v += mdlFace.Origin.Y;
-                    Trans2D(ref u, ref v, mdlFace.Rotation);
+                    //offset
+                    var ob = new VHE.Point2D(u - r.X, v - r.Y);
+
+                    //rotate
+                    ob = Rotate2D(ob, mdlFace.Rotation);
+
+                    //return
+                    ob.Summ(r);
+                    var or = Trans2D(ob, mdlFace.Rotation);
+                    or.Multiply(-1, -1);
+
+                    //scale r
+                    var rs = VHE.Point2D.Multiply(r, sc);
+                    var rsg = Trans2D(rs, mdlFace.Rotation);
+                    var rg = VHE.Point2D.Delta(or, r);
+
+                    //shift r
+                    or.Substract(VHE.Point2D.Delta(rg, rsg));
+
+                    //scale P
+                    rg = VHE.Point2D.Multiply(rsg, sc);
+                    or.Summ(rg.Substract(rsg).Divide(sc));
+
+                    //output
+                    u -= or.X;
+                    v -= or.Y;
                 }
 
                 face.OffsetU = (tw - u + (offU + fou) * us) % tw;
@@ -545,6 +575,16 @@ namespace MCSMapConv
             y = by;
         }
 
+        public static VHE.Point2D Rotate2D(VHE.Point2D pt, float angle)
+        {
+            var x = pt.X;
+            var y = pt.Y;
+
+            Rotate2D(ref x, ref y, angle);
+
+            return new VHE.Point2D(x, y);
+        }
+
         public static void Rotate2D(ref int x, ref int y, float angle)
         {
             if (angle == 0)
@@ -556,6 +596,16 @@ namespace MCSMapConv
             var by = (int)(x * Sin(angle) + y * Cos(angle));
             x = bx;
             y = by;
+        }
+
+        public static VHE.Point2D Trans2D(VHE.Point2D pt, float angle)
+        {
+            var x = pt.X;
+            var y = pt.Y;
+
+            Trans2D(ref x, ref y, angle);
+
+            return new VHE.Point2D(x, y);
         }
 
         public static void Trans2D(ref float x, ref float y, float angle)
@@ -570,6 +620,7 @@ namespace MCSMapConv
             x = bx;
             y = by;
         }
+
 
         public static VHE.Point ReverseVector(VHE.Point point)
         {
@@ -624,13 +675,6 @@ namespace MCSMapConv
 
                 m3[row] = sum;
             }
-
-            var offsets = new VHE.Point
-            {
-                X = pt.X - (float)m3[0],
-                Y = pt.Y - (float)m3[1],
-                Z = pt.Z - (float)m3[2]
-            };
 
             pt.X = (float)m3[0];
             pt.Y = (float)m3[1];
