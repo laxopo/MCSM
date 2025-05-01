@@ -75,6 +75,107 @@ namespace MCSMapConv
             TextureRes = Config.TextureResolution;
         }
 
+        public static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
+        {
+            Debuging = true;
+            Settings.DebugEnable = false;
+            Console.WriteLine("Debug mode. Block data inspect");
+
+            var list = new List<Block>();
+
+            if (id == -1)
+            {
+                for (int y = ymin; y <= ymax; y++)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Y = " + y);
+                    for (int z = zmin; z <= zmax; z++)
+                    {
+                        for (int x = xmin; x <= xmax; x++)
+                        {
+                            var block = world.GetBlock(0, x, y, z);
+                            Console.CursorLeft = (x - xmin) * 3;
+
+                            if (block.ID != 0)
+                            {
+                                Console.Write(ToHexStr(block.ID));
+                            }
+                            else
+                            {
+                                Console.Write("--");
+                            }
+                        }
+                        Console.WriteLine();
+                    }
+                }
+            }
+            else
+            {
+                for (int y = ymin; y <= ymax; y++)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Y = " + y);
+                    for (int z = zmin; z <= zmax; z++)
+                    {
+                        for (int x = xmin; x <= xmax; x++)
+                        {
+                            var block = world.GetBlock(0, x, y, z);
+
+                            if (block.ID != id)
+                            {
+                                if (block.ID == 0)
+                                {
+                                    Console.Write("- ");
+                                }
+                                else
+                                {
+                                    Console.Write("+ ");
+                                }
+                                continue;
+                            }
+
+                            var ch = MCWorld.GetChunkAtBlock(0, x, z);
+                            List<NBT> tes = ch.NBTData.GetTag("Level/TileEntities");
+                            foreach (var te in tes)
+                            {
+                                int bx = te.GetTag("x");
+                                int by = te.GetTag("y");
+                                int bz = te.GetTag("z");
+                                string bid = te.GetTag("id");
+
+                                if (bx == x && by == y && bz == z && bid == "minecraft:bed")
+                                {
+                                    int c = te.GetTag("color");
+                                    Console.Write(ToHex(c) + " ");
+                                }
+                            }
+
+                            //Console.Write(ToHex(block.Data) + " ");
+                            list.Add(block);
+                        }
+                        Console.WriteLine();
+                    }
+                }
+            }
+
+
+            Console.WriteLine("Done");
+            while (true)
+            {
+                Console.ReadKey();
+            }
+        }
+
+        public static Model GetModel(BlockDescriptor bt)
+        {
+            var bg = new BlockGroup(bt.ID, bt.Data, 0, 0, 0)
+            {
+                Type = BlockGroup.SType[bt.ModelClass.ToUpper()],
+            };
+
+            return BuildModel(bg, bt);
+        }
+
         public static VHE.Map ConvertToMap(string worldPath, int dimension, 
             int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
         {
@@ -108,64 +209,8 @@ namespace MCSMapConv
             //BlockInspect(MCWorld, 0x1A,  430, 56, -345, 437, 56, -338); //TEST
 
             Process = ProcessType.ScanBlocks;
-            Map = new VHE.Map();
-            foreach (var wad in Config.WadFiles)
-            {
-                Map.AddString("worldspawn", "wad", wad);
-            }
-            
+            InitializeMap();
             BlockGroups = new List<BlockGroup>();
-
-            /*TEST*/
-            var bas = new Model()
-            {
-                Solids =
-                {
-                    new Model.Solid()
-                    {
-                        Size = new VHE.Point(4, 4, 1),
-                        OriginAlign = new VHE.Point(0, 0, -1)
-                    }
-                },
-                Position = new VHE.Point(0, 0, 0)
-            };
-
-            var mdl = new Model()
-            {
-                Solids =
-                {
-                    new Model.Solid()
-                    {
-                        Size = new VHE.Point(0.5f, 0.25f, 1),
-                        OriginAlign = new VHE.Point(1, 1, 1),
-                        Offset = new VHE.Point(-1, -1, 0),
-                        //OriginRotOffset = new VHE.Point(1, 1, 0),
-                        Rotation = new VHE.Point(0, 0, -22),
-                        //AbsOffset = new VHE.Point(0, 1, 0)
-                    },
-                    new Model.Solid()
-                    {
-                        Size = new VHE.Point(0.5f, 0.25f, 1),
-                        OriginAlign = new VHE.Point(0, 0, 1),
-                        Offset = new VHE.Point(1, 1, 0),
-                        //OriginRotOffset = new VHE.Point(0, 0, 0),
-                        Rotation = new VHE.Point(0, 0, 22),
-                        //AbsOffset = new VHE.Point(0, 1, 0)
-                    }
-                    
-                },
-                Position = new VHE.Point(0, 0, 0),
-                //Origin = new VHE.Point(-1, -1, 0),
-                //Rotation = new VHE.Point(0, 0, -45)
-            };
-
-            Map.AddSolids(Modelling.GenerateSolids(mdl, "pumpkin_face"));
-            Map.AddSolids(Modelling.GenerateSolids(bas, "blockgold"));
-            //Map.AddSolid(Modelling.GenerateSolid(mdl2, "brick2"));
-            //Map.AddSolid(Modelling.CreateSolid(new VHE.Point(4, 0, 0), ms, new string[] { "!lava" }));
-            Process = ProcessType.Done;
-            return Map;
-            /*TEST END*/
             
             var missings = new BlockMissMsg(Message);
             
@@ -278,13 +323,12 @@ namespace MCSMapConv
             foreach (var bg in BlockGroups)
             {
                 GroupCurrent++;
-                //System.Threading.Thread.Sleep(10);
 
             pBegin:
                 var bt = GetBT(bg.BlockID, bg.BlockData);
                 if (bt == null)
                 {
-                    var res = missings.Message(bg.BlockID, bg.BlockData, "texture is not registered", false);
+                    var res = missings.Message(bg.BlockID, bg.BlockData, "block is not registered", false);
                     switch (res)
                     {
                         case BlockMissMsg.Result.Retry:
@@ -297,74 +341,7 @@ namespace MCSMapConv
                     }
                 }
 
-                pWad:
-                foreach (var tex in bt.Textures)
-                {
-                    bool found = false;
-                    foreach (var wad in Wads)
-                    {
-                        if (wad.Textures.Find(t => t.Name.ToUpper() == tex.Texture.ToUpper()) == null)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-
-                    if (!found)
-                    {
-                        var res = missings.Message(bg.BlockID, bg.BlockData, 
-                            "wad texture " + tex.Texture + " not found", false);
-                        switch (res)
-                        {
-                            case BlockMissMsg.Result.Retry:
-                                LoadResources(Resources.Wad);
-                                goto pWad;
-
-                            case BlockMissMsg.Result.Abort:
-                                Aborted = true;
-                                return null;
-                        }
-                    }
-                }
-
-                switch (bg.Type)
-                {
-                    case BlockGroup.ModelType.Normal:
-                    case BlockGroup.ModelType.Liquid:
-                        ModelNormal(bg, bt);
-                        break;
-
-                    case BlockGroup.ModelType.Pane:
-                        ModelPane(bg, bt);
-                        break;
-
-                    case BlockGroup.ModelType.Fence:
-                        ModelFence(bg, bt);
-                        break;
-
-                    case BlockGroup.ModelType.Door:
-                        ModelDoor(bg, bt);
-                        break;
-
-                    case BlockGroup.ModelType.Grass:
-                        ModelGrass(bg, bt);
-                        break;
-
-                    case BlockGroup.ModelType.Special:
-                        ModelSpecial(bg, bt);
-                        break;
-
-                    case BlockGroup.ModelType.Sign:
-                        var text = GetSignText(Dimension, bg);
-                        if (!GenerateSignEntity(bg, text))
-                        {
-                            ModelSign(bg, bt, text);
-                        }
-                        break;
-
-                    default:
-                        throw new Exception("Undefined model type.");
-                }
+                BuildModel(bg, bt);
             }
 
             //Generate skybox
@@ -417,6 +394,15 @@ namespace MCSMapConv
 
             Process = ProcessType.Done;
             return Map;
+        }
+
+        private static void InitializeMap()
+        {
+            Map = new VHE.Map();
+            foreach (var wad in Config.WadFiles)
+            {
+                Map.AddString("worldspawn", "wad", wad);
+            }
         }
 
         /*Grouping*/
@@ -701,7 +687,51 @@ namespace MCSMapConv
 
         /*Models*/
 
-        private static void ModelNormal(BlockGroup bg, BlockDescriptor bt)
+        private static Model BuildModel(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
+        {
+            switch (bg.Type)
+            {
+                case BlockGroup.ModelType.Normal:
+                case BlockGroup.ModelType.Liquid:
+                    return ModelNormal(bg, bt, false);
+
+                case BlockGroup.ModelType.Pane:
+                    return ModelPane(bg, bt, false);
+
+                case BlockGroup.ModelType.Fence:
+                    ModelFence(bg, bt);
+                    return new Model();
+
+                case BlockGroup.ModelType.Door:
+                    return ModelDoor(bg, bt, false);
+
+                case BlockGroup.ModelType.Grass:
+                    return ModelGrass(bg, bt, false);
+
+                case BlockGroup.ModelType.Special:
+                    return ModelSpecial(bg, bt, false);
+
+                case BlockGroup.ModelType.Sign:
+                    if (convEnable)
+                    {
+                        var text = GetSignText(Dimension, bg);
+                        if (!GenerateSignEntity(bg, text))
+                        {
+                            ModelSign(bg, bt, text);
+                        }
+                        return new Model();
+                    }
+                    else
+                    {
+                        return ModelSign(bg, bt, null, false);
+                    }
+
+                default:
+                    throw new Exception("Undefined model type.");
+            }
+        }
+
+        private static Model ModelNormal(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
             var model = new Model()
             {
@@ -722,10 +752,15 @@ namespace MCSMapConv
                 model.Solids[0].Size.Z -= 0.125f;
             }
 
-            MapAddObject(Modelling.GenerateSolid(bt, bg, model), bt);
+            if (convEnable)
+            {
+                MapAddObject(Modelling.GenerateSolid(bt, bg, model), bt);
+            }
+
+            return model;
         }
 
-        private static void ModelPane(BlockGroup bg, BlockDescriptor bt)
+        private static Model ModelPane(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
             const float th = 0.125f;
 
@@ -836,8 +871,15 @@ namespace MCSMapConv
                 }
             };
 
+            if (!convEnable)
+            {
+                return model;
+            }
+
             var solid = Modelling.GenerateSolid(bti, bg, model);
             MapAddObject(solid, bti);
+
+            return model;
         }
 
         private static void ModelFence(BlockGroup bg, BlockDescriptor bt)
@@ -921,10 +963,10 @@ namespace MCSMapConv
                     },       
                 };
                 MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
-            }
+            };
         }
 
-        private static void ModelDoor(BlockGroup bg, BlockDescriptor bt)
+        private static Model ModelDoor(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
             const float th = 0.1875f;
 
@@ -1032,10 +1074,17 @@ namespace MCSMapConv
                 }
             };
 
+            if (!convEnable)
+            {
+                return model;
+            }
+
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+
+            return model;
         }
 
-        private static void ModelGrass(BlockGroup bg, BlockDescriptor bt)
+        private static Model ModelGrass(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
             float len = (float)Math.Sqrt(2);
 
@@ -1102,10 +1151,17 @@ namespace MCSMapConv
                 },
             };
 
+            if (!convEnable)
+            {
+                return model;
+            }
+
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+
+            return model;
         }
 
-        private static void ModelSpecial(BlockGroup bg, BlockDescriptor bt)
+        private static Model ModelSpecial(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
             var modelScr = Models.Find(x => x.Name == bt.ModelName);
             if (modelScr == null)
@@ -1127,10 +1183,17 @@ namespace MCSMapConv
                 }
             }
 
+            if (!convEnable)
+            {
+                return model;
+            }
+
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+
+            return model;
         }
 
-        private static void ModelSign(BlockGroup bg, BlockDescriptor bt, string[] text)
+        private static Model ModelSign(BlockGroup bg, BlockDescriptor bt, string[] text, bool convEnable = true)
         {
             /*generate base model*/
             const float tScale = 0.66f;
@@ -1201,6 +1264,11 @@ namespace MCSMapConv
             if (ground)
             {
                 model.Solids.Add(stick);
+            }
+
+            if (!convEnable)
+            {
+                return model;
             }
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
@@ -1330,6 +1398,8 @@ namespace MCSMapConv
 
                 MapAddObject(Modelling.GenerateSolids(null, bg, textModel), btt);
             }
+
+            return model;
         }
 
         /*Map methods*/
@@ -2027,100 +2097,9 @@ namespace MCSMapConv
             }
         }
 
-        private static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
-        {
-            Debuging = true;
-            Settings.DebugEnable = false;
-            Console.WriteLine("Debug mode. Block data inspect");
-
-            var list = new List<Block>();
-
-            if (id == -1)
-            {
-                for (int y = ymin; y <= ymax; y++)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine("Y = " + y);
-                    for (int z = zmin; z <= zmax; z++)
-                    {
-                        for (int x = xmin; x <= xmax; x++)
-                        {
-                            var block = world.GetBlock(0, x, y, z);
-                            Console.CursorLeft = (x - xmin) * 3;
-
-                            if (block.ID != 0)
-                            {
-                                Console.Write(ToHexStr(block.ID));
-                            }
-                            else
-                            {
-                                Console.Write("--");
-                            }
-                        }
-                        Console.WriteLine();
-                    }
-                }
-            }
-            else
-            {
-                for (int y = ymin; y <= ymax; y++)
-                {
-                    Console.WriteLine();
-                    Console.WriteLine("Y = " + y);
-                    for (int z = zmin; z <= zmax; z++)
-                    {
-                        for (int x = xmin; x <= xmax; x++)
-                        {
-                            var block = world.GetBlock(0, x, y, z);
-
-                            if (block.ID != id)
-                            {
-                                if (block.ID == 0)
-                                {
-                                    Console.Write("- ");
-                                }
-                                else
-                                {
-                                    Console.Write("+ ");
-                                }
-                                continue;
-                            }
-
-                            var ch = MCWorld.GetChunkAtBlock(0, x, z);
-                            List<NBT> tes = ch.NBTData.GetTag("Level/TileEntities");
-                            foreach (var te in tes)
-                            {
-                                int bx = te.GetTag("x");
-                                int by = te.GetTag("y");
-                                int bz = te.GetTag("z");
-                                string bid = te.GetTag("id");
-
-                                if (bx == x && by == y && bz == z && bid == "minecraft:bed")
-                                {
-                                    int c = te.GetTag("color");
-                                    Console.Write(ToHex(c) + " ");
-                                }
-                            }
-
-                            //Console.Write(ToHex(block.Data) + " ");
-                            list.Add(block);
-                        }
-                        Console.WriteLine();
-                    }
-                }
-            }
-            
-
-            Console.WriteLine("Done");
-            while(true)
-            {
-                Console.ReadKey();
-            }
-        }
-
         /**/
 
-        private static void LoadResources(Resources res)
+        public static void LoadResources(Resources res)
         {
             if (res == Resources.Wad || res == Resources.All)
             {

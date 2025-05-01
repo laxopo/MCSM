@@ -8,6 +8,7 @@ namespace MCSMapConv.VHE
 {
     public class Entity
     {
+        public const string SolidArrayName = "Solids";
         public string ClassName { get; set; }
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 
@@ -94,10 +95,10 @@ namespace MCSMapConv.VHE
 
         public void AddSolid(Map.Solid solid)
         {
-            var par = Parameters.Find(x => x.Name == "Solids");
+            var par = Parameters.Find(x => x.Name == SolidArrayName);
             if (par == null)
             {
-                par = new Parameter("Solids", new List<Map.Solid>(), Type.SolidArray);
+                par = new Parameter(SolidArrayName, new List<Map.Solid>(), Type.SolidArray);
                 Parameters.Add(par);
             }
 
