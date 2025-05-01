@@ -105,6 +105,7 @@ namespace MCSMapConv
             public bool MirrorU { get; set; }
             public bool MirrorV { get; set; }
             public bool Frame { get; set; }
+            public bool LockOrigin { get; set; }
 
             public Face() { }
 
@@ -131,6 +132,7 @@ namespace MCSMapConv
                 face.MirrorU = MirrorU;
                 face.MirrorV = MirrorV;
                 face.Frame = Frame;
+                face.LockOrigin = LockOrigin;
 
                 return face;
             }

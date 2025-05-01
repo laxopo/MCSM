@@ -65,6 +65,7 @@ namespace MCSMapConv
                 public bool MirrorU { get; set; }
                 public bool MirrorV { get; set; }
                 public bool Frame { get; set; }
+                public bool LockOrigin { get; set; }
             }
         }
 
@@ -132,7 +133,8 @@ namespace MCSMapConv
                             MirrorV = fc.MirrorV,
                             StretchU = fc.StretchU,
                             StretchV = fc.StretchV,
-                            UnscaledOffset = fc.UnscaledOffset
+                            UnscaledOffset = fc.UnscaledOffset,
+                            LockOrigin = fc.LockOrigin
                         };
 
                         faces.Add(face);
@@ -247,7 +249,8 @@ namespace MCSMapConv
                                 MirrorV = face.MirrorV,
                                 StretchU = face.StretchU,
                                 StretchV = face.StretchV,
-                                UnscaledOffset = face.UnscaledOffset
+                                UnscaledOffset = face.UnscaledOffset,
+                                LockOrigin = face.LockOrigin
                             };
 
                             foreach (PropertyInfo fcsProp in fcs.GetType().GetProperties())

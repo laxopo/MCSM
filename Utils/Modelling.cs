@@ -260,9 +260,9 @@ namespace MCSMapConv
             //set solid rotation point
             foreach (var pt in pts)
             {
-                pt.X = pt.X - mdlSolid.OriginRotOffset.X;
-                pt.Y = pt.Y + mdlSolid.OriginRotOffset.Y;
-                pt.Z = pt.Z - mdlSolid.OriginRotOffset.Z;
+                pt.X -= mdlSolid.OriginRotOffset.X;
+                pt.Y += mdlSolid.OriginRotOffset.Y;
+                pt.Z -= mdlSolid.OriginRotOffset.Z;
             }
 
             //rotate solid
@@ -414,22 +414,31 @@ namespace MCSMapConv
                 var us = Sign(!mdlFace.MirrorV);
                 var vs = Sign(!mdlFace.MirrorU);
 
-                if (face.Rotation != 0)
+                //input
+                var kf = TextureRes / 16;
+                var r = new VHE.Point2D()
                 {
-                    //input
-                    var kf = TextureRes / 16;
-                    var r = new VHE.Point2D()
-                    {
-                        X = mdlFace.Origin.X * us * kf,
-                        Y = mdlFace.Origin.Y * vs * kf
-                    };
-                    var kt = Scale / TextureRes;
-                    var sc = new VHE.Point2D()
-                    {
-                        X = face.ScaleU / kt,
-                        Y = face.ScaleV / kt,
-                    };
+                    X = mdlFace.Origin.X * us * kf,
+                    Y = mdlFace.Origin.Y * vs * kf
+                };
+                var kt = Scale / TextureRes;
+                var sc = new VHE.Point2D()
+                {
+                    X = face.ScaleU / kt,
+                    Y = face.ScaleV / kt,
+                };
 
+                if (mdlFace.LockOrigin)
+                {
+                    var rr = Trans2D(r, mdlFace.Rotation);
+                    rr.Divide(sc);
+                    r.Substract(rr);
+
+                    u -= r.X;
+                    v -= r.Y;
+                }
+                else
+                {
                     //offset
                     var ob = new VHE.Point2D(u - r.X, v - r.Y);
 
