@@ -8,7 +8,6 @@ namespace MCSMapConv
 {
     public class BlockDescriptor : BlockIDs
     {
-        public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
         public string ModelClass { get; set; }
         public string ModelName { get; set; }
         public string Entity { get; set; }
@@ -19,6 +18,7 @@ namespace MCSMapConv
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
         public bool GroupByData { get; set; }
+        public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
 
         public class TextureKey
         {

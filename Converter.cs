@@ -16,11 +16,9 @@ namespace MCSMapConv
         public static float TextureRes = 128;
         public static bool SkyBoxEnable = false;
         public static bool EntityNaming = false;  //(!) true can break down some entity functionality
-
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
         public static int Dimension;
 
-        public static Config Config { get; private set; }
         public static bool Aborted { get; private set; }
         public static int BlockCount { get; private set; }
         public static int BlockProcessed { get; private set; }
@@ -31,12 +29,17 @@ namespace MCSMapConv
         public static ProcessType Process { get; private set; }
         public static Messaging Message { get; private set; } = new Messaging();
 
-        private static List<BlockDescriptor> BlockDescriptors;
-        private static List<VHE.WAD> Wads;
-        private static List<EntityScript> SignEntities;
-        private static List<EntityScript> SolidEntities;
-        private static List<ModelScript> Models;
+        public static Config Config { get; set; }
+        public static List<BlockDescriptor> BlockDescriptors { get; set; }
+        public static List<VHE.WAD> Wads { get; set; }
+        public static List<EntityScript> SignEntities { get; set; }
+        public static List<EntityScript> SolidEntities { get; set; }
+        public static List<ModelScript> Models { get; set; }
+
         private static FontDim FontDim = new FontDim();
+
+        
+        
 
         private static World MCWorld;
         public static VHE.Map Map { get; private set; }
@@ -44,7 +47,7 @@ namespace MCSMapConv
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, @"data\models.json"},
-            {Resources.Textures, @"data\blocks.json"},
+            {Resources.Blocks, @"data\blocks.json"},
             {Resources.SignEntities, @"data\sign_entities.json"},
             {Resources.SolidEntities, @"data\solid_entities.json"}
         };
@@ -54,9 +57,10 @@ namespace MCSMapConv
             All,
             Models,
             Wad,
-            Textures,
+            Blocks,
             SignEntities,
-            SolidEntities
+            SolidEntities,
+            Config
         }
 
         public enum ProcessType
@@ -67,13 +71,6 @@ namespace MCSMapConv
             Done
         }
 
-        public static void LoadConfig(string filePath)
-        {
-            Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath));
-
-            CSScale = Config.BlockScale;
-            TextureRes = Config.TextureResolution;
-        }
 
         public static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
         {
@@ -231,7 +228,7 @@ namespace MCSMapConv
                             switch (res)
                             {
                                 case BlockMissMsg.Result.Retry:
-                                    LoadResources(Resources.Textures);
+                                    LoadResources(Resources.Blocks);
                                     goto bt_chk;
 
                                 case BlockMissMsg.Result.Skip:
@@ -328,7 +325,7 @@ namespace MCSMapConv
                     switch (res)
                     {
                         case BlockMissMsg.Result.Retry:
-                            LoadResources(Resources.Textures);
+                            LoadResources(Resources.Blocks);
                             goto pBegin;
 
                         case BlockMissMsg.Result.Abort:
@@ -2111,10 +2108,10 @@ namespace MCSMapConv
                     Wads.Add(new VHE.WAD(wad));
                 }
             }
-            if (res == Resources.Textures || res == Resources.All)
+            if (res == Resources.Blocks || res == Resources.All)
             {
                 BlockDescriptors = JsonConvert.DeserializeObject<List<BlockDescriptor>>(
-                    File.ReadAllText(Resource[Resources.Textures]));
+                    File.ReadAllText(Resource[Resources.Blocks]));
             }
             if (res == Resources.Models || res == Resources.All)
             {
@@ -2130,6 +2127,14 @@ namespace MCSMapConv
             {
                 SolidEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SolidEntities]));
+            }
+            if (res == Resources.Config || res == Resources.All)
+            {
+                Config = JsonConvert.DeserializeObject<Config>(
+                    File.ReadAllText(Resource[Resources.Config]));
+
+                CSScale = Config.BlockScale;
+                TextureRes = Config.TextureResolution;
             }
         }
 
