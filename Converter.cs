@@ -166,13 +166,9 @@ namespace MCSMapConv
             }
         }
 
-        public static Model GetModel(BlockDescriptor bt)
+        public static Model GetModel(BlockGroup bg, BlockDescriptor bt)
         {
-            var bg = new BlockGroup(bt.ID, bt.Data, 0, 0, 0)
-            {
-                Type = BlockGroup.SType[bt.ModelClass.ToUpper()],
-            };
-
+            bg.Type = BlockGroup.SType[bt.ModelClass.ToUpper()];
             return BuildModel(bg, bt);
         }
 
@@ -1029,6 +1025,7 @@ namespace MCSMapConv
                 {
                     new Model.Solid() //door
                     {
+                        Name = "Main",
                         Size = new VHE.Point(1, th, 2),
                         OriginAlign = new VHE.Point(1, 1, 1),
                         OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
@@ -1090,6 +1087,11 @@ namespace MCSMapConv
 
             var worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
             var texture = Modelling.GetTexture(Wads, bt.GetTextureName(bg.BlockData));
+            if (texture == null)
+            {
+                return null;
+            }
+
             float height = texture.Height / (int)TextureRes;
 
             var model = new Model()

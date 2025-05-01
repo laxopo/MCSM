@@ -188,6 +188,11 @@ namespace MCSMapConv
         private static string TextureName(List<TextureKey> textures, int blockdata,
             string solidName, params string[] keys)
         {
+            if (solidName == "")
+            {
+                solidName = null;
+            }
+
             var macKey = "";
             if (blockdata > -1)
             {

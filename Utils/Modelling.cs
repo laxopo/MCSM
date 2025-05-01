@@ -106,6 +106,7 @@ namespace MCSMapConv
             if (bg != null)
             {
                 blockData = bg.BlockData;
+                bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
             }
 
             List<VHE.Map.Solid> solids = new List<VHE.Map.Solid>();
@@ -157,14 +158,11 @@ namespace MCSMapConv
                             }
                         }
 
-                        if (bt != null)
-                        {
-                            bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
-                        }
 
                         if (mdlSolid.Face(i).Texture == null)
                         {
-                            mdlSolid.Face(i).Texture = TextureBySide(i, mdlSolid.Name, modelBuf.TextureKeys, blockData);
+                            var tex = TextureBySide(i, mdlSolid.Name, modelBuf.TextureKeys, blockData);
+                            mdlSolid.Face(i).Texture = tex;
                         }
 
                         /*if (modelBuf.TextureKeys.Count > 0)
