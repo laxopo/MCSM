@@ -228,7 +228,7 @@ namespace MCSMapConv
         {
             foreach (var txt in textures)
             {
-                if (txt.SolidName != null && solidName != null && solidName != txt.SolidName)
+                if (txt.SolidName != null && solidName != null && solidName.ToUpper() != txt.SolidName.ToUpper())
                 {
                     continue;
                 }
@@ -246,7 +246,7 @@ namespace MCSMapConv
                 }
 
                 var args = txt.Key.Split(' ');
-                if (args[0] == macKey)
+                if (args[0].ToUpper() == macKey.ToUpper())
                 {
                     if (key != null && args.Length > 1)
                     {
@@ -260,7 +260,7 @@ namespace MCSMapConv
                         return txt.Texture;
                     }
                 }
-                else if (args[0] == key)
+                else if (args[0].ToUpper() == key.ToUpper())
                 {
                     return txt.Texture;
                 }
