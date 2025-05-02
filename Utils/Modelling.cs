@@ -387,8 +387,14 @@ namespace MCSMapConv
                     face.ScaleV = Scale / TextureRes;
                 }
 
+                mdlFace.ScaleU = CheckScaleValue(mdlFace.ScaleU);
+                mdlFace.ScaleV = CheckScaleValue(mdlFace.ScaleV);
+
                 face.ScaleU *= mdlFace.ScaleU;
                 face.ScaleV *= mdlFace.ScaleV;
+
+                face.ScaleU = CheckScaleValue(face.ScaleU);
+                face.ScaleV = CheckScaleValue(face.ScaleV);
 
                 float k = 1;
                 if (!mdlFace.UnscaledOffset)
@@ -501,8 +507,6 @@ namespace MCSMapConv
             return size * (float)(0.5 + 0.5 * originAlign);
         }
 
-        /**/
-
         public static int Sign(bool value)
         {
             if (value)
@@ -511,6 +515,18 @@ namespace MCSMapConv
             }
 
             return -1;
+        }
+
+        /**/
+
+        private static float CheckScaleValue(float value)
+        {
+            if (value <= 0)
+            {
+                value = 1;
+            }
+
+            return value;
         }
 
         private static string TextureBySide(int side, string solidName, List<BlockDescriptor.TextureKey> tks, int blockData)
