@@ -17,8 +17,6 @@ namespace MCSMapConv
 
         static void Main(string[] args)
         {
-            Converter.LoadConfig("config.json");
-
             Console.CursorVisible = false;
             timer.Elapsed += TimerEvent;
             timer.Start();

@@ -49,7 +49,8 @@ namespace MCSMapConv
             {Resources.Models, @"data\models.json"},
             {Resources.Blocks, @"data\blocks.json"},
             {Resources.SignEntities, @"data\sign_entities.json"},
-            {Resources.SolidEntities, @"data\solid_entities.json"}
+            {Resources.SolidEntities, @"data\solid_entities.json"},
+            {Resources.Config, @"config.json"}
         };
 
         public enum Resources
