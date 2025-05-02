@@ -2101,6 +2101,15 @@ namespace MCSMapConv
 
         public static void LoadResources(Resources res)
         {
+            if (res == Resources.Config || res == Resources.All)
+            {
+                Config = JsonConvert.DeserializeObject<Config>(
+                    File.ReadAllText(Resource[Resources.Config]));
+
+                CSScale = Config.BlockScale;
+                TextureRes = Config.TextureResolution;
+            }
+
             if (res == Resources.Wad || res == Resources.All)
             {
                 Wads = new List<VHE.WAD>();
@@ -2109,33 +2118,29 @@ namespace MCSMapConv
                     Wads.Add(new VHE.WAD(wad));
                 }
             }
+
             if (res == Resources.Blocks || res == Resources.All)
             {
                 BlockDescriptors = JsonConvert.DeserializeObject<List<BlockDescriptor>>(
                     File.ReadAllText(Resource[Resources.Blocks]));
             }
+
             if (res == Resources.Models || res == Resources.All)
             {
                 Models = JsonConvert.DeserializeObject<List<ModelScript>>(
                     File.ReadAllText(Resource[Resources.Models]));
             }
+
             if (res == Resources.SignEntities || res == Resources.All)
             {
                 SignEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SignEntities]));
             }
+
             if (res == Resources.SignEntities || res == Resources.All)
             {
                 SolidEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SolidEntities]));
-            }
-            if (res == Resources.Config || res == Resources.All)
-            {
-                Config = JsonConvert.DeserializeObject<Config>(
-                    File.ReadAllText(Resource[Resources.Config]));
-
-                CSScale = Config.BlockScale;
-                TextureRes = Config.TextureResolution;
             }
         }
 

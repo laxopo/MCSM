@@ -106,6 +106,10 @@ namespace MCSMapConv
             if (bg != null)
             {
                 blockData = bg.BlockData;
+            }
+
+            if (bt != null)
+            {
                 bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
             }
 

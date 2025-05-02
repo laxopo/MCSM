@@ -73,19 +73,18 @@ namespace MCSMapConv
 
         public void SetTextureName(string solidName, string key, string textureName)
         {
-            var tk = Textures.Find(x => ToUpper(x.SolidName) == ToUpper(solidName) && 
-                ToUpper(x.Key) == ToUpper(key));
+            var tk = Textures.Find(x => CompareString(x.SolidName, solidName) &&
+                CompareString(x.Key, key));
 
             if (tk == null)
             {
                 if(solidName == null)
                 {
-                    tk = Textures.Find(x => ToUpper(x.SolidName) == ToUpper(solidName) &&
-                        x.Key == null);
+                    tk = Textures.Find(x => CompareString(x.SolidName, solidName) && x.Key == null);
                 }
                 else if (key == null)
                 {
-                    tk = Textures.Find(x => x.SolidName == null && ToUpper(x.Key) == ToUpper(key));
+                    tk = Textures.Find(x => x.SolidName == null && CompareString(x.Key, key));
                 }
             }
 
@@ -119,7 +118,7 @@ namespace MCSMapConv
 
         public TextureKey GetSolidTK(string solidName)
         {
-            return Textures.Find(t => ToUpper(t.SolidName) == ToUpper(solidName));
+            return Textures.Find(t => CompareString(t.SolidName, solidName));
         }
 
         public BlockGroup.ModelType GetSolidType()
@@ -175,16 +174,6 @@ namespace MCSMapConv
 
         /**/
 
-        private string ToUpper(string text)
-        {
-            if (text == null)
-            {
-                return null;
-            }
-
-            return text.ToUpper();
-        }
-
         private static string TextureName(List<TextureKey> textures, int blockdata,
             string solidName, params string[] keys)
         {
@@ -228,7 +217,7 @@ namespace MCSMapConv
         {
             foreach (var txt in textures)
             {
-                if (txt.SolidName != null && solidName != null && solidName.ToUpper() != txt.SolidName.ToUpper())
+                if (txt.SolidName != null && solidName != null && !CompareString(solidName, txt.SolidName))
                 {
                     continue;
                 }
@@ -246,7 +235,7 @@ namespace MCSMapConv
                 }
 
                 var args = txt.Key.Split(' ');
-                if (args[0].ToUpper() == macKey.ToUpper())
+                if (CompareString(args[0], macKey))
                 {
                     if (key != null && args.Length > 1)
                     {
@@ -260,13 +249,33 @@ namespace MCSMapConv
                         return txt.Texture;
                     }
                 }
-                else if (args[0].ToUpper() == key.ToUpper())
+                else if (CompareString(args[0], key))
                 {
                     return txt.Texture;
                 }
             }
 
             return null;
+        }
+
+        private static bool CompareString(string str1, string str2)
+        {
+            if (str1 == null && str2 == null)
+            {
+                return true;
+            }
+
+            return ToUpper(str1) == ToUpper(str2);
+        }
+
+        private static string ToUpper(string str)
+        {
+            if (str == null || str == "")
+            {
+                return null;
+            }
+
+            return str.ToUpper();
         }
     }
 }
