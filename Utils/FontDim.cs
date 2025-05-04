@@ -112,7 +112,14 @@ namespace MCSMapConv
             {
                 int ascii = ch;
                 var dim = GetCharDim(fontTexture, ascii);
-                w += dim.Width;
+                if (dim.Width == 0)
+                {
+                    w += 3;
+                }
+                else
+                {
+                    w += dim.Width;
+                }
             }
 
             return w;

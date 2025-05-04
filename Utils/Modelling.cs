@@ -148,8 +148,8 @@ namespace MCSMapConv
 
                     if (mdlSolid.TextureOriented)
                     {
-                        mdlSolid.Face(Model.Faces.Rear).MirrorV ^= true;
-                        mdlSolid.Face(Model.Faces.Right).MirrorV ^= true;
+                        mdlSolid.Face(Model.Faces.Rear).ReverseU ^= true;
+                        mdlSolid.Face(Model.Faces.Right).ReverseU ^= true;
                     }
 
                     for (int i = 0; i < 6; i++)
@@ -247,12 +247,12 @@ namespace MCSMapConv
                 aus[i] = VectorsU[i].Copy();
                 avs[i] = VectorsV[i].Copy();
 
-                if (mdlSolid.Face(i).MirrorV)
+                if (mdlSolid.Face(i).ReverseU)
                 {
                     aus[i] = ReverseVector(aus[i]);
                 }
 
-                if (mdlSolid.Face(i).MirrorU)
+                if (mdlSolid.Face(i).ReverseV)
                 {
                     avs[i] = ReverseVector(avs[i]);
                 }
@@ -419,8 +419,8 @@ namespace MCSMapConv
                     v = v % th - v % TextureRes;
                 }
 
-                var us = Sign(!mdlFace.MirrorV);
-                var vs = Sign(!mdlFace.MirrorU);
+                var us = Sign(!mdlFace.ReverseU);
+                var vs = Sign(!mdlFace.ReverseV);
 
                 //input
                 var kf = TextureRes / 16;

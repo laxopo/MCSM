@@ -72,7 +72,6 @@ namespace MCSMapConv
             Done
         }
 
-
         public static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
         {
             Debuging = true;
@@ -167,7 +166,7 @@ namespace MCSMapConv
         public static Model GetModel(BlockGroup bg, BlockDescriptor bt)
         {
             bg.Type = BlockGroup.SType[bt.ModelClass.ToUpper()];
-            return BuildModel(bg, bt);
+            return BuildModel(bg, bt, false);
         }
 
         public static VHE.Map ConvertToMap(string worldPath, int dimension, 
@@ -253,40 +252,43 @@ namespace MCSMapConv
                             BlockProcessed++;
                         }
 
-                        var bt = BlockDescriptors.Find(a => a.ID == block.ID);
+                        var bt = btm;// BlockDescriptors.Find(a => a.ID == block.ID);
 
                         if (bt != null)
                         {
-                            var type = bt.ModelClass.ToUpper();
-                            switch (type)
+                            if (bt.ModelClass != null)
                             {
-                                case "PANE":
-                                case "FENCE":
-                                    GroupPaneFence(block, bt, x, y, z);
-                                    block.ID = 0;
-                                    break;
+                                var type = bt.ModelClass.ToUpper();
+                                switch (type)
+                                {
+                                    case "PANE":
+                                    case "FENCE":
+                                        GroupPaneFence(block, bt, x, y, z);
+                                        block.ID = 0;
+                                        break;
 
-                                case "DOOR":
-                                    if (block.Data < 8)
-                                    {
-                                        int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
-                                        if (data == 8)
+                                    case "DOOR":
+                                        if (block.Data < 8)
                                         {
-                                            data = block.Data;
+                                            int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
+                                            if (data == 8)
+                                            {
+                                                data = block.Data;
+                                            }
+                                            else
+                                            {
+                                                data = block.Data + 8;
+                                            }
+                                            GroupSingle(block, x, y, z, BlockGroup.ModelType.Door, data);
                                         }
-                                        else
-                                        {
-                                            data = block.Data + 8;
-                                        }
-                                        GroupSingle(block, x, y, z, BlockGroup.ModelType.Door, data);
-                                    }
-                                    block.ID = 0;
-                                    break;
+                                        block.ID = 0;
+                                        break;
 
-                                case "GRASS":
-                                case "SIGN":
-                                    GroupSingle(block, x, y, z, type);
-                                    break;
+                                    case "GRASS":
+                                    case "SIGN":
+                                        GroupSingle(block, x, y, z, type);
+                                        break;
+                                }
                             }
                         }
 
@@ -687,23 +689,23 @@ namespace MCSMapConv
             {
                 case BlockGroup.ModelType.Normal:
                 case BlockGroup.ModelType.Liquid:
-                    return ModelNormal(bg, bt, false);
+                    return ModelNormal(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Pane:
-                    return ModelPane(bg, bt, false);
+                    return ModelPane(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Fence:
                     ModelFence(bg, bt);
                     return new Model();
 
                 case BlockGroup.ModelType.Door:
-                    return ModelDoor(bg, bt, false);
+                    return ModelDoor(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Grass:
-                    return ModelGrass(bg, bt, false);
+                    return ModelGrass(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Special:
-                    return ModelSpecial(bg, bt, false);
+                    return ModelSpecial(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Sign:
                     if (convEnable)
@@ -717,7 +719,7 @@ namespace MCSMapConv
                     }
                     else
                     {
-                        return ModelSign(bg, bt, null, false);
+                        return ModelSign(bg, bt, new string[] { "Text 1", "Text 2" }, false);
                     }
 
                 default:
@@ -964,88 +966,88 @@ namespace MCSMapConv
         {
             const float th = 0.1875f;
 
-            float rotate = 0, orx = 0, ory = 0;
+            float rotate = 0, mRotate = 0, origOffset = 0;
             bool mirror = false;
 
             switch (bg.BlockData)
             {
                 case 0:
                 case 13:
-                    rotate = 270;
-                    mirror = true;
                     break;
 
                 case 1:
                 case 14:
-                    mirror = true;
+                    rotate = 90;
                     break;
 
                 case 2:
                 case 15:
-                    rotate = 90;
-                    mirror = true;
+                    rotate = 180;
                     break;
 
                 case 3:
                 case 12:
-                    rotate = 180;
-                    mirror = true;
+                    rotate = 270;
                     break;
 
                 case 4:
                 case 9:
+                    rotate = 90;
                     break;
 
                 case 5:
                 case 10:
-                    rotate = 90;
+                    rotate = 180;
+                    mirror = true;
                     break;
 
                 case 6:
                 case 11:
-                    rotate = 180;
+                    rotate = 270;
+                    mirror = true;
                     break;
 
                 case 7:
                 case 8:
-                    rotate = 270;
+                    mirror = true;
                     break;
             }
 
             if (mirror)
             {
-                Modelling.Rotate2D(ref orx, ref ory, rotate);
+                origOffset = 1;
+                mRotate = 180;
             }
 
             var model = new Model()
             {
+                Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Rotation = new VHE.Point(0, 0, rotate),
                 Solids =
                 {
                     new Model.Solid() //door
                     {
                         Name = "Main",
-                        Size = new VHE.Point(1, th, 2),
+                        Size = new VHE.Point(th, 1, 2),
                         OriginAlign = new VHE.Point(1, 1, 1),
-                        OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
-                        Rotation = new VHE.Point(0, 0, rotate),
+                        OriginRotOffset = new VHE.Point(th / 2, 0.5f, 0),
+                        Rotation =  new VHE.Point(0, 0, mRotate),
                         TextureOriented = true,
-                        Faces = new List<Model.Face>
+                        Faces = new List<Model.Face>()
                         {
-                            new Model.Face(Model.Faces.Front)
-                            {
-                                MirrorV = mirror
-                            },
-                            new Model.Face(Model.Faces.Rear)
-                            {
-                                MirrorV = mirror
-                            },
                             new Model.Face(Model.Faces.Top)
                             {
-                                Rotation = 90
+                                OffsetU = 13,
+                                OffsetV = 16
                             },
                             new Model.Face(Model.Faces.Bottom)
                             {
-                                Rotation = 90
+                                OffsetU = 13,
+                                OffsetV = 16
+                            },
+                            new Model.Face(Model.Faces.Rear)
+                            {
+                                OffsetU = 13,
                             }
                         }
                     },
@@ -1053,10 +1055,8 @@ namespace MCSMapConv
                     {
                         Name = "origin",
                         Size = new VHE.Point(0.125f, 0.125f, 0.125f),
-                        AbsOffset = new VHE.Point(0 + orx, th / 2 + ory, 1),
                         OriginAlign = new VHE.Point(0, 0, 0),
-                        OriginRotOffset = new VHE.Point(0.5f, 0.5f - th / 2, 0),
-                        Rotation = new VHE.Point(0, 0, rotate),
+                        Offset = new VHE.Point(th / 2, origOffset, 1),
                     }
                 },
                 TextureKeys =
@@ -1234,7 +1234,7 @@ namespace MCSMapConv
                         break;
 
                     default:
-                        throw new Exception("Invalid block data value (sign)");
+                        throw new Exception("Invalid block data value (sign). Must be equal 2...5");
                 }
             }
 
@@ -1244,8 +1244,6 @@ namespace MCSMapConv
                 Size = new VHE.Point(msx, msy, msz),
                 OriginAlign = morigAligin,
                 Offset = moffset,
-                OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
-                Rotation = new VHE.Point(0, 0, rotate),
                 TextureScale = tScale
             };
 
@@ -1254,24 +1252,24 @@ namespace MCSMapConv
                 Name = "stick",
                 Size = new VHE.Point(msy, msy, ssz),
                 OriginAlign = new VHE.Point(0, 0, 1),
-                Rotation = new VHE.Point(0, 0, rotate),
-                AbsOffset = new VHE.Point(0.5f, 0.5f, 0),
+                Offset = new VHE.Point(0.5f, 0.5f, 0),
                 TextureScale = tScale
             };
 
-            var model = new Model() { Solids = new List<Model.Solid>() { main } };
+            var model = new Model() 
+            { 
+                Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Rotation = new VHE.Point(0, 0, rotate),
+                Solids = new List<Model.Solid>() 
+                { 
+                    main 
+                } 
+            };
 
             if (ground)
             {
                 model.Solids.Add(stick);
             }
-
-            if (!convEnable)
-            {
-                return model;
-            }
-
-            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
 
             /*generate text*/
             if (text.Length > 0)
@@ -1282,8 +1280,6 @@ namespace MCSMapConv
                 float mScale = 1.0f / 16 * tScale; //sign pixel scale
                 float pScale = 0.25f * mScale; //font pixel scale
                 float min = Modelling.MinSize;
-
-                var textModel = new Model();
 
                 //char offsets
                 float zoff = Modelling.GetEdgeMax(msz, morigAligin.Z) + moffset.Z - mScale;// - sch * pScale;
@@ -1363,41 +1359,50 @@ namespace MCSMapConv
                         //char full offset x
                         float txoff = 0.5f - txl / 2 + xShift + sx / 2;
 
-                        var chr = new Model.Solid()
+                        if (sx != 0 && sy != 0)
                         {
-                            Name = "char",
-                            Size = new VHE.Point(sx, min * 2, sy),
-                            OriginAlign = new VHE.Point(0, 0, -1),
-                            Offset = new VHE.Point(txoff, yoff, zoff - tzoff - oy),
-                            OriginRotOffset = new VHE.Point(0.5f, 0.5f, 0),
-                            Rotation = new VHE.Point(0, 0, rotate),
-                            TextureScale = pScale / fontScale * 128 * (TextureRes / 16),
-                            Faces = new List<Model.Face>()
+                            var chr = new Model.Solid()
                             {
-                                new Model.Face(Model.Faces.Front)
+                                Name = "char",
+                                Size = new VHE.Point(sx, min * 2, sy),
+                                OriginAlign = new VHE.Point(0, 0, -1),
+                                Offset = new VHE.Point(txoff, yoff, zoff - tzoff - oy),
+                                TextureScale = pScale / fontScale * 128 * (TextureRes / 16),
+                                TexturedFaces = new Model.Faces[]
                                 {
-                                    Texture = fontTextureName,
-                                    OffsetU = ascii % 16 * fontScale + otx,
-                                    OffsetV = ascii / 16 * fontScale + oty + dim.OffsetY * texture.Height / 128,
-                                    UnscaledOffset = true
+                                    Model.Faces.Front
+                                },
+                                    Faces = new List<Model.Face>()
+                                {
+                                    new Model.Face(Model.Faces.Front)
+                                    {
+                                        Texture = fontTextureName,
+                                        OffsetU = ascii % 16 * fontScale + otx,
+                                        OffsetV = ascii / 16 * fontScale + oty + dim.OffsetY * texture.Height / 128,
+                                        UnscaledOffset = true
+                                    }
                                 }
-                            }
-                        };
+                            };
+
+                            model.Solids.Add(chr);
+                        }
+                        else
+                        {
+                            sx = 3 * pScale;
+                        }
 
                         //update char row offset x
                         xShift += sx + 1 * pScale;
-
-                        textModel.Solids.Add(chr);
                     }
                 }
-
-                var btt = new BlockDescriptor()
-                {
-                    Entity = "illusionary"
-                };
-
-                MapAddObject(Modelling.GenerateSolids(null, bg, textModel), btt);
             }
+
+            if (!convEnable)
+            {
+                return model;
+            }
+
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
 
             return model;
         }

@@ -14,7 +14,7 @@ namespace MCSMapConv
         public List<Solid> Solids { get; set; } = new List<Solid>();
         public List<BlockDescriptor.TextureKey> TextureKeys { get; set; }
                 = new List<BlockDescriptor.TextureKey>();
-        public VHE.Point Position { get; set; } = new VHE.Point();
+        public VHE.Point Position { get; set; }
 
         public class Solid
         {
@@ -102,8 +102,8 @@ namespace MCSMapConv
             public VHE.Point2D Origin { get; set; } = new VHE.Point2D();
             public bool StretchU { get; set; }
             public bool StretchV { get; set; }
-            public bool MirrorU { get; set; }
-            public bool MirrorV { get; set; }
+            public bool ReverseU { get; set; }
+            public bool ReverseV { get; set; }
             public bool Frame { get; set; }
             public bool LockOrigin { get; set; }
 
@@ -129,8 +129,8 @@ namespace MCSMapConv
                 face.Rotation = Rotation;
                 face.StretchU = StretchU;
                 face.StretchV = StretchV;
-                face.MirrorU = MirrorU;
-                face.MirrorV = MirrorV;
+                face.ReverseV = ReverseV;
+                face.ReverseU = ReverseU;
                 face.Frame = Frame;
                 face.LockOrigin = LockOrigin;
 
@@ -156,7 +156,10 @@ namespace MCSMapConv
             Name = source.Name;
             Origin = source.Origin.Copy();
             Rotation = source.Rotation.Copy();
-            Position = source.Position.Copy();
+            if (source.Position != null)
+            {
+                Position = source.Position.Copy();
+            }
             source.Solids.ForEach(s => Solids.Add(s.Copy()));
             source.TextureKeys.ForEach(x => TextureKeys.Add(x.Copy()));
         }

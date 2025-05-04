@@ -62,8 +62,8 @@ namespace MCSMapConv
                 public bool UnscaledOffset { get; set; }
                 public bool StretchU { get; set; }
                 public bool StretchV { get; set; }
-                public bool MirrorU { get; set; }
-                public bool MirrorV { get; set; }
+                public bool ReverseU { get; set; }
+                public bool ReverseV { get; set; }
                 public bool Frame { get; set; }
                 public bool LockOrigin { get; set; }
             }
@@ -129,8 +129,8 @@ namespace MCSMapConv
                             Origin = Parse(fc.Origin, Type.Point2D, Defaults.P2DZero),
 
                             Frame = fc.Frame,
-                            MirrorU = fc.MirrorU,
-                            MirrorV = fc.MirrorV,
+                            ReverseV = fc.ReverseV,
+                            ReverseU = fc.ReverseU,
                             StretchU = fc.StretchU,
                             StretchV = fc.StretchV,
                             UnscaledOffset = fc.UnscaledOffset,
@@ -245,8 +245,8 @@ namespace MCSMapConv
                                 Origin = ToScript(face.Origin, Defaults.P2DZero),
                                 Texture = face.Texture,
                                 Frame = face.Frame,
-                                MirrorU = face.MirrorU,
-                                MirrorV = face.MirrorV,
+                                ReverseV = face.ReverseV,
+                                ReverseU = face.ReverseU,
                                 StretchU = face.StretchU,
                                 StretchV = face.StretchV,
                                 UnscaledOffset = face.UnscaledOffset,
