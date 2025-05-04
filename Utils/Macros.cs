@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NamedBinaryTag;
 
 namespace MCSMapConv
 {
@@ -17,9 +18,9 @@ namespace MCSMapConv
             Scale = csscale;
         }
 
-        public static string TextureName(string name, int blockData)
+        public static string TextureName(string name, BlockGroup bg)
         {
-            if (name == null || blockData == -1)
+            if (name == null || bg == null)
             {
                 return name;
             }
@@ -37,12 +38,44 @@ namespace MCSMapConv
             }
 
             var mac = name.Substring(beg + 1, end - beg - 1);
-            string res;
+            var args = mac.Split(' ');
 
-            switch (mac)
+            string res = "";
+
+            switch (args[0])
             {
                 case "d":
-                    res = blockData.ToString();
+                    res = bg.Data.ToString();
+                    break;
+
+                case "nbt":
+
+                    if (bg.Block == null)
+                    {
+                        throw new Exception("The block is not specified");
+                    }
+
+                    if (args.Length < 3)
+                    {
+                        throw new Exception("Not enought arguments in macros");
+                    }
+
+                    List<NBT> te = bg.Block.Chunk.NBTData.GetTag("Level/" + args[1]);
+                    foreach (var e in te)
+                    {
+                        string id = e.GetTag("id");
+                        int x = e.GetTag("x");
+                        int y = e.GetTag("y");
+                        int z = e.GetTag("z");
+
+                        if (id.ToUpper() == bg.Block.Name.ToUpper() && 
+                            x == bg.Block.X && y == bg.Block.Y && z == bg.Block.Z)
+                        {
+                            object par = e.GetTag(args[2]);
+                            res = par.ToString();
+                            break;
+                        }
+                    }
                     break;
 
                 default:
@@ -153,18 +186,6 @@ namespace MCSMapConv
 
                     default:
                         throw new Exception(mac, Exceptions.SubMacrosUndef);
-
-                        /*if (block.ID == 0)
-                        {
-
-                            Message.Write("Undefined submacros \"{0}\" at {1} {2} {3}", mac, x, y, z);
-                        }
-                        else
-                        {
-                            Message.Write("Undefined submacros \"{0}\" at block {1} {2} {3}", mac,
-                                block.X, block.Y, block.Z);
-                        }
-                        break;*/
                 }
 
                 value = value.Insert(beg, res);

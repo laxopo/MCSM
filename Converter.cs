@@ -254,41 +254,40 @@ namespace MCSMapConv
 
                         var bt = btm;// BlockDescriptors.Find(a => a.ID == block.ID);
 
-                        if (bt != null)
+                        if (bt != null && bt.ModelClass != null)
                         {
-                            if (bt.ModelClass != null)
+                            var type = bt.ModelClass.ToUpper();
+                            block.Name = bt.Name;
+
+                            switch (type)
                             {
-                                var type = bt.ModelClass.ToUpper();
-                                switch (type)
-                                {
-                                    case "PANE":
-                                    case "FENCE":
-                                        GroupPaneFence(block, bt, x, y, z);
-                                        block.ID = 0;
-                                        break;
+                                case "PANE":
+                                case "FENCE":
+                                    GroupPaneFence(block, bt, x, y, z);
+                                    block.ID = 0;
+                                    break;
 
-                                    case "DOOR":
-                                        if (block.Data < 8)
+                                case "DOOR":
+                                    if (block.Data < 8)
+                                    {
+                                        int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
+                                        if (data == 8)
                                         {
-                                            int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
-                                            if (data == 8)
-                                            {
-                                                data = block.Data;
-                                            }
-                                            else
-                                            {
-                                                data = block.Data + 8;
-                                            }
-                                            GroupSingle(block, x, y, z, BlockGroup.ModelType.Door, data);
+                                            data = block.Data;
                                         }
-                                        block.ID = 0;
-                                        break;
+                                        else
+                                        {
+                                            data = block.Data + 8;
+                                        }
+                                        GroupSingle(block, x, y, z, BlockGroup.ModelType.Door, data);
+                                    }
+                                    block.ID = 0;
+                                    break;
 
-                                    case "GRASS":
-                                    case "SIGN":
-                                        GroupSingle(block, x, y, z, type);
-                                        break;
-                                }
+                                case "GRASS":
+                                case "SIGN":
+                                    GroupSingle(block, x, y, z, type);
+                                    break;
                             }
                         }
 
@@ -321,10 +320,10 @@ namespace MCSMapConv
                 GroupCurrent++;
 
             pBegin:
-                var bt = GetBT(bg.BlockID, bg.BlockData);
+                var bt = GetBT(bg.ID, bg.Data);
                 if (bt == null)
                 {
-                    var res = missings.Message(bg.BlockID, bg.BlockData, "block is not registered", false);
+                    var res = missings.Message(bg.ID, bg.Data, "block is not registered", false);
                     switch (res)
                     {
                         case BlockMissMsg.Result.Retry:
@@ -415,9 +414,8 @@ namespace MCSMapConv
                 data = block.Data;
             }
 
-            BlockGroups.Add(new BlockGroup(block.ID, data, x, y, z)
+            BlockGroups.Add(new BlockGroup(block, block.ID, data, x, y, z)
             {
-                Block = block,
                 Type = type
             });
 
@@ -431,11 +429,11 @@ namespace MCSMapConv
 
             //X
             var paneX = BlockGroups.Find(p => p.Type == model && !p.XClosed &&
-                p.Xmax == x && p.Ymin == y && p.Orientation != BlockGroup.Orient.Y && p.BlockID == block.ID);
+                p.Xmax == x && p.Ymin == y && p.Orientation != BlockGroup.Orient.Y && p.ID == block.ID);
 
             if (paneX == null) //create new pane
             {
-                paneX = new BlockGroup(block.ID, block.Data, x, y, z);
+                paneX = new BlockGroup(block, block.ID, block.Data, x, y, z);
                 paneX.Type = model;
 
                 //X
@@ -485,11 +483,11 @@ namespace MCSMapConv
 
             //Y
             var paneY = BlockGroups.Find(p => p.Type == model && !p.YClosed &&
-                p.Ymax == y && p.Xmin == x && p.Orientation != BlockGroup.Orient.X && p.BlockID == block.ID);
+                p.Ymax == y && p.Xmin == x && p.Orientation != BlockGroup.Orient.X && p.ID == block.ID);
 
             if (paneY == null) //create new pane
             {
-                paneY = new BlockGroup(block.ID, block.Data, x, y, z);
+                paneY = new BlockGroup(block, block.ID, block.Data, x, y, z);
                 paneY.Type = model;
 
                 //Y
@@ -549,12 +547,12 @@ namespace MCSMapConv
             //Z
             if (model == BlockGroup.ModelType.Fence)
             {
-                var pillar = BlockGroups.Find(p => p.Type == model && !p.ZClosed && p.BlockID == block.ID &&
+                var pillar = BlockGroups.Find(p => p.Type == model && !p.ZClosed && p.ID == block.ID &&
                     p.Orientation == BlockGroup.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
 
                 if (pillar == null)
                 {
-                    pillar = new BlockGroup(block.ID, block.Data, x, y, z);
+                    pillar = new BlockGroup(block, block.ID, block.Data, x, y, z);
                     pillar.Type = model;
                     pillar.Orientation = BlockGroup.Orient.Z;
 
@@ -600,7 +598,7 @@ namespace MCSMapConv
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
                     //if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found)
-                    if (CompareID(block, solid.BlockID, solid.BlockData) && !found)
+                    if (CompareID(block, solid.ID, solid.Data) && !found)
                     {
                         solid.Expand(x, y, z);
                         found = true;
@@ -624,7 +622,7 @@ namespace MCSMapConv
 
             if (!found && block.ID != 0)
             {
-                BlockGroups.Add(new BlockGroup(block.ID, block.Data, x, y, z) { 
+                BlockGroups.Add(new BlockGroup(block, block.ID, block.Data, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
                 var last = BlockGroups.Last();
@@ -668,7 +666,7 @@ namespace MCSMapConv
                     pz.Ymin == pane.Ymin && pz.Ymax == pane.Ymax && pz.Zmax == z &&
                     pz.XBegTouch == pane.XBegTouch && pz.XEndTouch == pane.XEndTouch &&
                     pz.YBegTouch == pane.YBegTouch && pz.YEndTouch == pane.YEndTouch &&
-                    pz.BlockID == pane.BlockID && pz.BlockData == pane.BlockData);
+                    pz.ID == pane.ID && pz.Data == pane.Data);
 
                 if (paneZ != null)
                 {
@@ -765,8 +763,8 @@ namespace MCSMapConv
             float beg = 0, end = 0;
             VHE.Point align = new VHE.Point(0, 0, 1);
             VHE.Point offset = new VHE.Point(0.5f, 0.5f, 0);
-            var face = bt.GetTextureName(bg.BlockData, null, "face", null);
-            var edge = bt.GetTextureName(bg.BlockData, null, "edge", null);
+            var face = bt.GetTextureName(bg, null, "face", null);
+            var edge = bt.GetTextureName(bg, null, "edge", null);
             string tl = face, tr = face, tf = face;
 
             var bti = bt.Copy();
@@ -969,7 +967,7 @@ namespace MCSMapConv
             float rotate = 0, mRotate = 0, origOffset = 0;
             bool mirror = false;
 
-            switch (bg.BlockData)
+            switch (bg.Data)
             {
                 case 0:
                 case 13:
@@ -1084,7 +1082,7 @@ namespace MCSMapConv
             float len = (float)Math.Sqrt(2);
 
             var worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
-            var texture = Modelling.GetTexture(Wads, bt.GetTextureName(bg.BlockData));
+            var texture = Modelling.GetTexture(Wads, bt.GetTextureName(bg));
             if (texture == null)
             {
                 return null;
@@ -1209,14 +1207,14 @@ namespace MCSMapConv
             {
                 morigAligin = new VHE.Point(0, 0, 1);
                 moffset = new VHE.Point(0.5f, 0.5f, ssz);
-                rotate = BlockDataParse.Rotation16(bg.BlockData);
+                rotate = BlockDataParse.Rotation16(bg.Data);
             }
             else
             {
                 morigAligin = new VHE.Point(0, 1, 0);
                 moffset = new VHE.Point(0.5f, 0, 0.5f);
 
-                switch (bg.BlockData)
+                switch (bg.Data)
                 {
                     case 2:
                         rotate = 180;
@@ -2149,7 +2147,7 @@ namespace MCSMapConv
             }
         }
 
-        private static bool CheckWads()
+        /*private static bool CheckWads()
         {
             bool fault = false;
             Console.Write("Checking WADs...");
@@ -2213,6 +2211,6 @@ namespace MCSMapConv
             }
 
             return !fault;
-        }
+        }*/
     }
 }

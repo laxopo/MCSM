@@ -59,10 +59,23 @@ namespace MCSMapConv
 
         public BlockGroup() { }
 
-        public BlockGroup(int id, int dat, int x, int y, int z)
+        public BlockGroup(Block block, int id = -1, int data = -1, int x = 0, int y = 0, int z = 0)
         {
-            BlockID = id;
-            BlockData = dat;
+            Block = block;
+            
+            if (id == -1)
+            {
+                id = block.ID;
+            }
+
+            if (data == -1)
+            {
+                data = block.Data;
+            }
+
+            ID = id;
+            Data = data;
+            Name = block.Name;
             Xmin = x;
             Xmax = x + 1;
             Ymin = y;
@@ -112,7 +125,7 @@ namespace MCSMapConv
                 if (x > Xmin)
                 {
                     Ymax--;
-                    solids[0] = new BlockGroup(BlockID, BlockData, Xmin, y, z);
+                    solids[0] = new BlockGroup(Block, ID, Data, Xmin, y, z);
                     solids[0].Xmax = x;
                     solids[0].XClosed = true;
                 }
@@ -128,7 +141,7 @@ namespace MCSMapConv
 
                 if (y > Ymin)
                 {
-                    solids[1] = new BlockGroup(BlockID, BlockData, Xmin, Ymin, z);
+                    solids[1] = new BlockGroup(Block, ID, Data, Xmin, Ymin, z);
                     solids[1].Xmax = Xmax;
                     solids[1].Ymax = y;
                     solids[1].XClosed = true;
@@ -137,7 +150,7 @@ namespace MCSMapConv
 
                 if (x > Xmin)
                 {
-                    solids[0] = new BlockGroup(BlockID, BlockData, Xmin, y, z);
+                    solids[0] = new BlockGroup(Block, ID, Data, Xmin, y, z);
                     solids[0].Xmax = x;
                     solids[0].XClosed = true;
                 }

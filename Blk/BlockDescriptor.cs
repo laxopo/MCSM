@@ -96,9 +96,9 @@ namespace MCSMapConv
             tk.Texture = textureName;
         }
 
-        public string GetTextureName(int blockdata, string solidName = null, params string[] keys)
+        public string GetTextureName(BlockGroup bg, string solidName = null, params string[] keys)
         {
-            return GetTextureName(Textures, blockdata, solidName, keys);
+            return GetTextureName(Textures, bg, solidName, keys);
         }
 
         /// <summary>
@@ -109,11 +109,11 @@ namespace MCSMapConv
         /// <param name="keys"></param>
         /// <returns></returns>
         /// 
-        public static string GetTextureName(List<TextureKey> textures, int blockdata, 
+        public static string GetTextureName(List<TextureKey> textures, BlockGroup bg, 
             string solidName, params string[] keys)
         {
-            var name = TextureName(textures, blockdata, solidName, keys);
-            return Macros.TextureName(name, blockdata);
+            var name = TextureName(textures, bg.Data, solidName, keys);
+            return Macros.TextureName(name, bg);
         }
 
         public TextureKey GetSolidTK(string solidName)
@@ -126,7 +126,7 @@ namespace MCSMapConv
             return BlockGroup.GetSolidType(ModelClass);
         }
 
-        public List<string> GetTexureNamesList()
+        /*public List<string> GetTexureNamesList()
         {
             var list = new List<string>();
             var values = new List<string>();
@@ -170,7 +170,7 @@ namespace MCSMapConv
             }
 
             return list;
-        }
+        }*/
 
         /**/
 

@@ -102,12 +102,6 @@ namespace MCSMapConv
                 pos = new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin);
             }
 
-            int blockData = -1;
-            if (bg != null)
-            {
-                blockData = bg.BlockData;
-            }
-
             if (bt != null)
             {
                 bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
@@ -162,31 +156,11 @@ namespace MCSMapConv
                             }
                         }
 
-
                         if (mdlSolid.Face(i).Texture == null)
                         {
-                            var tex = TextureBySide(i, mdlSolid.Name, modelBuf.TextureKeys, blockData);
+                            var tex = TextureBySide(i, mdlSolid.Name, modelBuf.TextureKeys, bg);
                             mdlSolid.Face(i).Texture = tex;
                         }
-
-                        /*if (modelBuf.TextureKeys.Count > 0)
-                        {
-                            if (mdlSolid.Face(i).Texture == null)
-                            {
-                                mdlSolid.Face(i).Texture = TextureBySide(i, mdlSolid.Name, modelBuf.TextureKeys, blockData);
-                            }
-                        }
-                        else
-                        {
-                            if (bt != null)
-                            {
-                                var face = mdlSolid.Face(i);
-                                if (face.Texture == null)
-                                {
-                                    face.Texture = TextureBySide(i, mdlSolid.Name, bt.Textures, blockData);
-                                }
-                            }
-                        }*/
                     }
                 }
 
@@ -533,7 +507,7 @@ namespace MCSMapConv
             return value;
         }
 
-        private static string TextureBySide(int side, string solidName, List<BlockDescriptor.TextureKey> tks, int blockData)
+        private static string TextureBySide(int side, string solidName, List<BlockDescriptor.TextureKey> tks, BlockGroup bg)
         {
             string[] keys;
 
@@ -567,7 +541,7 @@ namespace MCSMapConv
                     throw new Exception("Side index out of range");
             }
 
-            return BlockDescriptor.GetTextureName(tks, blockData, solidName, keys);
+            return BlockDescriptor.GetTextureName(tks, bg, solidName, keys);
         }
 
         private static string GetTextureName(Model.Solid sld, int index)
