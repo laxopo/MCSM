@@ -14,7 +14,7 @@ namespace MCSMapConv
         public string Origin { get; set; }
         public string Rotation { get; set; }
         public List<Solid> Solids { get; set; } = new List<Solid>();
-        public BlockDescriptor.TextureKey[] TextureKeys { get; set; }
+        public List<BlockDescriptor.TextureKey> TextureKeys { get; set; }
 
         public class Solid
         {
@@ -94,12 +94,12 @@ namespace MCSMapConv
 
         /**/
 
-        public Model ToModel()
+        public Model ToModel(BlockGroup bg = null)
         {
             var model = new Model();
             model.Name = Name;
-            model.Origin = Parse(Origin, Type.Point, Defaults.PZero);
-            model.Rotation = Parse(Rotation, Type.Point, Defaults.PZero);
+            model.Origin = Parse(Origin, Type.Point, Defaults.PZero, bg);
+            model.Rotation = Parse(Rotation, Type.Point, Defaults.PZero, bg);
             model.Solids = new List<Model.Solid>();
 
             if (TextureKeys != null)
@@ -120,13 +120,13 @@ namespace MCSMapConv
                             Name = Model.GetFaceEnum(fc.Name),
                             Texture = fc.Texture,
 
-                            OffsetU = Parse(fc.OffsetU, Type.Float, 0),
-                            OffsetV = Parse(fc.OffsetV, Type.Float, 0),
-                            ScaleU = Parse(fc.ScaleU, Type.Float, 1),
-                            ScaleV = Parse(fc.ScaleV, Type.Float, 1),
-                            Rotation = Parse(fc.Rotation, Type.Float, 0),
+                            OffsetU = Parse(fc.OffsetU, Type.Float, 0, bg),
+                            OffsetV = Parse(fc.OffsetV, Type.Float, 0, bg),
+                            ScaleU = Parse(fc.ScaleU, Type.Float, 1, bg),
+                            ScaleV = Parse(fc.ScaleV, Type.Float, 1, bg),
+                            Rotation = Parse(fc.Rotation, Type.Float, 0, bg),
 
-                            Origin = Parse(fc.Origin, Type.Point2D, Defaults.P2DZero),
+                            Origin = Parse(fc.Origin, Type.Point2D, Defaults.P2DZero, bg),
 
                             Frame = fc.Frame,
                             ReverseV = fc.ReverseV,
@@ -145,14 +145,14 @@ namespace MCSMapConv
                 {
                     Name = sld.Name,
 
-                    AbsOffset = Parse(sld.AbsOffset, Type.Point, Defaults.PZero),
-                    Offset = Parse(sld.Offset, Type.Point, Defaults.PZero),
-                    OriginAlign = Parse(sld.OriginAlign, Type.Point, Defaults.POne),
-                    OriginRotOffset = Parse(sld.OriginRotOffset, Type.Point, Defaults.PZero),
-                    Rotation = Parse(sld.Rotation, Type.Point, Defaults.PZero),
-                    Size = Parse(sld.Size, Type.Point, Defaults.PZero),
+                    AbsOffset = Parse(sld.AbsOffset, Type.Point, Defaults.PZero, bg),
+                    Offset = Parse(sld.Offset, Type.Point, Defaults.PZero, bg),
+                    OriginAlign = Parse(sld.OriginAlign, Type.Point, Defaults.POne, bg),
+                    OriginRotOffset = Parse(sld.OriginRotOffset, Type.Point, Defaults.PZero, bg),
+                    Rotation = Parse(sld.Rotation, Type.Point, Defaults.PZero, bg),
+                    Size = Parse(sld.Size, Type.Point, Defaults.PZero, bg),
 
-                    TextureScale = Parse(sld.TextureScale, Type.Float, 1),
+                    TextureScale = Parse(sld.TextureScale, Type.Float, 1, bg),
 
                     TextureLockOffsets = sld.TextureLockOffsets,
                     TextureOriented = sld.TextureOriented,
@@ -189,7 +189,7 @@ namespace MCSMapConv
 
             if (model.TextureKeys != null && model.TextureKeys.Count > 0)
             {
-                mds.TextureKeys = model.TextureKeys.ToArray();
+                mds.TextureKeys = model.TextureKeys;
             }
 
             if (model.Solids != null)
@@ -320,7 +320,7 @@ namespace MCSMapConv
             throw new Exception("Unsupported type");
         }
 
-        private dynamic Parse(object value, Type type, object defvalue)
+        private dynamic Parse(object value, Type type, object defvalue, BlockGroup bg = null)
         {
             if (value == null)
             {
@@ -332,7 +332,8 @@ namespace MCSMapConv
                 case Type.Float:
                 case Type.Point:
                 case Type.Point2D:
-                    return VHE.Entity.DeserializeValue(value as string, Types[type]);
+                    var data = Macros.Parse(value.ToString(), bg, false);
+                    return VHE.Entity.DeserializeValue(data, Types[type]);
 
                 case Type.FaceList:
                     var faces = new List<Model.Faces>();

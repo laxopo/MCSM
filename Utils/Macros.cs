@@ -20,69 +20,7 @@ namespace MCSMapConv
 
         public static string TextureName(string name, BlockGroup bg)
         {
-            if (name == null || bg == null)
-            {
-                return name;
-            }
-
-            int end = name.IndexOf('}');
-            if (end == -1)
-            {
-                return name;
-            }
-
-            int beg = LastIndexOf(name, "{", end);
-            if (beg == -1)
-            {
-                return name;
-            }
-
-            var mac = name.Substring(beg + 1, end - beg - 1);
-            var args = mac.Split(' ');
-
-            string res = "";
-
-            switch (args[0])
-            {
-                case "d":
-                    res = bg.Data.ToString();
-                    break;
-
-                case "nbt":
-
-                    if (bg.Block == null)
-                    {
-                        throw new Exception("The block is not specified");
-                    }
-
-                    if (args.Length < 3)
-                    {
-                        throw new Exception("Not enought arguments in macros");
-                    }
-
-                    List<NBT> te = bg.Block.Chunk.NBTData.GetTag("Level/" + args[1]);
-                    foreach (var e in te)
-                    {
-                        string id = e.GetTag("id");
-                        int x = e.GetTag("x");
-                        int y = e.GetTag("y");
-                        int z = e.GetTag("z");
-
-                        if (id.ToUpper() == bg.Block.Name.ToUpper() && 
-                            x == bg.Block.X && y == bg.Block.Y && z == bg.Block.Z)
-                        {
-                            object par = e.GetTag(args[2]);
-                            res = par.ToString();
-                            break;
-                        }
-                    }
-                    break;
-
-                default:
-                    throw new Exception("Unknown texture name macros: " + mac);
-            }
-
-            return name.Replace("{" + mac + "}", res);
+            return Parse(name, bg, false);
         }
 
         public static EntityScript GetSignEntity(List<EntityScript> list, string[] signText)
@@ -109,89 +47,111 @@ namespace MCSMapConv
             return es;
         }
 
-        public static string EntityValue(string rawValue, int blockData, float x, float y, float z)
+        public static string EntityValue(string rawValue, BlockGroup bg)
         {
-            string value = rawValue.Replace('.', ',');
+            return Parse(rawValue, bg, true);
+        }
 
-            while (value.IndexOf("{") != -1)
+        public static string Parse(string value, BlockGroup bg, bool entity)
+        {
+            if (value == null || bg == null)
             {
-                int beg = value.IndexOf("{");
-                int end = value.IndexOf("}", beg + 1);
+                return value;
+            }
 
-                if (beg == -1 || end == -1)
-                {
-                    break;
-                }
+            value = value.Replace('.', ',');
+            string data, newValue = value;
+            int index = 0;
 
-                List<string> args = new List<string>();
-                var mac = value.Substring(beg + 1, end - beg - 1);
-
-                int sep = mac.IndexOf(" ");
-                if (sep == -1)
-                {
-                    args.Add(mac);
-                }
-                else
-                {
-                    int ab = 0;
-                    while (sep != -1)
-                    {
-                        args.Add(mac.Substring(ab, sep - ab));
-                        ab = sep + 1;
-                        sep = mac.IndexOf(" ", ab);
-
-                        if (sep == -1)
-                        {
-                            args.Add(mac.Substring(ab, mac.Length - ab));
-                        }
-                    }
-                }
-
-                value = value.Remove(beg, end - beg + 1);
-
+            //get {data} blocks
+            while ((data = GetBlock(value, ref index)) != null)
+            {
+                var args = data.Split(' ');
                 string res = "";
+
                 switch (args[0].ToUpper())
                 {
-                    case "ANGLE":
-                        int vali = -BlockDataParse.Rotation16(blockData) + 90;
-                        res = vali.ToString();
+                    case "D": //block data
+                        res = bg.Data.ToString();
+                        break;
+
+                    case "NBT": //block nbt
+
+                        if (bg.Block == null)
+                        {
+                            throw new Exception("The block is not specified");
+                        }
+
+                        if (args.Length < 3)
+                        {
+                            throw new Exception("Not enought arguments in macros");
+                        }
+
+                        if (bg.Block.Chunk == null)
+                        {
+                            break;
+                        }
+
+                        List<NBT> te = bg.Block.Chunk.NBTData.GetTag("Level/" + args[1]);
+                        foreach (var e in te)
+                        {
+                            string id = e.GetTag("id");
+                            int x = e.GetTag("x");
+                            int y = e.GetTag("y");
+                            int z = e.GetTag("z");
+
+                            if (id.ToUpper() == bg.Block.Name.ToUpper() &&
+                                x == bg.Block.X && y == bg.Block.Y && z == bg.Block.Z)
+                            {
+                                object par = e.GetTag(args[2]);
+                                res = par.ToString();
+                                break;
+                            }
+                        }
+                        break;
+
+                    case "ANG16":
+                        if (entity)
+                        {
+                            res = (-BlockDataParse.Rotation16(bg.Data) + 90).ToString();
+                        }
+                        else
+                        {
+                            res = BlockDataParse.Rotation16(bg.Data).ToString();
+                        }
+                        break;
+
+                    case "ANG4":
+                        if (entity)
+                        {
+                            res = (-BlockDataParse.Rotation4(bg.Data) + 90).ToString();
+                        }
+                        else
+                        {
+                            res = BlockDataParse.Rotation4(bg.Data).ToString();
+                        }
                         break;
 
                     case "X":
-                        double val = x + 0.5;
-                        if (args.Count > 1)
-                        {
-                            val += Convert.ToDouble(args[1]);
-                        }
-                        res = (val * Scale).ToString();
+                        res = ParseCoordinate(bg.Xmin + 0.5, args);
                         break;
 
                     case "Y":
-                        val = -y - 0.5;
-                        if (args.Count > 1)
-                        {
-                            val += Convert.ToDouble(args[1]);
-                        }
-                        res = (val * Scale).ToString();
+                        res = ParseCoordinate(-bg.Ymin - 0.5, args);
                         break;
 
                     case "Z":
-                        val = z + 0.5;
-                        if (args.Count > 1)
-                        {
-                            val += Convert.ToDouble(args[1]);
-                        }
-                        res = (val * Scale).ToString();
+                        res = ParseCoordinate(bg.Zmin + 0.5, args);
                         break;
 
                     default:
-                        throw new Exception(mac, Exceptions.SubMacrosUndef);
+                        throw new Exception("Unknown macros: " + args[0]);
                 }
 
-                value = value.Insert(beg, res);
+                newValue = newValue.Replace("{" + data + "}", res);
             }
 
-            return value;
+            return newValue;
         }
 
         /*Exceptions*/
@@ -219,6 +179,47 @@ namespace MCSMapConv
                 last = idx++;
                 goto cycle;
             }
+        }
+
+        private static string GetBlock(string data, ref int startIndex)
+        {
+            int beg = -1, end = -1;
+
+            for (; startIndex < data.Length; startIndex++)
+            {
+                var ch = data[startIndex];
+
+                if (ch == '{')
+                {
+                    beg = startIndex;
+                }
+                else if (ch == '}' && beg != -1)
+                {
+                    end = startIndex++;
+                }
+
+                if (beg != -1 && end != -1)
+                {
+                    break;
+                }
+            }
+
+            if (beg == -1 || end == -1)
+            {
+                return null;
+            }
+
+            return data.Substring(beg + 1, end - beg - 1);
+        }
+
+        private static string ParseCoordinate (double x, string[] args)
+        {
+            try
+            {
+                x += Convert.ToDouble(args[1]);
+            }
+            catch { }
+            return (x * Scale).ToString();
         }
     }
 }

@@ -10,17 +10,26 @@ namespace MCSMapConv
     {
         public static int Rotation16(int data)
         {
-            int vali = (int)(data * 22.5);
-            if (vali >= 360)
+            return AngleLimit((int)(data * 22.5));
+        }
+
+        public static int Rotation4(int data)
+        {
+            return AngleLimit(data * 90);
+        }
+
+        private static int AngleLimit(int value)
+        {
+            if (value >= 360)
             {
-                vali -= 360;
+                return value - 360;
             }
-            else if (vali < 0)
+            else if (value < 0)
             {
-                vali += 360;
+                return value + 360;
             }
 
-            return vali;
+            return value;
         }
     }
 }

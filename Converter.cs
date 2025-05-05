@@ -131,7 +131,7 @@ namespace MCSMapConv
                                 continue;
                             }
 
-                            var ch = MCWorld.GetChunkAtBlock(0, x, z);
+                            /*var ch = MCWorld.GetChunkAtBlock(0, x, z);
                             List<NBT> tes = ch.NBTData.GetTag("Level/TileEntities");
                             foreach (var te in tes)
                             {
@@ -145,9 +145,9 @@ namespace MCSMapConv
                                     int c = te.GetTag("color");
                                     Console.Write(ToHex(c) + " ");
                                 }
-                            }
+                            }*/
 
-                            //Console.Write(ToHex(block.Data) + " ");
+                            Console.Write(ToHex(block.Data) + " ");
                             list.Add(block);
                         }
                         Console.WriteLine();
@@ -748,7 +748,7 @@ namespace MCSMapConv
 
             if (convEnable)
             {
-                MapAddObject(Modelling.GenerateSolid(bt, bg, model), bt);
+                MapAddObject(Modelling.GenerateSolid(bt, bg, model), bt, bg);
             }
 
             return model;
@@ -871,7 +871,7 @@ namespace MCSMapConv
             }
 
             var solid = Modelling.GenerateSolid(bti, bg, model);
-            MapAddObject(solid, bti);
+            MapAddObject(solid, bti, bg);
 
             return model;
         }
@@ -939,10 +939,10 @@ namespace MCSMapConv
                         },
                         Position = new VHE.Point(xmin, ymin, zmin),
                     };
-                    MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
+                    MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt, bg);
 
                     mdl.Position.Z += 0.375f;
-                    MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
+                    MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt, bg);
                 }
             }
             else //vertical pillars
@@ -956,7 +956,7 @@ namespace MCSMapConv
                         },
                     },       
                 };
-                MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt);
+                MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt, bg);
             };
         }
 
@@ -1072,7 +1072,7 @@ namespace MCSMapConv
                 return model;
             }
 
-            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
 
             return model;
         }
@@ -1154,7 +1154,7 @@ namespace MCSMapConv
                 return model;
             }
 
-            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
 
             return model;
         }
@@ -1167,7 +1167,7 @@ namespace MCSMapConv
                 throw new Exception("Model not found");
             }
 
-            var model = modelScr.ToModel();
+            var model = modelScr.ToModel(bg);
 
 
             if (bt.WorldOffset)
@@ -1186,7 +1186,7 @@ namespace MCSMapConv
                 return model;
             }
 
-            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
 
             return model;
         }
@@ -1400,28 +1400,26 @@ namespace MCSMapConv
                 return model;
             }
 
-            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt);
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
 
             return model;
         }
 
         /*Map methods*/
 
-        private static void MapAddObject(VHE.Map.Solid solid, BlockDescriptor bt, 
-            int blockData = 0, float x = 0, float y = 0, float z = 0)
+        private static void MapAddObject(VHE.Map.Solid solid, BlockDescriptor bt, BlockGroup bg)
         {
-            MapAddObject(new List<VHE.Map.Solid>() { solid }, bt, blockData, x, y, z);
+            MapAddObject(new List<VHE.Map.Solid>() { solid }, bt, bg);
         }
 
-        private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDescriptor bt, 
-            int blockData = 0, float x = 0, float y = 0, float z = 0)
+        private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDescriptor bt, BlockGroup bg)
         {
             var se = GetSolidEntity(bt);
             var t = Map.GetSolidsCount().Solids;
 
             if (se != null)
             {
-                var entity = GenerateEntity(se, blockData, x, y, z, "E" + Map.Data.Count);
+                var entity = GenerateEntity(se, bg, "E" + Map.Data.Count);
                 solids.ForEach(s => entity.AddSolid(s));
                 Map.CreateEntity(entity);
                 EntitiesCurrent += solids.Count;
@@ -1626,18 +1624,13 @@ namespace MCSMapConv
                 return false;
             }
 
-            var block = bg.Block;
-            var x = bg.Xmin;
-            var y = bg.Ymin;
-            var z = bg.Zmin;
-
             try
             {
                 var se = Macros.GetSignEntity(SignEntities, text);
 
                 if (se != null)
                 {
-                    Map.Data.Add(GenerateEntity(se, block, x, y, z));
+                    Map.Data.Add(GenerateEntity(se, bg));
                     return true;
                 }
             }
@@ -1646,24 +1639,14 @@ namespace MCSMapConv
                 if (e.InnerException == Macros.Exceptions.ESNotFound)
                 {
                     Message.Write("Undefined macros {0} at {1} {2} {3}", e.Message,
-                        block.X, block.Y, block.Z);
+                        bg.Block.X, bg.Block.Y, bg.Block.Z);
                 }
             }
             
             return false;
         }
 
-        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, int blockData, float x, float y, float z, string name = null)
-        {
-            var block = new Block() { 
-                ID = 0,
-                Data = (byte)blockData
-            };
-
-            return GenerateEntity(entityTemplate, block, x, y, z, name);
-        }
-
-        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, Block block, float x, float y, float z, string name = null)
+        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, BlockGroup bg, string name = null)
         {
             var entity = new VHE.Entity(entityTemplate.ClassName);
 
@@ -1673,10 +1656,9 @@ namespace MCSMapConv
                 par.SetType(part.ValueType);
 
                 string value = part.Value;
-
                 try
                 {
-                    value = Macros.EntityValue(value, block.Data, x, y, z);
+                    value = Macros.EntityValue(value, bg);
                     par.SetValue(value);
                     entity.Parameters.Add(par);
                 }
@@ -1684,7 +1666,8 @@ namespace MCSMapConv
                 {
                     if (e == Macros.Exceptions.SubMacrosUndef)
                     {
-                        Message.Write(e.InnerException.Message + e.Message + " at " + x + " " + y + " " + z);
+                        Message.Write(e.InnerException.Message + e.Message + 
+                            " at " + bg.Block.X + " " + bg.Block.Y + " " + bg.Block.Z);
                     }
                     else
                     {

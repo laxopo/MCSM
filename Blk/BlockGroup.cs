@@ -57,20 +57,31 @@ namespace MCSMapConv
             { "SIGN", ModelType.Sign },
         };
 
-        public BlockGroup() { }
+        public BlockGroup() 
+        {
+            Block = new Block();
+        }
 
         public BlockGroup(Block block, int id = -1, int data = -1, int x = 0, int y = 0, int z = 0)
         {
-            Block = block;
+            if (block == null)
+            {
+                Block = new Block();
+            }
+            else
+            {
+                Block = block;
+            }
+            
             
             if (id == -1)
             {
-                id = block.ID;
+                id = Block.ID;
             }
 
             if (data == -1)
             {
-                data = block.Data;
+                data = Block.Data;
             }
 
             ID = id;
