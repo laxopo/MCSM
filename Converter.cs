@@ -199,7 +199,7 @@ namespace MCSMapConv
 
             MCWorld = new World(worldPath);
             Settings.DebugEnable = false;
-            BlockInspect(MCWorld, 29,  430, 56, -345, 437, 56, -338); //TEST
+            //BlockInspect(MCWorld, 29,  430, 56, -345, 437, 56, -338); //TEST
 
             Process = ProcessType.ScanBlocks;
             InitializeMap();
@@ -729,14 +729,15 @@ namespace MCSMapConv
         {
             var model = new Model()
             {
-                Solids = 
-                { 
-                    new Model.Solid() 
+                Solids =
+                {
+                    new Model.Solid()
                     {
                         Size = new VHE.Point(
                         bg.Xmax - bg.Xmin,
                         bg.Ymax - bg.Ymin,
-                        bg.Zmax - bg.Zmin)
+                        bg.Zmax - bg.Zmin),
+                        Rotation = BlockDataParse.GetRotation(bt.Rotation, bg.Data)
                     } 
                 }
             };
@@ -1169,6 +1170,11 @@ namespace MCSMapConv
 
             var model = modelScr.ToModel(bg);
 
+            if (bt.Rotation != BlockDescriptor.RotationType.None)
+            {
+                var rot = BlockDataParse.GetRotation(bt.Rotation, bg.Data);
+                model.Rotation.Summ(rot);
+            }
 
             if (bt.WorldOffset)
             {

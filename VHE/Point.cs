@@ -35,6 +35,15 @@ namespace MCSMapConv.VHE
             Z = xyz[2];
         }
 
+        public Point Summ(Point add)
+        {
+            X += add.X;
+            Y += add.Y;
+            Z += add.Z;
+
+            return this;
+        }
+
         public object Clone()
         {
             return MemberwiseClone();

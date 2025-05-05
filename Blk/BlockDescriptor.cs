@@ -18,7 +18,17 @@ namespace MCSMapConv
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
         public bool GroupByData { get; set; }
+        public RotationType Rotation { get; set; }
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
+
+        public enum RotationType
+        {
+            None,
+            R4,
+            R6,
+            R8,
+            R16
+        }
 
         public class TextureKey
         {
@@ -50,6 +60,7 @@ namespace MCSMapConv
             bt.ID = ID;
             bt.IgnoreExcluded = IgnoreExcluded;
             bt.TextureOriented = TextureOriented;
+            bt.Rotation = Rotation;
             bt.Textures = new List<TextureKey>();
 
             if (DataExceptions != null)
@@ -125,52 +136,6 @@ namespace MCSMapConv
         {
             return BlockGroup.GetSolidType(ModelClass);
         }
-
-        /*public List<string> GetTexureNamesList()
-        {
-            var list = new List<string>();
-            var values = new List<string>();
-
-            //get all tk values
-            foreach (var tk in Textures)
-            {
-                values.Add(tk.Texture);
-            }
-
-            int max = DataMax;
-            if (DataMax == 0)
-            {
-                max = 15;
-            }
-
-            //convert macroses
-            foreach (var val in values)
-            {
-                //get all value variants 
-                for (int d = 0; d <= max; d++)
-                {
-                    int dat = d;
-                    if (DataMask > 0)
-                    {
-                        dat &= DataMask;
-                    }
-
-                    var macVal = Macros.TextureName(val, dat);
-                    if (val == macVal) //no macros
-                    {
-                        list.Add(val);
-                        break;
-                    }
-
-                    if (!list.Contains(macVal))
-                    {
-                        list.Add(macVal);
-                    }
-                }
-            }
-
-            return list;
-        }*/
 
         /**/
 
