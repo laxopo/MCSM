@@ -24,24 +24,24 @@ namespace MCSMapConv
 
             switch (data)
             {
-                case 1:
+                case 0:
                     x = 180;
                     break;
 
                 case 2:
-                    x = 270;
-                    break;
-
-                case 3:
                     x = 90;
                     break;
 
+                case 3:
+                    x = 270;
+                    break;
+
                 case 4:
-                    y = 90;
+                    y = 270;
                     break;
 
                 case 5:
-                    y = 270;
+                    y = 90;
                     break;
             }
 

@@ -727,17 +727,17 @@ namespace MCSMapConv
 
         private static Model ModelNormal(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
+            var size = new VHE.Point( bg.Xmax - bg.Xmin, bg.Ymax - bg.Ymin, bg.Zmax - bg.Zmin);
+
             var model = new Model()
             {
+                Origin = VHE.Point.Divide(size, 2),
+                Rotation = BlockDataParse.GetRotation(bt.Rotation, bg.Data),
                 Solids =
                 {
                     new Model.Solid()
                     {
-                        Size = new VHE.Point(
-                        bg.Xmax - bg.Xmin,
-                        bg.Ymax - bg.Ymin,
-                        bg.Zmax - bg.Zmin),
-                        Rotation = BlockDataParse.GetRotation(bt.Rotation, bg.Data)
+                        Size = size,
                     } 
                 }
             };

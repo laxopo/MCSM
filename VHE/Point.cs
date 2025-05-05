@@ -44,6 +44,17 @@ namespace MCSMapConv.VHE
             return this;
         }
 
+        public static Point Divide(Point divided, float divider)
+        {
+            var pt = divided.Copy();
+
+            pt.X /= divider;
+            pt.Y /= divider;
+            pt.Z /= divider;
+
+            return pt;
+        }
+
         public object Clone()
         {
             return MemberwiseClone();
