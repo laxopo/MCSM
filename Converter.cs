@@ -199,7 +199,7 @@ namespace MCSMapConv
 
             MCWorld = new World(worldPath);
             Settings.DebugEnable = false;
-            //BlockInspect(MCWorld, 0x1A,  430, 56, -345, 437, 56, -338); //TEST
+            BlockInspect(MCWorld, 29,  430, 56, -345, 437, 56, -338); //TEST
 
             Process = ProcessType.ScanBlocks;
             InitializeMap();
