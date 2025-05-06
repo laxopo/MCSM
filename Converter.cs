@@ -199,7 +199,7 @@ namespace MCSMapConv
 
             MCWorld = new World(worldPath);
             Settings.DebugEnable = false;
-            //BlockInspect(MCWorld, 29,  430, 56, -345, 437, 56, -338); //TEST
+            //BlockInspect(MCWorld, 66,  430, 56, -345, 437, 56, -338); //TEST
 
             Process = ProcessType.ScanBlocks;
             InitializeMap();
@@ -219,8 +219,8 @@ namespace MCSMapConv
 
                         //check register
                     bt_chk:
-                        var btm = GetBT(block, true);
-                        if (block.ID != 0 && btm == null)
+                        var bt = GetBT(block, true);
+                        if (block.ID != 0 && bt == null)
                         {
                             var res = missings.Message(block.ID, block.Data, "at " + (x + Xmin) + " " + 
                                 (z + Ymin) + " " + (y + Zmin) + " is unregistered", true);
@@ -242,7 +242,7 @@ namespace MCSMapConv
                             }
                         }
 
-                        if (btm != null && btm.ModelClass == null)
+                        if (bt != null && bt.ModelClass == null)
                         {
                             block.ID = 0;
                         }
@@ -251,12 +251,6 @@ namespace MCSMapConv
                         {
                             BlockProcessed++;
                         }
-                        else
-                        {
-
-                        }
-
-                        var bt = btm;// BlockDescriptors.Find(a => a.ID == block.ID);
 
                         if (bt != null && bt.ModelClass != null)
                         {
@@ -296,7 +290,7 @@ namespace MCSMapConv
                         }
 
                         //Normal block
-                        GroupNormal(block, x, y, z, btm);
+                        GroupNormal(block, x, y, z, bt);
 
                         if (Debuging)
                         {
@@ -588,7 +582,13 @@ namespace MCSMapConv
             BlockGroup[] cuts = new BlockGroup[2];
             foreach (var solid in BlockGroups)
             {
-                if (solid.Type != BlockGroup.ModelType.Normal && solid.Type != BlockGroup.ModelType.Liquid)
+                if (solid.Type == BlockGroup.ModelType.Rail)
+                {
+
+                }
+
+                if (solid.Type != BlockGroup.ModelType.Normal && solid.Type != BlockGroup.ModelType.Liquid 
+                    && solid.Type != BlockGroup.ModelType.Rail)
                 {
                     continue;
                 }
@@ -601,7 +601,6 @@ namespace MCSMapConv
                 var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
-                    //if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found)
                     if (block.ID != 0 && bt.Grouping != BlockDescriptor.ThreeState.Disable && 
                         CompareID(block, solid.ID, solid.Data) && !found)
                     {
@@ -724,6 +723,9 @@ namespace MCSMapConv
                     {
                         return ModelSign(bg, bt, new string[] { "Text 1", "Text 2" }, false);
                     }
+
+                case BlockGroup.ModelType.Rail:
+                    return ModelRail(bg, bt, convEnable);
 
                 default:
                     throw new Exception("Undefined model type.");
@@ -1412,6 +1414,106 @@ namespace MCSMapConv
             }
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+
+            return model;
+        }
+
+        private static Model ModelRail(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
+        {
+            VHE.Point solidSize, solidRotOff, solidRot, rotation = new VHE.Point();
+            float texRot = 0;
+            var bti = bt.Copy();
+            bti.Textures = new List<BlockDescriptor.TextureKey>();
+
+            var szx = bg.Xmax - bg.Xmin;
+            var szy = bg.Ymax - bg.Ymin;
+
+            //solid
+            if (bg.Data < 2 || bg.Data > 5) //horizontal
+            {
+                solidSize = new VHE.Point(szx, szy, 0.0625f);
+                solidRotOff = new VHE.Point();
+                solidRot = new VHE.Point();
+            }
+            else //angle
+            {
+                solidSize = new VHE.Point(1.42f, 1, 0.0625f);
+                solidRotOff = new VHE.Point(0, 0, 0.0625f);
+                solidRot = new VHE.Point(0, -45, 0);
+
+                texRot = 90;
+            }
+
+            //texture
+            if (bg.Data < 6)
+            {
+                bti.Textures.Add(new BlockDescriptor.TextureKey()
+                {
+                    Texture = bt.GetTextureName(bg, null, "straight")
+                });
+            }
+            else
+            {
+                bti.Textures.Add(new BlockDescriptor.TextureKey()
+                {
+                    Texture = bt.GetTextureName(bg, null, "turn")
+                });
+            }
+
+            //rotating
+            switch (bg.Data)
+            {
+                case 1:
+                    texRot = 90;
+                    break;
+
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                    rotation = new VHE.Point(0, 0, BlockDataParse.Rotation4Z(bg.Data));
+                    break;
+
+                case 6:
+                case 7:
+                case 8:
+                case 9:
+                    rotation = new VHE.Point(0, 0, BlockDataParse.Rotation4(bg.Data - 6));
+                    break;
+            }
+
+
+            var model = new Model()
+            {
+                Name = "Rail",
+                Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Rotation = rotation,
+                Solids = new List<Model.Solid>()
+                {
+                    new Model.Solid()
+                    {
+                        Size = solidSize,
+                        OriginRotOffset = solidRotOff,
+                        Rotation = solidRot,
+                        TexturedFaces = new Model.Faces[]
+                        {
+                            Model.Faces.Top
+                        },
+                        Faces = new List<Model.Face>()
+                        {
+                            new Model.Face(Model.Faces.Top)
+                            {
+                                Rotation = texRot
+                            }
+                        }
+                    }
+                }
+            };
+
+            if (convEnable)
+            {
+                MapAddObject(Modelling.GenerateSolids(bti, bg, model), bti, bg);
+            }
 
             return model;
         }

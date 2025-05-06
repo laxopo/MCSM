@@ -21,9 +21,9 @@ namespace MCSMapConv
             timer.Elapsed += TimerEvent;
             timer.Start();
 
-            var map = Converter.ConvertToMap(worldPath, 0, 454, 54, -354, 498, 64, -316);
-            //454, 54, -354, 498, 64, -316
-
+            var map = Converter.ConvertToMap(worldPath, 0, 452, 54, -354, 498, 64, -316);
+            //452, 54, -354, 498, 64, -316
+            //id test 430, 56, -345, 437, 57, -338
             while (!done) { }
             Console.WriteLine();
             Console.CursorVisible = true;

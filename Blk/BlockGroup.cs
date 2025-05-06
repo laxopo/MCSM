@@ -43,7 +43,8 @@ namespace MCSMapConv
             Liquid,
             Grass,
             Special,
-            Sign
+            Sign,
+            Rail
         }
 
         public static Dictionary<string, ModelType> SType = new Dictionary<string, ModelType>() {
@@ -55,6 +56,7 @@ namespace MCSMapConv
             { "GRASS", ModelType.Grass },
             { "SPECIAL", ModelType.Special },
             { "SIGN", ModelType.Sign },
+            { "RAIL", ModelType.Rail }
         };
 
         public BlockGroup() 

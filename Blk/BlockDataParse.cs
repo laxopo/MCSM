@@ -18,9 +18,27 @@ namespace MCSMapConv
             return AngleLimit(data * 90);
         }
 
+        public static int Rotation4Z(int data)
+        {
+            switch (data)
+            {
+                default:
+                    return 0;
+
+                case 3:
+                    return 180;
+
+                case 4:
+                    return 270;
+
+                case 5:
+                    return 90;
+            }
+        }
+
         public static Point Rotation6(int data)
         {
-            float x = 0, y = 0;
+            float x = 0, z = 0;
 
             switch (data)
             {
@@ -33,19 +51,14 @@ namespace MCSMapConv
                     break;
 
                 case 3:
-                    x = 270;
-                    break;
-
                 case 4:
-                    y = 270;
-                    break;
-
                 case 5:
-                    y = 90;
+                    x = 270;
+                    z = Rotation4Z(data);
                     break;
             }
 
-            return new Point(x, y, 0);
+            return new Point(x, 0, z);
         }
 
         public static Point Rotation8(int data)
