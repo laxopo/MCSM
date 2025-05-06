@@ -10,18 +10,45 @@ namespace MCSMapConv
 {
     class Program
     {
-        static string worldPath = @"F:\minecraft_new\UltimMC_5\instances\1.12.2_test\.minecraft\saves\mcsmap";
-        static string mapOutput = @"D:\games\vhe\maps\out.map";
+        static Arguments Arguments;
+
+        //static string worldPath = @"F:\minecraft_new\UltimMC_5\instances\1.12.2_test\.minecraft\saves\mcsmap";
+        //static string mapOutput = @"D:\games\vhe\maps\out.map";
         static Timer timer = new Timer(100);
         static bool done = false;
 
         static void Main(string[] args)
         {
+            try
+            {
+                Arguments = new Arguments(args);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error: " + e.Message);
+                Console.WriteLine("Use {0} for information", Arguments.GetArgCommand(Arguments.Args.Help));
+                Console.ReadKey();
+                Environment.Exit(-1);
+            }
+
+            switch (Arguments.Program)
+            {
+                case Arguments.Programs.BlockInspect:
+                    Converter.BlockInspect(Arguments);
+                    Environment.Exit(0);
+                    break;
+
+                case Arguments.Programs.Help:
+                    Environment.Exit(0);
+                    break;
+            }
+
+
             Console.CursorVisible = false;
             timer.Elapsed += TimerEvent;
             timer.Start();
 
-            var map = Converter.ConvertToMap(worldPath, 0, 452, 54, -354, 498, 64, -316);
+            var map = Converter.ConvertToMap(Arguments.WorldPath, Arguments.Range);
             //452, 54, -354, 498, 64, -316
             //id test 430, 56, -345, 437, 57, -338
             while (!done) { }
@@ -32,7 +59,7 @@ namespace MCSMapConv
             {
                 if (!Converter.Debuging)
                 {
-                    File.WriteAllText(mapOutput, map.Serialize());
+                    File.WriteAllText(Arguments.MapOutputPath, map.Serialize());
                 }
 
                 var stat = map.GetSolidsCount();
@@ -47,6 +74,8 @@ namespace MCSMapConv
             Console.WriteLine("Press \"Esc\" to exit");
             while (Console.ReadKey().Key != ConsoleKey.Escape) ;
         }
+
+
 
         static Converter.ProcessType pt = Converter.ProcessType.Idle;
         static int row = 0;

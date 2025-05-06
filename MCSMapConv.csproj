@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Arguments.cs" />
     <Compile Include="Blk\BlockDataParse.cs" />
     <Compile Include="Blk\BlockIDs.cs" />
     <Compile Include="ModelScript.cs" />

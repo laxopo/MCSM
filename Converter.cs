@@ -72,15 +72,24 @@ namespace MCSMapConv
             Done
         }
 
-        public static void BlockInspect(World world, int id, int xmin, int ymin, int zmin, int xmax, int ymax, int zmax)
+        public static void BlockInspect(Arguments args)
         {
-            Debuging = true;
+            int dim = args.Range[0];
+            int xmin = args.Range[1];
+            int ymin = args.Range[2]; 
+            int zmin = args.Range[3];
+            int xmax = args.Range[4];
+            int ymax = args.Range[5];
+            int zmax = args.Range[6];
+
+            var world = new World(args.WorldPath);
+
             Settings.DebugEnable = false;
-            Console.WriteLine("Debug mode. Block data inspect");
+            Console.WriteLine("Block data inspect");
 
             var list = new List<Block>();
 
-            if (id == -1)
+            if (args.BlockID < 0)
             {
                 for (int y = ymin; y <= ymax; y++)
                 {
@@ -90,7 +99,7 @@ namespace MCSMapConv
                     {
                         for (int x = xmin; x <= xmax; x++)
                         {
-                            var block = world.GetBlock(0, x, y, z);
+                            var block = world.GetBlock(dim, x, y, z);
                             Console.CursorLeft = (x - xmin) * 3;
 
                             if (block.ID != 0)
@@ -116,9 +125,9 @@ namespace MCSMapConv
                     {
                         for (int x = xmin; x <= xmax; x++)
                         {
-                            var block = world.GetBlock(0, x, y, z);
+                            var block = world.GetBlock(dim, x, y, z);
 
-                            if (block.ID != id)
+                            if (block.ID != args.BlockID)
                             {
                                 if (block.ID == 0)
                                 {
@@ -131,23 +140,29 @@ namespace MCSMapConv
                                 continue;
                             }
 
-                            /*var ch = MCWorld.GetChunkAtBlock(0, x, z);
-                            List<NBT> tes = ch.NBTData.GetTag("Level/TileEntities");
-                            foreach (var te in tes)
+                            if (args.NBTTag != null)
                             {
-                                int bx = te.GetTag("x");
-                                int by = te.GetTag("y");
-                                int bz = te.GetTag("z");
-                                string bid = te.GetTag("id");
-
-                                if (bx == x && by == y && bz == z && bid == "minecraft:bed")
+                                var ch = MCWorld.GetChunkAtBlock(0, x, z);
+                                List<NBT> tes = ch.NBTData.GetTag("Level/" + args.NBTList);
+                                foreach (var te in tes)
                                 {
-                                    int c = te.GetTag("color");
-                                    Console.Write(ToHex(c) + " ");
-                                }
-                            }*/
+                                    int bx = te.GetTag("x");
+                                    int by = te.GetTag("y");
+                                    int bz = te.GetTag("z");
+                                    string bid = te.GetTag("id");
 
-                            Console.Write(ToHex(block.Data) + " ");
+                                    if (bx == x && by == y && bz == z && bid == args.BlockIDName)
+                                    {
+                                        int c = te.GetTag(args.NBTTag);
+                                        Console.Write(ToHex(c) + " ");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Console.Write(ToHex(block.Data) + " ");
+                            }
+
                             list.Add(block);
                         }
                         Console.WriteLine();
@@ -157,10 +172,7 @@ namespace MCSMapConv
 
 
             Console.WriteLine("Done");
-            while (true)
-            {
-                Console.ReadKey();
-            }
+            Console.ReadLine();
         }
 
         public static Model GetModel(BlockGroup bg, BlockDescriptor bt)
@@ -169,18 +181,17 @@ namespace MCSMapConv
             return BuildModel(bg, bt, false);
         }
 
-        public static VHE.Map ConvertToMap(string worldPath, int dimension, 
-            int mcxmin, int mcymin, int mczmin, int mcxmax, int mcymax, int mczmax)
+        public static VHE.Map ConvertToMap(string worldPath, int[] range)
         {
             BlockProcessed = 0;
             Aborted = false;
-            Dimension = dimension;
-            Xmin = mcxmin;
-            Ymin = mcymin;
-            Zmin = mczmin;
-            Xmax = mcxmax;
-            Ymax = mcymax;
-            Zmax = mczmax;
+            Dimension = range[0];
+            Xmin = range[1];
+            Ymin = range[2];
+            Zmin = range[3];
+            Xmax = range[4];
+            Ymax = range[5];
+            Zmax = range[6];
 
             LoadResources(Resources.All);
             Macros.Initialize(CSScale);
