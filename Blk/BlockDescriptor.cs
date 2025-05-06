@@ -17,9 +17,16 @@ namespace MCSMapConv
         public bool IgnoreExcluded { get; set; }
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
-        public bool GroupByData { get; set; }
+        public ThreeState Grouping { get; set; }
         public RotationType Rotation { get; set; }
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
+
+        public enum ThreeState
+        {
+            Auto,
+            Enable,
+            Disable
+        }
 
         public enum RotationType
         {
@@ -61,6 +68,7 @@ namespace MCSMapConv
             bt.IgnoreExcluded = IgnoreExcluded;
             bt.TextureOriented = TextureOriented;
             bt.Rotation = Rotation;
+            bt.Grouping = Grouping;
             bt.Textures = new List<TextureKey>();
 
             if (DataExceptions != null)

@@ -251,6 +251,10 @@ namespace MCSMapConv
                         {
                             BlockProcessed++;
                         }
+                        else
+                        {
+
+                        }
 
                         var bt = btm;// BlockDescriptors.Find(a => a.ID == block.ID);
 
@@ -598,7 +602,8 @@ namespace MCSMapConv
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
                     //if (solid.BlockID == block.ID && solid.BlockData == block.Data && !found)
-                    if (CompareID(block, solid.ID, solid.Data) && !found)
+                    if (block.ID != 0 && bt.Grouping != BlockDescriptor.ThreeState.Disable && 
+                        CompareID(block, solid.ID, solid.Data) && !found)
                     {
                         solid.Expand(x, y, z);
                         found = true;
@@ -1544,7 +1549,7 @@ namespace MCSMapConv
                     continue;
                 }
 
-                if (bt.Data == -1 && !bt.GroupByData) //Ignore the data value
+                if (bt.Data == -1 && bt.Grouping == BlockDescriptor.ThreeState.Enable) //Ignore the data value
                 {
                     return true;
                 }
