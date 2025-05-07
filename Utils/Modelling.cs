@@ -346,10 +346,14 @@ namespace MCSMapConv
                 }
 
                 var faceSize = GetFaceSize(mdlSolid, i);
+                var strU = Scale / (tw - fou * 2) * faceSize[0];
+                var strV = Scale / (th - fov * 2) * faceSize[1];
+                var strUr = (float)(strU * Cos(face.Rotation) + strV * Sin(face.Rotation));
+                var strVr = (float)(strV * Cos(face.Rotation) + strU * Sin(face.Rotation));
 
                 if (mdlFace.StretchU)
                 {
-                    face.ScaleU = Scale / (tw - fou * 2) * faceSize[0];
+                    face.ScaleU = Math.Abs(strUr);
                 }
                 else
                 {
@@ -358,7 +362,7 @@ namespace MCSMapConv
 
                 if (mdlFace.StretchV)
                 {
-                    face.ScaleV = Scale / (th - fov * 2) * faceSize[1];
+                    face.ScaleV = Math.Abs(strVr);
                 }
                 else
                 {
