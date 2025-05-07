@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Drawing;
 
 namespace MCSMapConv
 {
@@ -34,6 +35,7 @@ namespace MCSMapConv
             {
                 //create new dim
                 var dims = new Dim[256];
+                var bmd = VHE.WAD.GetBitmapData(fontTexture.Data.Main);
 
                 //// Get char width & offset
                 var scale = fontTexture.Width / 128;
@@ -47,13 +49,15 @@ namespace MCSMapConv
                         int xmin = 0, xmax = -1, ymin = 0, ymax = -1;
                         bool found = false;
 
+                        
+
                         for (int y = 0; y < 8; y++)
                         {
                             for (int x = 0; x < 8; x++)
                             {
                                 int tx = x0 + x * scale;
                                 int ty = y0 + y * scale;
-                                int p = fontTexture.Data.Main[tx, ty];
+                                int p = VHE.WAD.GetPixel(bmd, x, y);
 
                                 if (p != 255)
                                 {
@@ -100,6 +104,7 @@ namespace MCSMapConv
 
                 Fonts.Add(ft);
 
+                fontTexture.Data.Main.UnlockBits(bmd);
             }
 
             return ft.Dimensions[index % 256];
