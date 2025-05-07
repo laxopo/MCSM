@@ -26,6 +26,8 @@ namespace MCSMapConv
             Help
         }
 
+        public Arguments() { }
+
         public Arguments(string[] args)
         {
             if (args.Length == 0)
@@ -65,10 +67,6 @@ namespace MCSMapConv
                             i++;
                         }
                         catch { }
-                        if (BlockID < 0)
-                        {
-                            throw GetException(ref Exceptions.InvalidData, "must be greater than 0");
-                        }
                         break;
 
                     case Args.Range:
@@ -109,15 +107,6 @@ namespace MCSMapConv
             }
         }
 
-        public void Help()
-        {
-            Program = Programs.Help;
-            HelpData.ToList().ForEach(x => Console.WriteLine(x));
-            Console.ReadLine();
-        }
-
-        /**/
-
         public enum Args
         {
             Unknown,
@@ -144,6 +133,52 @@ namespace MCSMapConv
             return ArgCommands.FirstOrDefault(x => x.Value == arg).Key;
         }
 
+        public string CommandLine()
+        {
+            string com = "";
+
+            switch (Program)
+            {
+                case Programs.Converter:
+                    com += GetArgCommand(Args.WorldPath) + " \"" + WorldPath + "\" ";
+                    com += GetArgCommand(Args.MapOutputPath) + " \"" + MapOutputPath + "\" ";
+                    com += GetArgCommand(Args.Range) + " " + RangeSerialize();
+                    break;
+
+                case Programs.BlockInspect:
+
+                    com += GetArgCommand(Args.WorldPath) + " \"" + WorldPath + "\" ";
+                    com += GetArgCommand(Args.Range) + " " + RangeSerialize() + " ";
+                    com += GetArgCommand(Args.BlockInspect) + " " + BlockID + " ";
+
+                    if (NBTTag == null)
+                    {
+                        break;
+                    }
+
+                    com += GetArgCommand(Args.NBT) + " " + BlockID + " ";
+
+                    if (NBTList != null)
+                    {
+                        com += NBTList + " ";
+                    }
+
+                    com += NBTTag + " " + BlockIDName;
+                    break;
+            }
+
+            return com.Trim();
+        }
+
+        /**/
+
+        private void Help()
+        {
+            Program = Programs.Help;
+            HelpData.ToList().ForEach(x => Console.WriteLine(x));
+            Console.ReadLine();
+        }
+
         private static string[] HelpData = new string[]
         {
             "Common arguments:",
@@ -160,7 +195,7 @@ namespace MCSMapConv
             "Programs: (devault = converter)",
             "[ -w -m -r ] : Converter (default)",
             "[ -w -r ] " + GetArgCommand(Args.BlockInspect) + " [id or -nbt] : Block Inspect",
-            "\tid : block id number (>0). Can be skipped is -nbt is specified"
+            "\tid : block id number. Set -1 for id scan. Can be skipped is -nbt is specified"
         };
 
         private string GetString(string[] args, int index, char[] trim = null)
@@ -251,6 +286,17 @@ namespace MCSMapConv
             }
 
             return values.ToArray();
+        }
+
+        private string RangeSerialize()
+        {
+            string serial = "";
+            foreach (var val in Range)
+            {
+                serial += val.ToString() + " ";
+            }
+
+            return serial.Trim();
         }
 
         private void IntSwap(ref int i1, ref int i2)
