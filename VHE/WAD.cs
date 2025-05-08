@@ -31,6 +31,146 @@ namespace MCSMapConv.VHE
             //System
             internal int Offset { get; set; }
             internal int Size { get; set; }
+
+            public void Rename(string name)
+            {
+                Name = name;
+
+                switch (name[0])
+                {
+                    case '{':
+                        Transparent = true;
+                        break;
+
+                    case '!':
+                        Water = true;
+                        break;
+
+                    case '+':
+                        if (name.Length > 2 && name[1] == 'A')
+                        {
+                            ToggledAnimate = true;
+                        }
+                        else
+                        {
+                            Animated = true;
+                        }
+                        break;
+
+                    case '-':
+                        RandomTiling = true;
+                        break;
+
+                    default:
+                        if (name.Length > 3 && name.Substring(0, 3) == "sky")
+                        {
+                            Sky = true;
+                        }
+                        break;
+                }
+            }
+
+            public void TransparencyFix()
+            {
+                List<Bitmap> bmpList;
+                switch (Type)
+                {
+                    case 0x42:
+                        bmpList = new List<Bitmap>()
+                        {
+                            Data.Main
+                        };
+                        break;
+
+                    case 0x43:
+                        bmpList = new List<Bitmap>()
+                        {
+                            Data.Main,
+                            Data.Mip1,
+                            Data.Mip2,
+                            Data.Mip3
+                        };
+                        break;
+
+                    default:
+                        throw GetException(ref Exceptions.UnsupportedFormat,
+                            "Unsupported texture format: " + string.Format("{0:X}", Type));
+                }
+
+                foreach (var bmp in bmpList)
+                {
+                    TransparencyFix(bmp);
+                }
+            }
+
+            /**/
+
+            private static void TransparencyFix(Bitmap bmp)
+            {
+                var cc = bmp.Palette.Entries[255];
+                if (cc.R == 0 && cc.G == 0 && cc.B == 255)
+                {
+                    throw GetException(ref Exceptions.AlreadyOK, "Texture is already ok");
+                }
+
+                var bmd = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height),
+                    ImageLockMode.ReadWrite, bmp.PixelFormat);
+
+                //find blue index
+                int bidx = -1;
+                for (int y = 0; y < bmp.Height; y++)
+                {
+                    for (int x = 0; x < bmp.Width; x++)
+                    {
+                        var c = GetPixel(bmd, x, y);
+                        var color = bmp.Palette.Entries[c];
+
+                        if (color.R == 0 && color.G == 0 && color.B == 255)
+                        {
+                            bidx = c;
+                            break;
+                        }
+                    }
+
+                    if (bidx != -1)
+                    {
+                        break;
+                    }
+                }
+
+                if (bidx == -1)
+                {
+                    bmp.UnlockBits(bmd);
+                    throw GetException(ref Exceptions.TransColorNotFound, "Blue color not found");
+                }
+
+                //swap colors
+                var bufColor = bmp.Palette.Entries[255];
+                var pal = bmp.Palette;
+                pal.Entries[255] = Color.FromArgb(0, 0, 255);
+                pal.Entries[bidx] = bufColor;
+                bmp.Palette = pal;
+
+                //swap indexes
+                for (int y = 0; y < bmp.Height; y++)
+                {
+                    for (int x = 0; x < bmp.Width; x++)
+                    {
+                        var c = GetPixel(bmd, x, y);
+
+                        if (c == bidx)
+                        {
+                            SetPixel(bmd, x, y, 255);
+                        }
+                        else if (c == 255)
+                        {
+                            SetPixel(bmd, x, y, (byte)bidx);
+                        }
+                    }
+                }
+
+                bmp.UnlockBits(bmd);
+            }
         }
 
 
@@ -52,6 +192,13 @@ namespace MCSMapConv.VHE
             {
                 return Color.FromArgb(255, R, G, B);
             }
+        }
+
+        public static class Exceptions
+        {
+            public static Exception UnsupportedFormat;
+            public static Exception AlreadyOK;
+            public static Exception TransColorNotFound;
         }
 
         public WAD(string filepath)
@@ -87,41 +234,7 @@ namespace MCSMapConv.VHE
                 var pos = fs.Position;
 
                 var texture = ReadTexture(fs, offset, type);
-                texture.Name = name;
-
-                switch (name[0])
-                {
-                    case '{':
-                        texture.Transparent = true;
-                        break;
-
-                    case '!':
-                        texture.Water = true;
-                        break;
-
-                    case '+':
-                        if (name.Length > 2 && name[1] == 'A')
-                        {
-                            texture.ToggledAnimate = true;
-                        }
-                        else
-                        {
-                            texture.Animated = true;
-                        }
-                        break;
-
-                    case '-':
-                        texture.RandomTiling = true;
-                        break;
-
-                    default:
-                        if (name.Length > 3 && name.Substring(0, 3) == "sky")
-                        {
-                            texture.Sky = true;
-                        }
-                        break;
-                }
-
+                texture.Rename(name);
                 Textures.Add(texture);
                 fs.Position = pos;
             }
@@ -228,6 +341,7 @@ namespace MCSMapConv.VHE
             int offset = y * bmd.Stride + (x);
             p[offset] = c;
         }
+
         public static unsafe Byte GetPixel(BitmapData bmd, int x, int y)
         {
             if (x >= bmd.Width || y >= bmd.Height || x < 0 || y < 0)
@@ -247,6 +361,12 @@ namespace MCSMapConv.VHE
         }
 
         /**/
+
+        private static Exception GetException(ref Exception e, string text)
+        {
+            e = new Exception(text);
+            return e;
+        }
 
         private Texture ReadTexture(FileStream fs, int offset, int type)
         {
