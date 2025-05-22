@@ -32,6 +32,12 @@ namespace MCSM.VHE
             internal int Offset { get; set; }
             internal int Size { get; set; }
 
+            public enum Format
+            {
+                QPic = 0x42,
+                MipTex = 0x43
+            }
+
             public void Rename(string name)
             {
                 Name = name;
@@ -73,29 +79,19 @@ namespace MCSM.VHE
             public void SetTextureData(Image image)
             {
                 Data.Main = ConvertToBitmap(image);
+                Height = image.Height;
+                Width = image.Width;
                 ReMipMap();
             }
 
             public void TransparencyFix()
             {
-                List<Bitmap> bmpList;
-                switch (Type)
+                switch ((Format)Type)
                 {
-                    case 0x42:
-                        bmpList = new List<Bitmap>()
-                        {
-                            Data.Main
-                        };
+                    case Format.QPic:
                         break;
 
-                    case 0x43:
-                        bmpList = new List<Bitmap>()
-                        {
-                            Data.Main,
-                            Data.Mip1,
-                            Data.Mip2,
-                            Data.Mip3
-                        };
+                    case Format.MipTex:
                         break;
 
                     default:
@@ -103,14 +99,17 @@ namespace MCSM.VHE
                             "Unsupported texture format: " + string.Format("{0:X}", Type));
                 }
 
-                foreach (var bmp in bmpList)
-                {
-                    TransparencyFix(bmp);
-                }
+                TransparencyFix(Data.Main);
+                ReMipMap();
             }
 
             public void ReMipMap()
             {
+                if ((Format)Type != Format.MipTex)
+                {
+                    return;
+                }
+
                 Data.Mip1 = MipMap(Data.Main);
                 Data.Mip2 = MipMap(Data.Mip1);
                 Data.Mip3 = MipMap(Data.Mip2);
@@ -296,7 +295,7 @@ namespace MCSM.VHE
 
             var tex = new Texture()
             {
-                Type = 0x43,
+                Type = (byte)Texture.Format.MipTex,
                 Height = texbmp.Height,
                 Width = texbmp.Width,
                 Data = new BMP()
@@ -329,9 +328,9 @@ namespace MCSM.VHE
             foreach (var tex in Textures)
             {
                 tex.Offset = (int)ms.Position;
-                switch (tex.Type)
+                switch ((Texture.Format)tex.Type)
                 {
-                    case 0x42:
+                    case Texture.Format.QPic:
                         WriteInt(ms, tex.Width);
                         WriteInt(ms, tex.Height);
                         WriteBMPData(ms, tex.Data.Main);
@@ -342,7 +341,7 @@ namespace MCSM.VHE
                         ms.WriteByte(0x00);
                         break;
 
-                    case 0x43:
+                    case Texture.Format.MipTex:
                         WriteString(ms, tex.Name, 16);
                         WriteInt(ms, tex.Width);
                         WriteInt(ms, tex.Height);
@@ -444,9 +443,9 @@ namespace MCSM.VHE
             var texture = new Texture();
             fs.Position = offset;
 
-            switch (type)
+            switch ((Texture.Format)type)
             {
-                case 0x42://qpic
+                case Texture.Format.QPic:
                     texture.Width = ReadInt(fs);
                     texture.Height = ReadInt(fs);
                     texture.Data = new BMP()
@@ -456,7 +455,7 @@ namespace MCSM.VHE
                     ReadBMPPalette(fs, texture.Data.Main);
                     break;
 
-                case 0x43://miptex
+                case Texture.Format.MipTex:
                     fs.Position += 16;
                     texture.Width = ReadInt(fs);
                     texture.Height = ReadInt(fs);
