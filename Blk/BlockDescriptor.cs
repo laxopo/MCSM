@@ -136,7 +136,8 @@ namespace MCSM
             string solidName, params string[] keys)
         {
             var name = TextureName(textures, bg.Data, solidName, keys);
-            return Macros.TextureName(name, bg);
+            name = Macros.TextureName(name, bg);
+            return name;
         }
 
         public TextureKey GetSolidTK(string solidName)

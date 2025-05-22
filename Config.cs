@@ -15,8 +15,9 @@ namespace MCSM
         public string CstrikePath { get; set; }
         public string MapOutputPath { get; set; }
         public string WorldPath { get; set; }
-        public List<VHE.Point> WorldRangeConv { get; set; } = new List<VHE.Point>();
-        public List<VHE.Point> WorldRangeBI { get; set; } = new List<VHE.Point>();
+        public List<RangeMark> RangeMarks { get; set; } = new List<RangeMark>();
+        public string ConverterRangeMark { get; set; }
+        public string BIRangeMark { get; set; }
         public int WorldDimensionConv { get; set; }
         public int WorldDimensionBI { get; set; }
         public string NBTList { get; set; }
