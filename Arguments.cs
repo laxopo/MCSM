@@ -18,6 +18,7 @@ namespace MCSM
         public string NBTTag { get; set; }
         public string BlockIDName { get; set; }
         public int BlockID { get; set; }
+        public bool SkyBoxEnable { get; set; }
 
         public enum Programs
         {
@@ -83,6 +84,10 @@ namespace MCSM
                     case Args.Help:
                         Help();
                         return;
+
+                    case Args.SkyBox:
+                        SkyBoxEnable = true;
+                        break;
                 }
             }
 
@@ -115,7 +120,8 @@ namespace MCSM
             BlockInspect,
             Range,
             NBT,
-            Help
+            Help,
+            SkyBox
         }
 
         public static Dictionary<string, Args> ArgCommands = new Dictionary<string, Args>()
@@ -125,7 +131,8 @@ namespace MCSM
             { "-bi", Args.BlockInspect },
             { "-r", Args.Range },
             { "-nbt", Args.NBT },
-            { "-help", Args.Help }
+            { "-help", Args.Help },
+            { "-sky",  Args.SkyBox}
         };
 
         public static string GetArgCommand(Args arg)
@@ -143,6 +150,11 @@ namespace MCSM
                     com += GetArgCommand(Args.WorldPath) + " \"" + WorldPath + "\" ";
                     com += GetArgCommand(Args.MapOutputPath) + " \"" + MapOutputPath + "\" ";
                     com += GetArgCommand(Args.Range) + " " + RangeSerialize();
+                    if (SkyBoxEnable)
+                    {
+                        com += " " + GetArgCommand(Args.SkyBox);
+                    }
+
                     break;
 
                 case Programs.BlockInspect:
@@ -191,11 +203,14 @@ namespace MCSM
             "\tlist   : listTag in the NBT structure (can be skipped)",
             "\ttag    : tag name in the list",
             "\tIDName : block ID name (minecraft:blockName)",
+            GetArgCommand(Args.SkyBox) + "\t: enable skybox generation (only for converter)",
             "",
             "Programs: (devault = converter)",
-            "[ -w -m -r ] : Converter (default)",
-            "[ -w -r ] " + GetArgCommand(Args.BlockInspect) + " [id or -nbt] : Block Inspect",
-            "\tid : block id number. Set -1 for id scan. Can be skipped is -nbt is specified"
+            "[ " + GetArgCommand(Args.WorldPath) + " " + GetArgCommand(Args.MapOutputPath) + " " 
+                + GetArgCommand(Args.Range) + "] : Converter (default)",
+            "[ " + GetArgCommand(Args.WorldPath) + " " + GetArgCommand(Args.Range) + " ] " + 
+                GetArgCommand(Args.BlockInspect) + " [ [id] or " + GetArgCommand(Args.NBT) + "] : Block Inspect",
+            "\tid : block id number. Set -1 for id scan. Can be skipped is " + GetArgCommand(Args.NBT) + " is specified"
         };
 
         private string GetString(string[] args, int index, char[] trim = null)
