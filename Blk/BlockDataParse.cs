@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MCSMapConv.VHE;
-namespace MCSMapConv
+using MCSM.VHE;
+namespace MCSM
 {
     public static class BlockDataParse
     {

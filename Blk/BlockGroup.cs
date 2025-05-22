@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NamedBinaryTag;
 
-namespace MCSMapConv
+namespace MCSM
 {
     public class BlockGroup : BGroupID
     {

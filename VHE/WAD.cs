@@ -7,7 +7,7 @@ using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
 
-namespace MCSMapConv.VHE
+namespace MCSM.VHE
 {
     public class WAD
     {

@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.34729.46
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCSMapConv", "MCSMapConv.csproj", "{0EC818CC-0F72-44E4-9118-69EB6FE9CF8F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCSM", "MCSM.csproj", "{0EC818CC-0F72-44E4-9118-69EB6FE9CF8F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NBT", "..\NBT\NBT.csproj", "{34909F1E-DAC0-4A17-BBFD-5FFCEE77012E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCSMapDataBase", "..\MCSMapDataBase\MCSMapDataBase.csproj", "{285A4E39-CB28-4A87-A6AC-F44FCACE3D7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCSMConverter", "..\MCSMConverter\MCSMConverter.csproj", "{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,14 @@ Global
 		{285A4E39-CB28-4A87-A6AC-F44FCACE3D7E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{285A4E39-CB28-4A87-A6AC-F44FCACE3D7E}.Release|x64.ActiveCfg = Release|Any CPU
 		{285A4E39-CB28-4A87-A6AC-F44FCACE3D7E}.Release|x64.Build.0 = Release|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Debug|x64.Build.0 = Debug|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Release|x64.ActiveCfg = Release|Any CPU
+		{690CC8EE-8C0B-4AFF-81A4-E14EF6B09689}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

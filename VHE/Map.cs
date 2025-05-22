@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MCSMapConv.VHE
+namespace MCSM.VHE
 {
     public class Map
     {

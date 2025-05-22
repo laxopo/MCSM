@@ -7,7 +7,7 @@ using NamedBinaryTag;
 using Newtonsoft.Json;
 using System.IO;
 
-namespace MCSMapConv
+namespace MCSM
 {
     public static class Converter
     {
@@ -35,15 +35,12 @@ namespace MCSMapConv
         public static List<EntityScript> SignEntities { get; set; }
         public static List<EntityScript> SolidEntities { get; set; }
         public static List<ModelScript> Models { get; set; }
-
-        private static FontDim FontDim = new FontDim();
-
-        
-        
-
-        private static World MCWorld;
         public static VHE.Map Map { get; private set; }
         public static List<BlockGroup> BlockGroups { get; private set; } = new List<BlockGroup>();
+
+
+        private static FontDim FontDim = new FontDim();
+        private static World MCWorld;
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, @"data\models.json"},
