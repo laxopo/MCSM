@@ -99,6 +99,9 @@ namespace MCSM
                 case BlockDescriptor.RotationType.R4:
                     return new Point(0, 0, Rotation4(data));
 
+                case BlockDescriptor.RotationType.R4Z:
+                    return new Point(0, 0, Rotation4Z(data));
+
                 case BlockDescriptor.RotationType.R6:
                     return Rotation6(data);
 

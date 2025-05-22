@@ -207,7 +207,6 @@ namespace MCSM
 
             MCWorld = new World(worldPath);
             Settings.DebugEnable = false;
-            //BlockInspect(MCWorld, 66,  430, 56, -345, 437, 56, -338); //TEST
 
             Process = ProcessType.ScanBlocks;
             InitializeMap();
@@ -341,6 +340,8 @@ namespace MCSM
                             return null;
                     }
                 }
+
+                bg.Data += bt.DataOffset;
 
                 BuildModel(bg, bt);
             }

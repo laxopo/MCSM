@@ -11,6 +11,7 @@ namespace MCSM
         public string ModelClass { get; set; }
         public string ModelName { get; set; }
         public string Entity { get; set; }
+        public int DataOffset { get; set; }
         public int DataMask { get; set; }
         public int DataMax { get; set; }
         public int[] DataExceptions { get; set; }
@@ -32,6 +33,7 @@ namespace MCSM
         {
             None,
             R4,
+            R4Z,
             R6,
             R8,
             R16
@@ -60,6 +62,7 @@ namespace MCSM
             bt.ModelClass = ModelClass;
             bt.ModelName = ModelName;
             bt.Entity = Entity;
+            bt.DataOffset = DataOffset;
             bt.DataMask = DataMask;
             bt.Data = Data;
             bt.DataMax = DataMax;
