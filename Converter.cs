@@ -1097,8 +1097,13 @@ namespace MCSM
         private static Model ModelGrass(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
             float len = (float)Math.Sqrt(2);
+            float[] worldOffset = new float[2];
 
-            var worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
+            if (bt.WorldOffset)
+            {
+                worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
+            }
+
             var texture = Modelling.GetTexture(Wads, bt.GetTextureName(bg));
             if (texture == null)
             {

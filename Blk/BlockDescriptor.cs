@@ -72,6 +72,7 @@ namespace MCSM
             bt.TextureOriented = TextureOriented;
             bt.Rotation = Rotation;
             bt.Grouping = Grouping;
+            bt.WorldOffset = WorldOffset;
             bt.Textures = new List<TextureKey>();
 
             if (DataExceptions != null)
