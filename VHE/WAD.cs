@@ -70,6 +70,12 @@ namespace MCSMapConv.VHE
                 }
             }
 
+            public void SetTextureData(Image image)
+            {
+                Data.Main = ConvertToBitmap(image);
+                ReMipMap();
+            }
+
             public void TransparencyFix()
             {
                 List<Bitmap> bmpList;
@@ -103,7 +109,35 @@ namespace MCSMapConv.VHE
                 }
             }
 
+            public void ReMipMap()
+            {
+                Data.Mip1 = MipMap(Data.Main);
+                Data.Mip2 = MipMap(Data.Mip1);
+                Data.Mip3 = MipMap(Data.Mip2);
+            }
+
             /**/
+
+            private Bitmap MipMap(Bitmap image)
+            {
+                var mip = new Bitmap(image.Width / 2, image.Height / 2);
+                var bmd_mip = GetBitmapData(mip);
+                var bmd_image = GetBitmapData(image);
+
+                for (int y = 0; y < mip.Height; y++)
+                {
+                    for (int x = 0; x < mip.Width; x++)
+                    {
+                        var c = GetPixel(bmd_image, x * 2, y * 2);
+                        SetPixel(bmd_mip, x, y, c);
+                    }
+                }
+
+                image.UnlockBits(bmd_image);
+                mip.UnlockBits(bmd_mip);
+
+                return mip;
+            }
 
             private static void TransparencyFix(Bitmap bmp)
             {
@@ -173,7 +207,6 @@ namespace MCSMapConv.VHE
             }
         }
 
-
         public class BMP
         {
             public Bitmap Main { get; set; }
@@ -199,6 +232,8 @@ namespace MCSMapConv.VHE
             public static Exception UnsupportedFormat;
             public static Exception AlreadyOK;
             public static Exception TransColorNotFound;
+            public static Exception NameAlreadyPresent;
+            public static Exception PaletteOverflow;
         }
 
         public WAD(string filepath)
@@ -242,9 +277,43 @@ namespace MCSMapConv.VHE
             fs.Close();
         }
 
+        /**/
+
         public Texture GetTexture(string name)
         {
             return Textures.Find(t => t.Name.ToUpper() == name.ToUpper());
+        }
+
+        public void AddTexture(Image image, string name)
+        {
+            if (!CheckTextureName(name))
+            {
+                throw GetException(ref Exceptions.NameAlreadyPresent, 
+                    "Texture name \"" + name + "\" is already present in the WAD.");
+            }
+
+            var texbmp = ConvertToBitmap(image);
+
+            var tex = new Texture()
+            {
+                Type = 0x43,
+                Height = texbmp.Height,
+                Width = texbmp.Width,
+                Data = new BMP()
+                {
+                    Main = texbmp
+                }
+            };
+
+            tex.Rename(name);
+            tex.ReMipMap();
+
+            Textures.Add(tex);
+        }
+
+        public bool CheckTextureName(string name)
+        {
+            return Textures.Find(x => x.Name.ToUpper() == name.ToUpper()) == null;
         }
 
         public void Save()
@@ -368,6 +437,8 @@ namespace MCSMapConv.VHE
             return e;
         }
 
+        /*Serial data read*/
+
         private Texture ReadTexture(FileStream fs, int offset, int type)
         {
             var texture = new Texture();
@@ -432,6 +503,40 @@ namespace MCSMapConv.VHE
             return BitConverter.ToInt32(buf, 0);
         }
 
+        private Bitmap ReadBMPData(FileStream fs, int width, int height)
+        {
+            var bmp = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
+            var bmd = GetBitmapData(bmp);
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    SetPixel(bmd, x, y, (byte)fs.ReadByte());
+                }
+            }
+
+            bmp.UnlockBits(bmd);
+
+            return bmp;
+        }
+
+        private void ReadBMPPalette(FileStream fs, Bitmap bmp)
+        {
+            var pal = bmp.Palette;
+
+            for (int i = 0; i < 256; i++)
+            {
+                var rgb = new byte[3];
+                fs.Read(rgb, 0, 3);
+                pal.Entries[i] = Color.FromArgb(rgb[0], rgb[1], rgb[2]);
+            }
+
+            bmp.Palette = pal;
+        }
+
+        /*Serial data write*/
+
         private void WriteString(MemoryStream ms, string value, int length = -1)
         {
             if (length < 0)
@@ -484,42 +589,83 @@ namespace MCSMapConv.VHE
             }
         }
 
-        private Bitmap ReadBMPData(FileStream fs, int width, int height)
-        {
-            var bmp = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
-            var bmd = GetBitmapData(bmp);
+        /**/
 
-            for (int y = 0; y < height; y++)
+        private static void BMPSetPalette(Bitmap bmp, ColorPalette palette)
+        {
+            var pal = bmp.Palette;
+            bmp.Palette = pal;
+        }
+
+        private static void BMPSetPalette(Bitmap bmp, Color[] palette)
+        {
+            var pal = bmp.Palette;
+            for (int i = 0; i < 256; i++)
             {
-                for (int x = 0; x < width; x++)
+                pal.Entries[i] = palette[i];
+            }
+            bmp.Palette = pal;
+        }
+
+        private static Bitmap ConvertToBitmap(Image image)
+        {
+            var texbmp = new Bitmap(image.Width, image.Height, PixelFormat.Format8bppIndexed);
+            var srcbmp = new Bitmap(image);
+            var texbmd = GetBitmapData(texbmp);
+            var pal = new Color[256];
+            var palIdx = 0;
+
+            for (int y = 0; y < texbmp.Height; y++)
+            {
+                for (int x = 0; x < texbmp.Width; x++)
                 {
-                    SetPixel(bmd, x, y, (byte)fs.ReadByte());
+                    var c = srcbmp.GetPixel(x, y);
+
+                    if (c.A == 0)
+                    {
+                        c = Color.FromArgb(0, 0, 255);
+
+                        if (pal[255].A != 255)
+                        {
+                            pal[255] = c;
+                        }
+
+                        SetPixel(texbmd, x, y, 255);
+                    }
+                    else
+                    {
+                        int index;
+                        bool found = false;
+                        for (index = 0; index < 256; index++)
+                        {
+                            var p = pal[index];
+                            if (p.A == 255 && p.R == c.R && p.G == c.G && p.B == c.B)
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found)
+                        {
+                            index = palIdx++;
+
+                            if (index == 256)
+                            {
+                                throw GetException(ref Exceptions.PaletteOverflow, "The texture has more than 256 colors");
+                            }
+
+                            pal[index] = c;
+                        }
+
+                        SetPixel(texbmd, x, y, (byte)index);
+                    }
                 }
             }
 
-            bmp.UnlockBits(bmd);
-
-            return bmp;
-        }
-
-        private void ReadBMPPalette(FileStream fs, Bitmap bmp)
-        {
-            var pal = bmp.Palette;
-
-            for (int i = 0; i < 256; i++)
-            {
-                var rgb = new byte[3];
-                fs.Read(rgb, 0, 3);
-                pal.Entries[i] = Color.FromArgb(rgb[0], rgb[1], rgb[2]);
-            }
-
-            bmp.Palette = pal;
-        }
-
-        private void BMPSetPalette(Bitmap bmp, ColorPalette palette)
-        {
-            var pal = bmp.Palette;
-            bmp.Palette = pal;
+            texbmp.UnlockBits(texbmd);
+            BMPSetPalette(texbmp, pal);
+            return texbmp;
         }
     }
 }
