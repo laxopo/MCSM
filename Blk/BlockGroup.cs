@@ -37,6 +37,7 @@ namespace MCSM
         public enum ModelType
         {
             Normal,
+            Slab,
             Pane,
             Fence,
             Door,
@@ -49,6 +50,7 @@ namespace MCSM
 
         public static Dictionary<string, ModelType> SType = new Dictionary<string, ModelType>() {
             { "NORMAL", ModelType.Normal },
+            { "SLAB", ModelType.Slab },
             { "LIQUID", ModelType.Liquid },
             { "PANE", ModelType.Pane },
             { "FENCE", ModelType.Fence },

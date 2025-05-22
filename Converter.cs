@@ -589,15 +589,26 @@ namespace MCSM
         {
             bool found = false;
             BlockGroup[] cuts = new BlockGroup[2];
+            var types = new BlockGroup.ModelType[] {
+                BlockGroup.ModelType.Normal,
+                BlockGroup.ModelType.Liquid,
+                BlockGroup.ModelType.Rail,
+                BlockGroup.ModelType.Slab
+            };
+
             foreach (var solid in BlockGroups)
             {
-                if (solid.Type == BlockGroup.ModelType.Rail)
+                bool typec = false;
+                foreach (var t in types)
                 {
-
+                    if (t == solid.Type)
+                    {
+                        typec = true;
+                        break;
+                    }
                 }
 
-                if (solid.Type != BlockGroup.ModelType.Normal && solid.Type != BlockGroup.ModelType.Liquid 
-                    && solid.Type != BlockGroup.ModelType.Rail)
+                if (!typec)
                 {
                     continue;
                 }
@@ -607,7 +618,12 @@ namespace MCSM
                 var rngZ = z < solid.Zmax;
                 var expX = !solid.XClosed && y == solid.Ymax - 1 && x == solid.Xmax;
                 var expY = !solid.YClosed && y == solid.Ymax && rngX;
-                var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
+                bool expZ = false;
+                if (solid.Type == BlockGroup.ModelType.Normal || solid.Type == BlockGroup.ModelType.Liquid)
+                {
+                    expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
+                }
+
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
                     if (block.ID != 0 && bt.Grouping != BlockDescriptor.ThreeState.Disable && 
@@ -700,6 +716,7 @@ namespace MCSM
             {
                 case BlockGroup.ModelType.Normal:
                 case BlockGroup.ModelType.Liquid:
+                case BlockGroup.ModelType.Slab:
                     return ModelNormal(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Pane:
@@ -734,7 +751,7 @@ namespace MCSM
                     }
 
                 case BlockGroup.ModelType.Rail:
-                    return ModelRail(bg, bt, convEnable);
+                    return ModelRail(bg, bt, convEnable); 
 
                 default:
                     throw new Exception("Undefined model type.");
@@ -743,12 +760,28 @@ namespace MCSM
 
         private static Model ModelNormal(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
-            var size = new VHE.Point( bg.Xmax - bg.Xmin, bg.Ymax - bg.Ymin, bg.Zmax - bg.Zmin);
+            float szz, offz = 0;
+            if (bg.Type != BlockGroup.ModelType.Slab)
+            {
+                szz = bg.Zmax - bg.Zmin;
+            }
+            else
+            {
+                szz = 0.5f;
+                if (bg.Data >= 8)
+                {
+                    bg.Data -= 8;
+                    offz = 0.5f;
+                }
+            }
+
+            var size = new VHE.Point(bg.Xmax - bg.Xmin, bg.Ymax - bg.Ymin, szz);
 
             var model = new Model()
             {
                 Origin = VHE.Point.Divide(size, 2),
                 Rotation = BlockDataParse.GetRotation(bt.Rotation, bg.Data),
+                Position = new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin + offz),
                 Solids =
                 {
                     new Model.Solid()
@@ -1667,10 +1700,6 @@ namespace MCSM
                 if (b.ReferenceData > 0)
                 {
                     block.Data = (byte)b.ReferenceData;
-                }
-                else
-                {
-                    block.Data = 0;
                 }
                 
                 maskedData = block.Data;
