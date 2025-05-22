@@ -8,6 +8,8 @@ namespace MCSM
 {
     public class BlockDescriptor : BlockIDs
     {
+        public int ReferenceID { get; set; }
+        public int ReferenceData { get; set; }
         public string ModelClass { get; set; }
         public string ModelName { get; set; }
         public string Entity { get; set; }
@@ -59,6 +61,8 @@ namespace MCSM
         public BlockDescriptor Copy()
         {
             var bt = new BlockDescriptor();
+            bt.ReferenceID = ReferenceID;
+            bt.ReferenceData = ReferenceData;
             bt.ModelClass = ModelClass;
             bt.ModelName = ModelName;
             bt.Entity = Entity;

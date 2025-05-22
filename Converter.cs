@@ -1579,6 +1579,7 @@ namespace MCSM
         private static BlockDescriptor GetBT(Block block, bool suppressData = false)
         {
             int maskedData = block.Data;
+
             bool CheckData(BlockDescriptor bt)
             {
                 if (bt.DataMask > 0)
@@ -1599,56 +1600,83 @@ namespace MCSM
                 return true;
             }
 
-            foreach (var bt in BlockDescriptors)
+            BlockDescriptor Engine()
             {
-                if (bt.ID == block.ID)
+                foreach (var bt in BlockDescriptors)
                 {
-                    var chk = CheckData(bt);
-                    if (bt.DataExceptions != null)
+                    if (bt.ID == block.ID)
                     {
-                        if (bt.DataExceptions.Contains(maskedData))
+                        var chk = CheckData(bt);
+                        if (bt.DataExceptions != null)
                         {
-                            continue;
-                        }
-                    }
-
-                    if (bt.Data == -1) //Ignore the data value
-                    {
-                        if (!chk)
-                        {
-                            if (bt.IgnoreExcluded)
-                            {
-                                return new BlockDescriptor();
-                            }
-                            else
+                            if (bt.DataExceptions.Contains(maskedData))
                             {
                                 continue;
                             }
                         }
 
-                        return bt;
-                    }
-                    else
-                    {
-                        if (bt.Data != block.Data)
+                        if (bt.Data == -1) //Ignore the data value
                         {
-                            continue;
-                        }
+                            if (!chk)
+                            {
+                                if (bt.IgnoreExcluded)
+                                {
+                                    return new BlockDescriptor();
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+                            }
 
-                        if (chk)
-                        {
                             return bt;
                         }
-
-                        if (bt.IgnoreExcluded)
+                        else
                         {
-                            return new BlockDescriptor();
+                            if (bt.Data != block.Data)
+                            {
+                                continue;
+                            }
+
+                            if (chk)
+                            {
+                                return bt;
+                            }
+
+                            if (bt.IgnoreExcluded)
+                            {
+                                return new BlockDescriptor();
+                            }
                         }
                     }
                 }
+
+                return null;
             }
 
-            return null;
+            BlockDescriptor b;
+            while ((b = Engine()) != null)
+            {
+                if (b.ReferenceID <= 0)
+                {
+                    break;
+                }
+
+                block.ID = (byte)b.ReferenceID;
+
+                if (b.ReferenceData > 0)
+                {
+                    block.Data = (byte)b.ReferenceData;
+                }
+                else
+                {
+                    block.Data = 0;
+                }
+                
+                maskedData = block.Data;
+            }
+
+            return b;
         }
 
         private static bool CompareID(Block block, int id, int data)
