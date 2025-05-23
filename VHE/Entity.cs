@@ -52,6 +52,7 @@ namespace MCSM.VHE
             Undefined,
             Float,
             Int,
+            IntArray,
             String,
             StringArray,
             Point,
@@ -62,6 +63,7 @@ namespace MCSM.VHE
         public static Dictionary<string, Type> Types = new Dictionary<string, Type>() {
             {"FLOAT", Type.Float },
             {"INT", Type.Int },
+            {"INTARRAY", Type.IntArray },
             {"STRING", Type.String },
             {"STRINGARRAY", Type.StringArray },
             {"POINT", Type.Point },
@@ -125,6 +127,16 @@ namespace MCSM.VHE
                     }
                     catch { }
                     return 0;
+
+                case Type.IntArray:
+                    var strInts = data.Split(' ');
+                    var ints = new List<int>();
+                    try
+                    {
+                        strInts.ToList().ForEach(xi => ints.Add(Convert.ToInt32(xi)));
+                    }
+                    catch { }
+                    return ints.ToArray();
 
                 case Type.String:
                     return data;
@@ -219,6 +231,14 @@ namespace MCSM.VHE
                 case Type.Int:
                 case Type.String:
                     return value.ToString();
+
+                case Type.IntArray:
+                    foreach (var xi in (int[])value)
+                    {
+                        buf += xi.ToString() + " ";
+                    }
+                    buf.Trim();
+                    return buf;
 
                 case Type.StringArray:
                     foreach (var str in value as List<string>)

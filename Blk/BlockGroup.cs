@@ -45,7 +45,8 @@ namespace MCSM
             Grass,
             Special,
             Sign,
-            Rail
+            Rail,
+            Torch
         }
 
         public static Dictionary<string, ModelType> SType = new Dictionary<string, ModelType>() {
@@ -58,7 +59,8 @@ namespace MCSM
             { "GRASS", ModelType.Grass },
             { "SPECIAL", ModelType.Special },
             { "SIGN", ModelType.Sign },
-            { "RAIL", ModelType.Rail }
+            { "RAIL", ModelType.Rail },
+            { "TORCH", ModelType.Torch }
         };
 
         public BlockGroup() 

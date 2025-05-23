@@ -44,6 +44,15 @@ namespace MCSM.VHE
             return this;
         }
 
+        public Point Substract(Point sub)
+        {
+            X -= sub.X;
+            Y -= sub.Y;
+            Z -= sub.Z;
+
+            return this;
+        }
+
         public static Point Divide(Point divided, float divider)
         {
             var pt = divided.Copy();

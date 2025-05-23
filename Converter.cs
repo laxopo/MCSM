@@ -291,6 +291,7 @@ namespace MCSM
 
                                 case "GRASS":
                                 case "SIGN":
+                                case "TORCH":
                                     GroupSingle(block, x, y, z, type);
                                     break;
                             }
@@ -751,7 +752,10 @@ namespace MCSM
                     }
 
                 case BlockGroup.ModelType.Rail:
-                    return ModelRail(bg, bt, convEnable); 
+                    return ModelRail(bg, bt, convEnable);
+
+                case BlockGroup.ModelType.Torch:
+                    return ModelTorch(bg, bt, convEnable);
 
                 default:
                     throw new Exception("Undefined model type.");
@@ -1565,7 +1569,128 @@ namespace MCSM
             return model;
         }
 
+        private static Model ModelTorch(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
+        {
+            VHE.Point offset, origin, lpos;
+            float rotY = 0, rotZ = 0;
+
+            if (bg.Data == 5)
+            {
+                origin = new VHE.Point(0.5f, 0.5f, 0);
+                offset = new VHE.Point(0.5f, 0.5f, 0);
+                lpos = new VHE.Point(bg.Xmin + offset.X, bg.Ymin + offset.Y, bg.Zmin + 0.625f);
+            }
+            else if (bg.Data > 0 && bg.Data < 5)
+            {
+                origin = new VHE.Point(0.5f, 0.5f, 0);
+                offset = new VHE.Point(0, 0.5f, 0.22f);
+                rotY = 15;
+
+                switch (bg.Data)
+                {
+                    case 1:
+                        rotZ = 0;
+                        break;
+
+                    case 2:
+                        rotZ = 180;
+                        break;
+
+                    case 3:
+                        rotZ = 90;
+                        break;
+
+                    case 4:
+                        rotZ = 270;
+                        break;
+                }
+
+                lpos = new VHE.Point(offset);
+                lpos.Z += 0.6f;
+                lpos.X += 0.18f;
+                Modelling.Rotate3D(lpos, origin, 0, 0, rotZ);
+                lpos.Summ(new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin));
+            }
+            else
+            {
+                return null;
+            }
+
+            var model = new Model()
+            {
+                Name = "Torch",
+                Origin = origin,
+                Rotation = new VHE.Point(0, 0, rotZ),
+                Solids = new List<Model.Solid>()
+                {
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(0.125f, 0.125f, 0.625f),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Offset = offset,
+                        Rotation = new VHE.Point(0, rotY, 0),
+                        Faces = new List<Model.Face>()
+                    }
+                }
+            };
+
+            for (int i = 0; i < 6; i++)
+            {
+                var face = model.Solids[0].Face(i);
+
+                if (i == 1)
+                {
+                    face.OffsetU = 7;
+                    face.OffsetV = 14;
+                }
+                else
+                {
+                    face.OffsetU = 7;
+                    face.OffsetV = 6;
+                }
+            }
+
+            if (!convEnable)
+            {
+                return model;
+            }
+
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+
+            var light = new VHE.Entity("light")
+            {
+                Parameters = new List<VHE.Entity.Parameter>()
+                {
+                    new VHE.Entity.Parameter("_light", new int[] { 255, 255, 128, 100 }, VHE.Entity.Type.IntArray),
+                    new VHE.Entity.Parameter("_falloff", 0, VHE.Entity.Type.Int),
+                    new VHE.Entity.Parameter("_fade", 1.0f, VHE.Entity.Type.Float),
+                    new VHE.Entity.Parameter("style", 0, VHE.Entity.Type.Int),
+                }
+            };
+
+            MapAddEntity(light, lpos);
+
+            return model;
+        }
+
         /*Map methods*/
+
+        private static void MapAddEntity(VHE.Entity entity, VHE.Point position)
+        {
+            MapAddEntity(entity, position.X, position.Y, position.Z);
+        }
+
+        private static void MapAddEntity(VHE.Entity entity, float x, float y, float z)
+        {
+            x *= CSScale;
+            y *= -CSScale;
+            z *= CSScale;
+
+            var pos = new VHE.Point(x, y, z);
+            entity.Parameters.Add(new VHE.Entity.Parameter("origin", pos, VHE.Entity.Type.Point));
+
+            Map.Data.Add(entity);
+        }
 
         private static void MapAddObject(VHE.Map.Solid solid, BlockDescriptor bt, BlockGroup bg)
         {

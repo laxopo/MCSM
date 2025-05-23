@@ -639,10 +639,17 @@ namespace MCSM
 
         public static void Rotate3D(VHE.Point pt, double rotX, double rotY, double rotZ)
         {
+            Rotate3D(pt, new VHE.Point(), rotX, rotY, rotZ);
+        }
+
+        public static void Rotate3D(VHE.Point pt, VHE.Point orig, double rotX, double rotY, double rotZ)
+        {
             if (rotX == 0 && rotY == 0 && rotZ == 0)
             {
                 return;
             }
+
+            pt.Substract(orig);
 
             double rx = GetRad(rotX);
             double ry = GetRad(rotY);
@@ -684,6 +691,8 @@ namespace MCSM
             pt.X = (float)m3[0];
             pt.Y = (float)m3[1];
             pt.Z = (float)m3[2];
+
+            pt.Summ(orig);
         }
 
         public static void RotateUV(VHE.Point u, VHE.Point v, float rot)
