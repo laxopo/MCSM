@@ -588,7 +588,7 @@ namespace MCSM
         private static void GroupNormal(Block block, int x, int y, int z, BlockDescriptor bt)
         {
             bool found = false;
-            BlockGroup[] cuts = new BlockGroup[2];
+            var cuts = new List<BlockGroup>();
             var types = new BlockGroup.ModelType[] {
                 BlockGroup.ModelType.Normal,
                 BlockGroup.ModelType.Liquid,
@@ -634,7 +634,7 @@ namespace MCSM
                     }
                     else
                     {
-                        cuts = solid.Cut(x, y, z);
+                        cuts.AddRange(solid.Cut(x, y, z));
                     }
                 }
             }
