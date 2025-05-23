@@ -1411,7 +1411,7 @@ namespace MCSM
                         if (dim.Height == 1)
                         {
                             sy *= 1.3f;
-                            oty = (float)(-0.325 * texture.Height / 128);
+                            oty = -0.325f * texture.Height / 128;
                         }
 
                         //char full offset x

@@ -49,15 +49,13 @@ namespace MCSM
                         int xmin = 0, xmax = -1, ymin = 0, ymax = -1;
                         bool found = false;
 
-                        
-
                         for (int y = 0; y < 8; y++)
                         {
                             for (int x = 0; x < 8; x++)
                             {
                                 int tx = x0 + x * scale;
                                 int ty = y0 + y * scale;
-                                int p = VHE.WAD.GetPixel(bmd, x, y);
+                                int p = VHE.WAD.GetPixel(bmd, tx, ty);
 
                                 if (p != 255)
                                 {
