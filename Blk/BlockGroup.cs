@@ -48,7 +48,8 @@ namespace MCSM
             Special,
             Sign,
             Rail,
-            Torch
+            Torch,
+            Stairs
         }
 
         public static ModelType SType(string type)

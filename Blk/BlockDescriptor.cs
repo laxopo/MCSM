@@ -35,6 +35,7 @@ namespace MCSM
         {
             None,
             R4,
+            R4L,
             R4Z,
             R6,
             R8,

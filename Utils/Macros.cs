@@ -124,11 +124,11 @@ namespace MCSM
                     case "ANG4":
                         if (entity)
                         {
-                            res = (-BlockDataParse.Rotation4(bg.Data) + 90).ToString();
+                            res = (-BlockDataParse.Rotation4L(bg.Data) + 90).ToString();
                         }
                         else
                         {
-                            res = BlockDataParse.Rotation4(bg.Data).ToString();
+                            res = BlockDataParse.Rotation4L(bg.Data).ToString();
                         }
                         break;
 

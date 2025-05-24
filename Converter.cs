@@ -261,18 +261,18 @@ namespace MCSM
 
                         if (bt != null && bt.ModelClass != null)
                         {
-                            var type = bt.ModelClass.ToUpper();
+                            var type = BlockGroup.SType(bt.ModelClass);
                             block.Name = bt.Name;
 
                             switch (type)
                             {
-                                case "PANE":
-                                case "FENCE":
+                                case BlockGroup.ModelType.Pane:
+                                case BlockGroup.ModelType.Fence:
                                     GroupPaneFence(block, bt, x, y, z);
                                     block.ID = 0;
                                     break;
 
-                                case "DOOR":
+                                case BlockGroup.ModelType.Door:
                                     if (block.Data < 8)
                                     {
                                         int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
@@ -289,9 +289,10 @@ namespace MCSM
                                     block.ID = 0;
                                     break;
 
-                                case "GRASS":
-                                case "SIGN":
-                                case "TORCH":
+                                case BlockGroup.ModelType.Grass:
+                                case BlockGroup.ModelType.Sign:
+                                case BlockGroup.ModelType.Torch:
+                                case BlockGroup.ModelType.Stairs:
                                     GroupSingle(block, x, y, z, type);
                                     break;
                             }
@@ -756,6 +757,9 @@ namespace MCSM
 
                 case BlockGroup.ModelType.Torch:
                     return ModelTorch(bg, bt, convEnable);
+
+                case BlockGroup.ModelType.Stairs:
+                    return ModelStairs(bg, bt, convEnable);
 
                 default:
                     throw new Exception("Undefined model type.");
@@ -1529,7 +1533,7 @@ namespace MCSM
                 case 7:
                 case 8:
                 case 9:
-                    rotation = new VHE.Point(0, 0, BlockDataParse.Rotation4(bg.Data - 6));
+                    rotation = new VHE.Point(0, 0, BlockDataParse.Rotation4L(bg.Data - 6));
                     break;
             }
 
@@ -1669,6 +1673,179 @@ namespace MCSM
             };
 
             MapAddEntity(light, lpos);
+
+            return model;
+        }
+
+        private static Model ModelStairs(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
+        {
+            float zbase = 0;
+            var data = bg.Data;
+            bool highData = false;
+            if (data > 3)
+            {
+                zbase = 0.5f;
+                data -= 4;
+                highData = true;
+            }
+
+            bool pinShort = false, pinRight = false, pinSecond = false;
+
+            if (convEnable)
+            {
+                var points = new VHE.PointInt[]
+                {
+                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z),
+                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z)
+                };
+
+                switch (data)
+                {
+                    case 0:
+                        points[0].X = bg.Block.X + 1;
+                        points[1].X = bg.Block.X - 1;
+                        break;
+
+                    case 1:
+                        points[0].X = bg.Block.X - 1;
+                        points[1].X = bg.Block.X + 1;
+                        break;
+
+                    case 2:
+                        points[0].Z = bg.Block.Z + 1;
+                        points[1].Z = bg.Block.Z - 1;
+                        break;
+
+                    case 3:
+                        points[0].Z = bg.Block.Z - 1;
+                        points[1].Z = bg.Block.Z + 1;
+                        break;
+
+                    default:
+                        throw new Exception("Bad block data");
+                }
+
+                for (int i = 0; i < 2; i++)
+                {
+                    var pt = points[i];
+                    var block = MCWorld.GetBlock(Dimension, pt.X, pt.Y, pt.Z);
+                    if (block.ID == bg.ID)
+                    {
+                        var bdata = block.Data;
+                        bool bHighData = false;
+
+                        if (bdata > 3)
+                        {
+                            bdata -= 4;
+                            bHighData = true;
+                        }
+
+                        if (highData != bHighData)
+                        {
+                            continue;
+                        }
+
+                        if ((data < 2 && bdata < 2) || (data >= 2 && bdata >= 2))
+                        {
+                            continue;
+                        }
+
+                        switch (data)
+                        {
+                            case 0:
+                                pinRight = bdata == 2;
+                                break;
+
+                            case 1:
+                                pinRight = bdata == 3;
+                                break;
+
+                            case 2:
+                                pinRight = bdata == 1;
+                                break;
+
+                            case 3:
+                                pinRight = bdata == 0;
+                                break;
+                        }
+
+                        if (i == 0) //back
+                        {
+                            pinShort = true;
+                        }
+                        else //front
+                        {
+                            pinSecond = true;
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            var rot = BlockDataParse.Rotation4(data);
+            float psy = 0, poy = 0;
+
+            if (!pinShort)
+            {
+                psy = 0.5f;
+            }
+
+            if (pinRight)
+            {
+                poy = 0.5f;
+            }
+
+            var model = new Model()
+            {
+                Name = "Stairs",
+                Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Solids = new List<Model.Solid>()
+                {
+                    new Model.Solid() //base
+                    {
+                        Size = new VHE.Point(1, 1, 0.5f),
+                        Offset = new VHE.Point(0, 0, zbase),
+                        TextureLockOffsets = true
+                    },
+                    new Model.Solid() //pin
+                    {
+                        Size = new VHE.Point(0.5f, 0.5f + psy, 0.5f),
+                        Offset = new VHE.Point(0.5f, poy, 0.5f - zbase),
+                        OriginRotOffset = new VHE.Point(0, 0.5f, 0),
+                        Rotation = new VHE.Point(0, 0, rot),
+                        TextureLockOffsets = true,
+                        Faces = new List<Model.Face>()
+                        {
+                            new Model.Face(Model.Faces.Top)
+                            {
+                                Rotation = BlockDataParse.Rotation4Z(data + 2)
+                            },
+                            new Model.Face(Model.Faces.Bottom)
+                            {
+                                Rotation = rot
+                            }
+                        }
+                    }
+                }
+            };
+
+            if (pinSecond)
+            {
+                var ps = model.Solids[1].Copy();
+                ps.Size.Y = 0.5f;
+                ps.Offset.X = 0;
+                ps.Offset.Y = 0;
+                ps.OriginRotOffset.X = 0.5f;
+                model.Solids.Add(ps);
+            }
+
+            if (!convEnable)
+            {
+                return model;
+            }
+
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
 
             return model;
         }

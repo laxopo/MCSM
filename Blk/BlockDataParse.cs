@@ -13,7 +13,7 @@ namespace MCSM
             return AngleLimit((int)(data * 22.5));
         }
 
-        public static int Rotation4(int data)
+        public static int Rotation4L(int data)
         {
             return AngleLimit(data * 90);
         }
@@ -33,6 +33,24 @@ namespace MCSM
 
                 case 5:
                     return 90;
+            }
+        }
+
+        public static int Rotation4(int data)
+        {
+            switch (data)
+            {
+                default:
+                    return 0;
+
+                case 1:
+                    return 180;
+
+                case 2:
+                    return 90;
+
+                case 3:
+                    return 270;
             }
         }
 
@@ -96,8 +114,8 @@ namespace MCSM
                 default:
                     return new Point(0, 0, 0);
 
-                case BlockDescriptor.RotationType.R4:
-                    return new Point(0, 0, Rotation4(data));
+                case BlockDescriptor.RotationType.R4L:
+                    return new Point(0, 0, Rotation4L(data));
 
                 case BlockDescriptor.RotationType.R4Z:
                     return new Point(0, 0, Rotation4Z(data));
