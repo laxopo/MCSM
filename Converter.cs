@@ -47,6 +47,7 @@ namespace MCSM
             {Resources.Blocks, @"data\blocks.json"},
             {Resources.SignEntities, @"data\sign_entities.json"},
             {Resources.SolidEntities, @"data\solid_entities.json"},
+            {Resources.SolidEntities, @"data\sys_entities.json"},
             {Resources.Config, @"config.json"}
         };
 
@@ -58,6 +59,7 @@ namespace MCSM
             Blocks,
             SignEntities,
             SolidEntities,
+            SysEntities,
             Config
         }
 
@@ -1338,8 +1340,14 @@ namespace MCSM
             }
 
             /*generate text*/
-            if (text.Length > 0)
+            if (text.Length > 0 && convEnable)
             {
+                var textModel = new Model()
+                {
+                    Origin = model.Origin,
+                    Rotation = model.Rotation
+                };
+
                 string fontTextureName = "{font";
                 var texture = Modelling.GetTexture(Wads, fontTextureName);
                 const int sch = 8; //char size in font pixels
@@ -1450,7 +1458,7 @@ namespace MCSM
                                 }
                             };
 
-                            model.Solids.Add(chr);
+                            textModel.Solids.Add(chr);
                         }
                         else
                         {
@@ -1461,6 +1469,17 @@ namespace MCSM
                         xShift += sx + 1 * pScale;
                     }
                 }
+
+                var entity = new VHE.Entity("func_illusionary")
+                {
+                    Parameters = new List<VHE.Entity.Parameter>()
+                    {
+                        new VHE.Entity.Parameter("rendermode", 4, VHE.Entity.Type.Int),
+                        new VHE.Entity.Parameter("renderamt", 255, VHE.Entity.Type.Int)
+                    }
+                };
+
+                MapAddObject(Modelling.GenerateSolids(null, bg, textModel), entity, bg);
             }
 
             if (!convEnable)
@@ -1552,11 +1571,16 @@ namespace MCSM
                         Rotation = solidRot,
                         TexturedFaces = new Model.Faces[]
                         {
-                            Model.Faces.Top
+                            Model.Faces.Top,
+                            Model.Faces.Bottom
                         },
                         Faces = new List<Model.Face>()
                         {
                             new Model.Face(Model.Faces.Top)
+                            {
+                                Rotation = texRot
+                            },
+                            new Model.Face(Model.Faces.Bottom)
                             {
                                 Rotation = texRot
                             }
@@ -1582,7 +1606,7 @@ namespace MCSM
             {
                 origin = new VHE.Point(0.5f, 0.5f, 0);
                 offset = new VHE.Point(0.5f, 0.5f, 0);
-                lpos = new VHE.Point(bg.Xmin + offset.X, bg.Ymin + offset.Y, bg.Zmin + 0.625f);
+                lpos = new VHE.Point(bg.Xmin + offset.X, bg.Ymin + offset.Y, bg.Zmin + 0.65f);
             }
             else if (bg.Data > 0 && bg.Data < 5)
             {
@@ -1610,7 +1634,7 @@ namespace MCSM
                 }
 
                 lpos = new VHE.Point(offset);
-                lpos.Z += 0.6f;
+                lpos.Z += 0.65f;
                 lpos.X += 0.18f;
                 Modelling.Rotate3D(lpos, origin, 0, 0, rotZ);
                 lpos.Summ(new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin));
@@ -1872,9 +1896,7 @@ namespace MCSM
             if (se != null)
             {
                 var entity = GenerateEntity(se, bg, "E" + Map.Data.Count);
-                solids.ForEach(s => entity.AddSolid(s));
-                Map.CreateEntity(entity);
-                EntitiesCurrent += solids.Count;
+                MapAddObject(solids, entity, bg);
             }
             else
             {
@@ -1883,6 +1905,13 @@ namespace MCSM
             }
 
             var test = Map.GetSolidsCount().Solids;
+        }
+
+        private static void MapAddObject(List<VHE.Map.Solid> solids, VHE.Entity entity, BlockGroup bg)
+        {
+            solids.ForEach(s => entity.AddSolid(s));
+            Map.CreateEntity(entity);
+            EntitiesCurrent += solids.Count;
         }
 
         private static EntityScript GetSolidEntity(BlockDescriptor bt)
