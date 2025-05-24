@@ -174,7 +174,7 @@ namespace MCSM
 
         public static Model GetModel(BlockGroup bg, BlockDescriptor bt)
         {
-            bg.Type = BlockGroup.SType[bt.ModelClass.ToUpper()];
+            bg.Type = BlockGroup.SType(bt.ModelClass);
             return BuildModel(bg, bt, false);
         }
 
@@ -412,7 +412,7 @@ namespace MCSM
 
         private static void GroupSingle(Block block, int x, int y, int z, string type, int data = -1)
         {
-            GroupSingle(block, x, y, z, BlockGroup.SType[type], data);
+            GroupSingle(block, x, y, z, BlockGroup.SType(type), data);
         }
 
         private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type, int data = -1)
@@ -433,7 +433,7 @@ namespace MCSM
         private static void GroupPaneFence(Block block, BlockDescriptor bt, int x, int y, int z)
         {
             bool px = false, py = false;
-            var model = BlockGroup.SType[bt.ModelClass.ToUpper()];
+            var model = BlockGroup.SType(bt.ModelClass);
 
             //X
             var paneX = BlockGroups.Find(p => p.Type == model && !p.XClosed &&

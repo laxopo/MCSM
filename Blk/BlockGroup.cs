@@ -26,6 +26,8 @@ namespace MCSM
         public Orient Orientation { get; set; }
         public ModelType Type { get; set; }
 
+        private static Dictionary<string, ModelType> STypeDictionary;
+
         public enum Orient
         {
             None,
@@ -49,19 +51,19 @@ namespace MCSM
             Torch
         }
 
-        public static Dictionary<string, ModelType> SType = new Dictionary<string, ModelType>() {
-            { "NORMAL", ModelType.Normal },
-            { "SLAB", ModelType.Slab },
-            { "LIQUID", ModelType.Liquid },
-            { "PANE", ModelType.Pane },
-            { "FENCE", ModelType.Fence },
-            { "DOOR", ModelType.Door },
-            { "GRASS", ModelType.Grass },
-            { "SPECIAL", ModelType.Special },
-            { "SIGN", ModelType.Sign },
-            { "RAIL", ModelType.Rail },
-            { "TORCH", ModelType.Torch }
-        };
+        public static ModelType SType(string type)
+        {
+            if (STypeDictionary == null)
+            {
+                STypeDictionary = new Dictionary<string, ModelType>();
+                foreach (var key in Enum.GetNames(typeof(ModelType)))
+                {
+                    STypeDictionary.Add(key.ToUpper(), (ModelType)Enum.Parse(typeof(ModelType), key));
+                }
+            }
+
+            return STypeDictionary[type.ToUpper()];
+        }
 
         public BlockGroup() 
         {
@@ -178,7 +180,7 @@ namespace MCSM
 
         public static ModelType GetSolidType(string typeName)
         {
-            return SType[typeName.ToUpper()];
+            return SType(typeName);
         }
     }
 }
