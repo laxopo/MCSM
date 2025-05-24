@@ -1815,17 +1815,7 @@ namespace MCSM
                         OriginRotOffset = new VHE.Point(0, 0.5f, 0),
                         Rotation = new VHE.Point(0, 0, rot),
                         TextureLockOffsets = true,
-                        Faces = new List<Model.Face>()
-                        {
-                            new Model.Face(Model.Faces.Top)
-                            {
-                                Rotation = BlockDataParse.Rotation4Z(data + 2)
-                            },
-                            new Model.Face(Model.Faces.Bottom)
-                            {
-                                Rotation = rot
-                            }
-                        }
+                        TextureLockRotanion = true,
                     }
                 }
             };

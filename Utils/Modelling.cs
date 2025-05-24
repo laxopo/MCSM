@@ -96,7 +96,7 @@ namespace MCSM
             {
                 if (bg == null)
                 {
-                    throw new Exception("Position of the solid is not specified");
+                    throw new Exception("Position of the model is not specified");
                 }
 
                 pos = new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin);
@@ -134,7 +134,6 @@ namespace MCSM
                         }
                     }
 
-                    //if (modelBuf.TextureKeys.Count == 0 && bt != null && bt.TextureOriented)
                     if (bt != null && bt.TextureOriented)
                     {
                         mdlSolid.TextureOriented = true;
@@ -284,7 +283,6 @@ namespace MCSM
                 pt.Z = (pt.Z + pos.Z + origin.Z + mdlSolid.AbsOffset.Z) * Scale;
             }
 
-
             //create a solid
             var solid = new VHE.Map.Solid()
             {
@@ -310,18 +308,33 @@ namespace MCSM
                 }
             };
 
+            //Rotation lock
+            var rotl = new float[6];
+            rotl[0] = -mdlSolid.Rotation.Z;
+            rotl[1] = mdlSolid.Rotation.Z;
+            rotl[2] = -mdlSolid.Rotation.X;
+            rotl[3] = mdlSolid.Rotation.X;
+            rotl[4] = -mdlSolid.Rotation.Y;
+            rotl[5] = mdlSolid.Rotation.Y;
+
             //face texturing
             for (int i = 0; i < 6; i++)
             {
                 var face = solid.Faces[i];
+                float rotlf = 0;
 
-                face.Rotation = RotationLimit(mdlSolid.Face(i).Rotation);
+                if (mdlSolid.TextureLockRotanion)
+                {
+                    rotlf = rotl[i];
+                }
+
+                face.Rotation = RotationLimit(mdlSolid.Face(i).Rotation + rotlf);
+
                 RotateUV(aus[i], avs[i], face.Rotation);
                 face.AxisU = aus[i];
                 face.AxisV = avs[i];
 
                 face.Texture = GetTextureName(mdlSolid, i);
-                
 
                 var wadTexture = GetTexture(Wads, face.Texture);
                 if (wadTexture == null)
@@ -767,7 +780,7 @@ namespace MCSM
         {
             if (angle < 0)
             {
-                return 360 - angle;
+                return 360 - (-angle % 360);
             }
             else if (angle >= 360)
             {

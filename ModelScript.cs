@@ -34,6 +34,7 @@ namespace MCSM
 
             //bool
             public bool TextureLockOffsets { get; set; }
+            public bool TextureLockRotanion { get; set; }
             public bool TextureOriented { get; set; }
             
             //Face sides
@@ -155,6 +156,7 @@ namespace MCSM
                     TextureScale = Parse(sld.TextureScale, Type.Float, 1, bg),
 
                     TextureLockOffsets = sld.TextureLockOffsets,
+                    TextureLockRotanion = sld.TextureLockRotanion,
                     TextureOriented = sld.TextureOriented,
                     
                     Faces = faces
@@ -207,7 +209,8 @@ namespace MCSM
                         Size = ToScript(solid.Size, Defaults.PZero),
                         TextureScale = ToScript(solid.TextureScale, 0, 1),
                         TextureLockOffsets = solid.TextureLockOffsets,
-                        TextureOriented = solid.TextureOriented,
+                        TextureLockRotanion = solid.TextureLockRotanion,
+                        TextureOriented = solid.TextureOriented
                     };
 
                     if (solid.TexturedFaces != null && solid.TexturedFaces.Length > 0)
