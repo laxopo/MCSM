@@ -335,7 +335,7 @@ namespace MCSM
                 case Type.Float:
                 case Type.Point:
                 case Type.Point2D:
-                    var data = Macros.Parse(value.ToString(), bg, false);
+                    var data = Macros.Parse(value.ToString(), true, bg, false);
                     return VHE.Entity.DeserializeValue(data, Types[type]);
 
                 case Type.FaceList:

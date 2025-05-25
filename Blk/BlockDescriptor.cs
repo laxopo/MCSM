@@ -13,6 +13,7 @@ namespace MCSM
         public string ModelClass { get; set; }
         public string ModelName { get; set; }
         public string Entity { get; set; }
+        public List<string> SysEntities { get; set; } = new List<string>();
         public int DataOffset { get; set; }
         public int DataMask { get; set; }
         public int DataMax { get; set; }
@@ -67,6 +68,7 @@ namespace MCSM
             bt.ModelClass = ModelClass;
             bt.ModelName = ModelName;
             bt.Entity = Entity;
+            bt.SysEntities = new List<string>(SysEntities);
             bt.DataOffset = DataOffset;
             bt.DataMask = DataMask;
             bt.Data = Data;
@@ -153,6 +155,11 @@ namespace MCSM
         public BlockGroup.ModelType GetSolidType()
         {
             return BlockGroup.GetSolidType(ModelClass);
+        }
+
+        public string GetTextureName(int blockdata, string solidName, params string[] keys)
+        {
+            return TextureName(Textures, blockdata, solidName, keys);
         }
 
         /**/

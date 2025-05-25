@@ -218,7 +218,6 @@ namespace MCSM.VHE
                     throw new Exception("Undefined value type.");
             }
         }
-
         public static string SerializeValue(object value, Type valueType)
         {
             string buf = "";
@@ -296,6 +295,104 @@ namespace MCSM.VHE
                 default:
                     throw new Exception("Undefined value type.");
             }
+        }
+
+        public List<Parameter> CopyParameters()
+        {
+            var epars = new List<Parameter>();
+
+            foreach (var par in Parameters)
+            {
+                object eval;
+                switch (par.ValueType)
+                {
+                    case Type.IntArray:
+                        var val = par.Value as int[];
+                        eval = new int[val.Length];
+                        val.CopyTo((int[])eval, 0);
+                        break;
+
+                    case Type.Point:
+                        eval = new Point((Point)par.Value);
+                        break;
+
+                    case Type.Point2D:
+                        eval = new Point2D((Point2D)par.Value);
+                        break;
+
+                    case Type.SolidArray:
+                        eval = new List<Map.Solid>((List<Map.Solid>)par.Value);
+                        break;
+
+                    case Type.StringArray:
+                        eval = new string[(par.Value as string[]).Length];
+                        (par.Value as string[]).CopyTo((string[])eval, 0);
+                        break;
+
+                    default:
+                        eval = par.Value;
+                        break;
+                }
+
+                epars.Add(new Parameter(par.Name, eval, par.ValueType));
+            }
+
+            return epars;
+        }
+
+        public bool Compare(Entity entity, params string[] skipParams)
+        {
+            if (ClassName != entity.ClassName)
+            {
+                return false;
+            }
+
+            var pars = CopyParameters();
+            var epars = entity.CopyParameters();
+
+            foreach (var par in Parameters)
+            {
+                if (skipParams.Contains(par.Name))
+                {
+                    continue;
+                }
+
+                var epar = entity.Parameters.Find(x => x.Name == par.Name);
+                if (epar == null)
+                {
+                    return false;
+                }
+
+
+                if (epar.ValueType != par.ValueType || epar.SerializeValue() != par.SerializeValue())
+                {
+                    return false;
+                }
+
+                RemoveItemPar(pars, par.Name);
+                RemoveItemPar(epars, par.Name);
+            }
+
+            foreach (var skip in skipParams)
+            {
+                RemoveItemPar(pars, skip);
+                RemoveItemPar(epars, skip);
+            }
+
+            return pars.Count == epars.Count;
+        }
+
+        /**/
+
+        private void RemoveItemPar(List<Parameter> list, string parName)
+        {
+            var rem = list.Find(x => x.Name == parName);
+            if (rem == null)
+            {
+                return;
+            }
+
+            list.Remove(rem);
         }
     }
 }

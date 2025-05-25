@@ -20,7 +20,7 @@ namespace MCSM
 
         public static string TextureName(string name, BlockGroup bg)
         {
-            return Parse(name, bg, false);
+            return Parse(name, false, bg, false);
         }
 
         public static EntityScript GetSignEntity(List<EntityScript> list, string[] signText)
@@ -47,19 +47,23 @@ namespace MCSM
             return es;
         }
 
-        public static string EntityValue(string rawValue, BlockGroup bg)
+        public static string EntityValue(string rawValue, BlockGroup bg, BlockDescriptor bt = null)
         {
-            return Parse(rawValue, bg, true);
+            return Parse(rawValue, true, bg, true, bt);
         }
 
-        public static string Parse(string value, BlockGroup bg, bool entity)
+        public static string Parse(string value, bool isFloat, BlockGroup bg, bool entity, BlockDescriptor bt = null)
         {
             if (value == null || bg == null)
             {
                 return value;
             }
 
-            value = value.Replace('.', ',');
+            if (isFloat)
+            {
+                value = value.Replace('.', ',');
+            }
+            
             string data, newValue = value;
             int index = 0;
 
@@ -142,6 +146,10 @@ namespace MCSM
 
                     case "Z":
                         res = ParseCoordinate(bg.Zmin + 0.5, args);
+                        break;
+
+                    case "TEX":
+                        res = bt.GetTextureName(-1, null);
                         break;
 
                     default:

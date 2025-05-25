@@ -34,20 +34,21 @@ namespace MCSM
         public static List<VHE.WAD> Wads { get; set; }
         public static List<EntityScript> SignEntities { get; set; }
         public static List<EntityScript> SolidEntities { get; set; }
+        public static List<EntityScript> SysEntities { get; set; }
         public static List<ModelScript> Models { get; set; }
         public static VHE.Map Map { get; private set; }
         public static List<BlockGroup> BlockGroups { get; private set; } = new List<BlockGroup>();
 
-
         private static FontDim FontDim = new FontDim();
         private static World MCWorld;
+        private static List<VHE.Entity> GenSysEntities = new List<VHE.Entity>();
 
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, @"data\models.json"},
             {Resources.Blocks, @"data\blocks.json"},
             {Resources.SignEntities, @"data\sign_entities.json"},
             {Resources.SolidEntities, @"data\solid_entities.json"},
-            {Resources.SolidEntities, @"data\sys_entities.json"},
+            {Resources.SysEntities, @"data\sys_entities.json"},
             {Resources.Config, @"config.json"}
         };
 
@@ -1890,8 +1891,7 @@ namespace MCSM
 
         private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDescriptor bt, BlockGroup bg)
         {
-            var se = GetSolidEntity(bt);
-            var t = Map.GetSolidsCount().Solids;
+            var se = GetEntity(SolidEntities, bt.Entity);
 
             if (se != null)
             {
@@ -1904,7 +1904,31 @@ namespace MCSM
                 SolidsCurrent += solids.Count;
             }
 
-            var test = Map.GetSolidsCount().Solids;
+            foreach (var syse in bt.SysEntities)
+            {
+                var et = GetEntity(SysEntities, syse);
+                var sysEntity = GenerateEntity(et, bg, "E" + Map.Data.Count, bt);
+                if (sysEntity == null)
+                {
+                    continue;
+                }
+
+                bool found = false;
+                foreach (var gse in GenSysEntities)
+                {
+                    if (gse.Compare(sysEntity, "origin"))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    MapAddEntity(sysEntity, GenSysEntities.Count * 2, -1, 0);
+                    GenSysEntities.Add(sysEntity);
+                }
+            }
         }
 
         private static void MapAddObject(List<VHE.Map.Solid> solids, VHE.Entity entity, BlockGroup bg)
@@ -1914,11 +1938,11 @@ namespace MCSM
             EntitiesCurrent += solids.Count;
         }
 
-        private static EntityScript GetSolidEntity(BlockDescriptor bt)
+        private static EntityScript GetEntity(List<EntityScript> list, string entityName)
         {
-            if (bt.Entity != null)
+            if (entityName != null)
             {
-                return SolidEntities.Find(x => x.Macros.ToUpper() == bt.Entity.ToUpper());
+                return list.Find(x => x.Macros.ToUpper() == entityName.ToUpper());
             }
 
             return null;
@@ -2151,7 +2175,7 @@ namespace MCSM
             return false;
         }
 
-        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, BlockGroup bg, string name = null)
+        private static VHE.Entity GenerateEntity(EntityScript entityTemplate, BlockGroup bg, string name = null, BlockDescriptor bt = null)
         {
             var entity = new VHE.Entity(entityTemplate.ClassName);
 
@@ -2163,7 +2187,7 @@ namespace MCSM
                 string value = part.Value;
                 try
                 {
-                    value = Macros.EntityValue(value, bg);
+                    value = Macros.EntityValue(value, bg, bt);
                     par.SetValue(value);
                     entity.Parameters.Add(par);
                 }
@@ -2628,10 +2652,16 @@ namespace MCSM
                     File.ReadAllText(Resource[Resources.SignEntities]));
             }
 
-            if (res == Resources.SignEntities || res == Resources.All)
+            if (res == Resources.SolidEntities || res == Resources.All)
             {
                 SolidEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SolidEntities]));
+            }
+
+            if (res == Resources.SysEntities || res == Resources.All)
+            {
+                SysEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
+                    File.ReadAllText(Resource[Resources.SysEntities]));
             }
         }
 
