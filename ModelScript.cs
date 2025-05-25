@@ -41,33 +41,52 @@ namespace MCSM
             public string[] TexturedFaces { get; set; }
 
             //Faces
-            public Face[] Faces { get; set; }
+            public List<Face> Faces { get; set; }
 
-            public class Face
+            public Face Face(string faceName)
             {
-                //string
-                public string Name { get; set; }
-                public string Texture { get; set; }
+                if (Faces == null)
+                {
+                    Faces = new List<Face>();
+                }
 
-                //float
-                public string OffsetU { get; set; }
-                public string OffsetV { get; set; }
-                public string ScaleU { get; set; }
-                public string ScaleV { get; set; }
-                public string Rotation { get; set; }
-                
-                //Point
-                public string Origin { get; set; }
+                var fc = Faces.ToList().Find(x => x.Name == faceName);
 
-                //bool
-                public bool UnscaledOffset { get; set; }
-                public bool StretchU { get; set; }
-                public bool StretchV { get; set; }
-                public bool ReverseU { get; set; }
-                public bool ReverseV { get; set; }
-                public bool Frame { get; set; }
-                public bool LockOrigin { get; set; }
+                if (fc == null)
+                {
+                    var nfc = new Face() { Name = faceName };
+                    Faces.Add(nfc);
+                    return nfc;
+                }
+
+                return fc;
             }
+        }
+
+        public class Face
+        {
+            //string
+            public string Name { get; set; }
+            public string Texture { get; set; }
+
+            //float
+            public string OffsetU { get; set; }
+            public string OffsetV { get; set; }
+            public string ScaleU { get; set; }
+            public string ScaleV { get; set; }
+            public string Rotation { get; set; }
+
+            //Point
+            public string Origin { get; set; }
+
+            //bool
+            public bool UnscaledOffset { get; set; }
+            public bool StretchU { get; set; }
+            public bool StretchV { get; set; }
+            public bool ReverseU { get; set; }
+            public bool ReverseV { get; set; }
+            public bool Frame { get; set; }
+            public bool LockOrigin { get; set; }
         }
 
         public enum Type
@@ -232,12 +251,12 @@ namespace MCSM
                     var faces = solid.GetFaces();
                     if (faces != null)
                     {
-                        var list = new List<Solid.Face>();
+                        var list = new List<Face>();
                         foreach (var face in faces)
                         {
-                            var defFcs = new Solid.Face();
+                            var defFcs = new Face();
 
-                            var fcs = new Solid.Face()
+                            var fcs = new Face()
                             {
                                 Name = face.Name.ToString(),
                                 OffsetU = ToScript(face.OffsetU, 0),
@@ -282,7 +301,7 @@ namespace MCSM
 
                         if (list.Count > 0)
                         {
-                            sls.Faces = list.ToArray();
+                            sls.Faces = list;
                         }
                     }
 
@@ -302,6 +321,7 @@ namespace MCSM
         {
             return FromJson(Serialize());
         }
+
 
         /**/
 
