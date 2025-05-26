@@ -619,12 +619,6 @@ namespace MCSM
                     continue;
                 }
 
-                /*if (bt != null && bt.ModelClass == BlockGroup.ModelType.Special.ToString() &&
-                    bt.Grouping == BlockDescriptor.GroupType.Disable)
-                {
-                    continue;
-                }*/
-
                 bool grXY = false, grZ = false;
 
                 if (bt != null)
@@ -649,7 +643,11 @@ namespace MCSM
 
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
-                    var exp = ((expX || expY) && grXY) || (expZ && grZ);
+                    var exp = true;
+                    if (((expX || expY) && !grXY) || (expZ && !grZ))
+                    {
+                        exp = false;
+                    }
 
                     if (block.ID != 0 && exp && CompareID(block, solid.ID, solid.Data) && !found)
                     {
