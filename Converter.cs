@@ -599,7 +599,8 @@ namespace MCSM
                 BlockGroup.ModelType.Liquid,
                 BlockGroup.ModelType.Rail,
                 BlockGroup.ModelType.Slab,
-                BlockGroup.ModelType.Special
+                BlockGroup.ModelType.Special,
+                BlockGroup.ModelType.Path
             };
 
             foreach (var solid in BlockGroups)
@@ -739,6 +740,7 @@ namespace MCSM
                 case BlockGroup.ModelType.Normal:
                 case BlockGroup.ModelType.Liquid:
                 case BlockGroup.ModelType.Slab:
+                case BlockGroup.ModelType.Path:
                     return ModelNormal(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Pane:
@@ -815,6 +817,7 @@ namespace MCSM
                     new Model.Solid()
                     {
                         Size = size,
+                        TextureLockOffsets = true
                     } 
                 }
             };
@@ -822,6 +825,10 @@ namespace MCSM
             if (bg.Type == BlockGroup.ModelType.Liquid)
             {
                 model.Solids[0].Size.Z -= 0.125f;
+            } 
+            else if (bg.Type == BlockGroup.ModelType.Path)
+            {
+                model.Solids[0].Size.Z -= 0.0625f;
             }
 
             if (convEnable)

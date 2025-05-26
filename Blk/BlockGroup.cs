@@ -39,6 +39,7 @@ namespace MCSM
         public enum ModelType
         {
             Normal,
+            Path,
             Slab,
             Pane,
             Fence,
@@ -49,7 +50,7 @@ namespace MCSM
             Sign,
             Rail,
             Torch,
-            Stairs
+            Stairs,
         }
 
         public static ModelType SType(string type)
