@@ -102,10 +102,26 @@ namespace MCSM
                 pos = new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin);
             }
 
+            pos.Summ(model.Offset);
+
             if (bt != null)
             {
                 bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
+
+                if (bt.Align != null)
+                {
+                    var al = ModelScript.Parse(bt.Align, ModelScript.Type.Point, new VHE.Point(1, 1, 1), bg);
+                    var alPos = new VHE.Point(
+                        GetEdgeMin(bg.Xmax - bg.Xmin, al.X),
+                        GetEdgeMin(bg.Ymax - bg.Ymin, al.Y),
+                        GetEdgeMin(bg.Zmax - bg.Zmin, al.Z));
+
+                    pos.Substract(alPos);
+                    pos.Substract(modelBuf.Origin);
+                }
             }
+
+            model.PositionBuf = pos.Copy();
 
             List<VHE.Map.Solid> solids = new List<VHE.Map.Solid>();
             bool textureInput = texture != null;

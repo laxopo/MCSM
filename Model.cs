@@ -10,11 +10,13 @@ namespace MCSM
     {
         public string Name { get; set; }
         public VHE.Point Origin { get; set; } = new VHE.Point();
+        public VHE.Point Offset { get; set; } = new VHE.Point();
         public VHE.Point Rotation { get; set; } = new VHE.Point();
         public List<Solid> Solids { get; set; } = new List<Solid>();
         public List<BlockDescriptor.TextureKey> TextureKeys { get; set; }
                 = new List<BlockDescriptor.TextureKey>();
         public VHE.Point Position { get; set; }
+        public VHE.Point PositionBuf { get; set; } = new VHE.Point();
 
         public class Solid
         {
@@ -157,6 +159,7 @@ namespace MCSM
         {
             Name = source.Name;
             Origin = source.Origin.Copy();
+            Offset = source.Offset.Copy();
             Rotation = source.Rotation.Copy();
             if (source.Position != null)
             {

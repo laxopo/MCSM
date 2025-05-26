@@ -11,6 +11,14 @@ namespace MCSM
     {
         private static float Scale { get; set; }
 
+        public enum ParseTypes
+        {
+            Undefined,
+            String,
+            Int,
+            Float
+        }
+
         /**/
 
         public static void Initialize(float csscale)
@@ -71,91 +79,7 @@ namespace MCSM
             while ((data = GetBlock(value, ref index)) != null)
             {
                 var args = data.Split(' ');
-                string res = "";
-
-                switch (args[0].ToUpper())
-                {
-                    case "D": //block data
-                        res = bg.Data.ToString();
-                        break;
-
-                    case "NBT": //block nbt
-
-                        if (bg.Block == null)
-                        {
-                            throw new Exception("The block is not specified");
-                        }
-
-                        if (args.Length < 3)
-                        {
-                            throw new Exception("Not enought arguments in macros");
-                        }
-
-                        if (bg.Block.Chunk == null)
-                        {
-                            break;
-                        }
-
-                        List<NBT> te = bg.Block.Chunk.NBTData.GetTag("Level/" + args[1]);
-                        foreach (var e in te)
-                        {
-                            string id = e.GetTag("id");
-                            int x = e.GetTag("x");
-                            int y = e.GetTag("y");
-                            int z = e.GetTag("z");
-
-                            if (id.ToUpper() == bg.Block.Name.ToUpper() &&
-                                x == bg.Block.X && y == bg.Block.Y && z == bg.Block.Z)
-                            {
-                                object par = e.GetTag(args[2]);
-                                res = par.ToString();
-                                break;
-                            }
-                        }
-                        break;
-
-                    case "ANG16":
-                        if (entity)
-                        {
-                            res = (-BlockDataParse.Rotation16(bg.Data) + 90).ToString();
-                        }
-                        else
-                        {
-                            res = BlockDataParse.Rotation16(bg.Data).ToString();
-                        }
-                        break;
-
-                    case "ANG4":
-                        if (entity)
-                        {
-                            res = (-BlockDataParse.Rotation4L(bg.Data) + 90).ToString();
-                        }
-                        else
-                        {
-                            res = BlockDataParse.Rotation4L(bg.Data).ToString();
-                        }
-                        break;
-
-                    case "X":
-                        res = ParseCoordinate(bg.Xmin + 0.5, args);
-                        break;
-
-                    case "Y":
-                        res = ParseCoordinate(-bg.Ymin - 0.5, args);
-                        break;
-
-                    case "Z":
-                        res = ParseCoordinate(bg.Zmin + 0.5, args);
-                        break;
-
-                    case "TEX":
-                        res = bt.GetTextureName(-1, null);
-                        break;
-
-                    default:
-                        throw new Exception("Unknown macros: " + args[0]);
-                }
-
+                string res = Decode(args, bg, entity, bt);
                 newValue = newValue.Replace("{" + data + "}", res);
             }
 
@@ -171,6 +95,157 @@ namespace MCSM
         }
 
         /**/
+
+        private static string Decode(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt = null)
+        {
+            string res = "";
+            switch (args[0].ToUpper())
+            {
+                case "D": //block data
+                    res = bg.Data.ToString();
+                    break;
+
+                case "NBT": //block nbt
+
+                    if (bg.Block == null)
+                    {
+                        throw new Exception("The block is not specified");
+                    }
+
+                    if (args.Length < 3)
+                    {
+                        throw new Exception("Not enought arguments in macros");
+                    }
+
+                    if (bg.Block.Chunk == null)
+                    {
+                        break;
+                    }
+
+                    List<NBT> te = bg.Block.Chunk.NBTData.GetTag("Level/" + args[1]);
+                    foreach (var e in te)
+                    {
+                        string id = e.GetTag("id");
+                        int x = e.GetTag("x");
+                        int y = e.GetTag("y");
+                        int z = e.GetTag("z");
+
+                        if (id.ToUpper() == bg.Block.Name.ToUpper() &&
+                            x == bg.Block.X && y == bg.Block.Y && z == bg.Block.Z)
+                        {
+                            object par = e.GetTag(args[2]);
+                            res = par.ToString();
+                            break;
+                        }
+                    }
+                    break;
+
+                case "ANG16":
+                    if (entity)
+                    {
+                        res = (-BlockDataParse.Rotation16(bg.Data) + 90).ToString();
+                    }
+                    else
+                    {
+                        res = BlockDataParse.Rotation16(bg.Data).ToString();
+                    }
+                    break;
+
+                case "ANG4":
+                    if (entity)
+                    {
+                        res = (-BlockDataParse.Rotation4L(bg.Data) + 90).ToString();
+                    }
+                    else
+                    {
+                        res = BlockDataParse.Rotation4L(bg.Data).ToString();
+                    }
+                    break;
+
+                case "X":
+                    res = ParseCoordinate(bg.Xmin + 0.5, args);
+                    break;
+
+                case "Y":
+                    res = ParseCoordinate(-bg.Ymin - 0.5, args);
+                    break;
+
+                case "Z":
+                    res = ParseCoordinate(bg.Zmin + 0.5, args);
+                    break;
+
+                case "SX":
+                    res = (bg.Xmax - bg.Xmin).ToString();
+                    break;
+
+                case "SY":
+                    res = (bg.Ymax - bg.Ymin).ToString();
+                    break;
+
+                case "SZ":
+                    res = (bg.Zmax - bg.Zmin).ToString();
+                    break;
+
+                case "TEX":
+                    res = bt.GetTextureName(-1, null);
+                    break;
+
+                case "IF":
+                    res = ParseIf(args, bg, entity, bt);
+                    break;
+
+                default:
+                    throw new Exception("Unknown macros: " + args[0]);
+            }
+
+            return res;
+        }
+
+        private static ParseTypes GetParseType(string macros)
+        {
+            switch (macros.ToUpper())
+            {
+                case "D":
+                case "SX":
+                case "SY":
+                case "SZ":
+                    return ParseTypes.Int;
+
+                case "NBT":
+                case "TEX":
+                    return ParseTypes.String;
+
+                case "ANG16":
+                case "ANG4":
+                case "X":
+                case "Y":
+                case "Z":
+                    return ParseTypes.Float;
+
+                case "IF":
+                    return ParseTypes.Undefined;
+
+                default:
+                    throw new Exception("Unknown macros: " + macros);
+            }
+        }
+
+        private static dynamic ConvertParseType(string macros, string value)
+        {
+            var ptype = GetParseType(macros);
+
+            switch (ptype)
+            {
+                case ParseTypes.Float:
+                    return Convert.ToSingle(value);
+
+                case ParseTypes.Int:
+                    return Convert.ToInt32(value);
+
+                default:
+                    return value;
+            }
+        }
 
         private static int LastIndexOf(string text, string sign, int endIndex)
         {
@@ -228,6 +303,191 @@ namespace MCSM
             }
             catch { }
             return (x * Scale).ToString();
+        }
+
+        private static string ParseIf(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt = null)
+        {
+            //$sx==2||$sy==2:T:F
+
+            //$sx==2 || $sy==2 T       F
+            //conds            valTrue valFalse
+
+            //$sx  ==   2     || $sy  ==   2     T       F
+            //cond cpop cpval op cond cpop cpval valTrue valFalse
+
+            string res = "";
+
+            for (int i = 1; i < args.Length; i++)
+            {
+                var arg = args[i];
+                var cv = arg.Split(':');
+                if (cv.Length < 2)
+                {
+                    //error
+                    continue;
+                }
+
+                var condMain = cv[0];
+                var valTrue = cv[1];
+                string valFalse = "";
+                if (cv.Length > 2)
+                {
+                    valFalse = cv[2];
+                }
+
+                var conds = ConditionSplit(condMain); //$sx==2 || $sy==2
+
+                //calc condidions
+                for (int c = 0; c < conds.Length; c += 2) //calc $sx==2 and $sy==2
+                {
+                    var cstr = conds[c];
+                    var cc = cstr.Split(new string[] { "==", "!=", "<=", ">=", "<", ">" }, 
+                        StringSplitOptions.RemoveEmptyEntries);
+                    if (cv.Length < 2)
+                    {
+                        //error
+                        continue;
+                    }
+
+                    var cond = cc[0]; //$sx
+                    var cpval = cc[1]; //2
+                    var cpop = cstr.Replace(cond, "").Replace(cpval, ""); //==
+
+                    if (cond[0] == '$')
+                    {
+                        var condArgs = cond.Trim('$').Split(' ');
+                        var condVal = Decode(condArgs, bg, entity, bt);
+
+                        bool condRes = false;
+                        dynamic cdv = ConvertParseType(condArgs[0], condVal);
+                        dynamic cpv = ConvertParseType(condArgs[0], cpval);
+
+                        switch (cpop)
+                        {
+                            case "==":
+                                condRes = cdv == cpv;
+                                break;
+
+                            case "!=":
+                                condRes = cdv != cpv;
+                                break;
+
+                            case "<=":
+                                condRes = cdv <= cpv;
+                                break;
+
+                            case ">=":
+                                condRes = cdv >= cpv;
+                                break;
+
+                            case "<":
+                                condRes = cdv < cpv;
+                                break;
+
+                            case ">":
+                                condRes = cdv > cpv;
+                                break;
+                        }
+
+                        if (condRes)
+                        {
+                            conds[c] = "t";
+                        }
+                        else
+                        {
+                            conds[c] = "f";
+                        }
+                    }
+                    else
+                    {
+                        //error
+                        continue;
+                    }
+                }
+
+                //condition logic ops
+                bool init = false;
+                bool opf = false;
+                bool cd1 = false, cd2;
+                string logop = "";
+
+                foreach (var cond in conds) //t || f
+                {
+                    if (opf)
+                    {
+                        logop = cond;
+                    }
+                    else
+                    {
+                        if (!init)
+                        {
+                            init = true;
+                            cd1 = cond == "t";
+                        }
+                        else
+                        {
+                            cd2 = cond == "t";
+                            
+                            switch (logop)
+                            {
+                                case "||":
+                                    cd1 |= cd2;
+                                    break;
+
+                                case "&&":
+                                    cd1 &= cd2;
+                                    break;
+                            }
+                        }
+                    }
+
+                    opf ^= true;
+                }
+
+                //result
+                if (cd1)
+                {
+                    res = valTrue;
+                }
+                else
+                {
+                    res = valFalse;
+                }
+            }
+
+            return res;
+        }
+
+        private static string[] ConditionSplit(string condMain)
+        {
+            var conds = new List<string>() { condMain };
+
+            List<string> Splt(List<string> conditions, string sep)
+            {
+                var buf = new List<string>();
+
+                for (int c = 0; c < conditions.Count; c++)
+                {
+                    var cond = conditions[c];
+
+                    var cds = cond.Split(new string[] { sep }, StringSplitOptions.RemoveEmptyEntries);
+                    
+                    for (int i = 0; i < cds.Length; i++)
+                    {
+                        buf.Add(cds[i]);
+                        if (i != cds.Length - 1)
+                        {
+                            buf.Add(sep);
+                        }
+                    }
+                }
+
+                return buf;
+            }
+
+            conds = Splt(conds, "&&");
+            conds = Splt(conds, "||");
+            return conds.ToArray();
         }
     }
 }

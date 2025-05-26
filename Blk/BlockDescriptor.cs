@@ -21,15 +21,27 @@ namespace MCSM
         public bool IgnoreExcluded { get; set; }
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
-        public ThreeState Grouping { get; set; }
+        public GroupType Grouping { get; set; }
         public RotationType Rotation { get; set; }
+        public string Align { get; set; }
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
 
-        public enum ThreeState
+        /*public enum ThreeState
         {
             Auto,
             Enable,
             Disable
+        }*/
+
+        public enum GroupType
+        {
+            None = 2,
+            DataXYZ = 0,
+            DataXY = 1,
+            DataZ = 3,
+            XYZ,
+            XY,
+            Z
         }
 
         public enum RotationType
@@ -80,6 +92,7 @@ namespace MCSM
             bt.Rotation = Rotation;
             bt.Grouping = Grouping;
             bt.WorldOffset = WorldOffset;
+            bt.Align = Align;
             bt.Textures = new List<TextureKey>();
 
             if (DataExceptions != null)
@@ -90,10 +103,19 @@ namespace MCSM
                     bt.DataExceptions[i] = DataExceptions[i];
                 }
             }
-            
+
             Textures.ForEach(x => bt.Textures.Add(x.Copy()));
 
             return bt;
+        }
+
+        public static string[] GetGroupTypeList()
+        {
+            var list = Enum.GetNames(typeof(GroupType)).ToList().OrderBy(o => o).ToList();
+            var none = list.Find(x => x == Enum.GetName(typeof(GroupType), GroupType.None));
+            list.Remove(none);
+            list.Insert(0, none);
+            return list.ToArray();
         }
 
         public void SetTextureName(string key, string textureName)

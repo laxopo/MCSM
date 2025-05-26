@@ -598,7 +598,8 @@ namespace MCSM
                 BlockGroup.ModelType.Normal,
                 BlockGroup.ModelType.Liquid,
                 BlockGroup.ModelType.Rail,
-                BlockGroup.ModelType.Slab
+                BlockGroup.ModelType.Slab,
+                BlockGroup.ModelType.Special
             };
 
             foreach (var solid in BlockGroups)
@@ -618,21 +619,39 @@ namespace MCSM
                     continue;
                 }
 
+                /*if (bt != null && bt.ModelClass == BlockGroup.ModelType.Special.ToString() &&
+                    bt.Grouping == BlockDescriptor.GroupType.Disable)
+                {
+                    continue;
+                }*/
+
+                bool grXY = false, grZ = false;
+
+                if (bt != null)
+                {
+                    grXY = bt.Grouping == BlockDescriptor.GroupType.DataXY
+                    || bt.Grouping == BlockDescriptor.GroupType.XY
+                    || bt.Grouping == BlockDescriptor.GroupType.DataXYZ
+                    || bt.Grouping == BlockDescriptor.GroupType.XYZ;
+
+                    grZ = bt.Grouping == BlockDescriptor.GroupType.DataZ
+                    || bt.Grouping == BlockDescriptor.GroupType.Z
+                    || bt.Grouping == BlockDescriptor.GroupType.DataXYZ
+                    || bt.Grouping == BlockDescriptor.GroupType.XYZ;
+                }
+
                 var rngX = x >= solid.Xmin && x < solid.Xmax;
                 var rngY = y >= solid.Ymin && y < solid.Ymax;
                 var rngZ = z < solid.Zmax;
                 var expX = !solid.XClosed && y == solid.Ymax - 1 && x == solid.Xmax;
                 var expY = !solid.YClosed && y == solid.Ymax && rngX;
-                bool expZ = false;
-                if (solid.Type == BlockGroup.ModelType.Normal || solid.Type == BlockGroup.ModelType.Liquid)
-                {
-                    expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
-                }
+                var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
 
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
-                    if (block.ID != 0 && bt.Grouping != BlockDescriptor.ThreeState.Disable && 
-                        CompareID(block, solid.ID, solid.Data) && !found)
+                    var exp = ((expX || expY) && grXY) || (expZ && grZ);
+
+                    if (block.ID != 0 && exp && CompareID(block, solid.ID, solid.Data) && !found)
                     {
                         solid.Expand(x, y, z);
                         found = true;
@@ -1227,7 +1246,8 @@ namespace MCSM
 
         private static Model ModelSpecial(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
-            var modelScr = Models.Find(x => x.Name == bt.ModelName);
+            var modelName = Macros.Parse(bt.ModelName, false, bg, false, bt);
+            var modelScr = Models.Find(x => x.Name == modelName);
             if (modelScr == null)
             {
                 throw new Exception("Model not found");
@@ -2067,7 +2087,11 @@ namespace MCSM
                     continue;
                 }
 
-                if (bt.Data == -1 && bt.Grouping == BlockDescriptor.ThreeState.Enable) //Ignore the data value
+                var grF = bt.Grouping == BlockDescriptor.GroupType.XY
+                    || bt.Grouping == BlockDescriptor.GroupType.XYZ
+                    || bt.Grouping == BlockDescriptor.GroupType.Z;
+
+                if (bt.Data == -1 && grF) //Ignore the data value
                 {
                     return true;
                 }

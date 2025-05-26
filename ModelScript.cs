@@ -13,6 +13,7 @@ namespace MCSM
         public string Name { get; set; }
         public string Origin { get; set; }
         public string Rotation { get; set; }
+        public string Offset { get; set; }
         public List<Solid> Solids { get; set; } = new List<Solid>();
         public List<BlockDescriptor.TextureKey> TextureKeys { get; set; }
 
@@ -98,7 +99,7 @@ namespace MCSM
         }
 
         [JsonIgnore]
-        public Dictionary<Type, VHE.Entity.Type> Types = new Dictionary<Type, VHE.Entity.Type>()
+        public static Dictionary<Type, VHE.Entity.Type> Types = new Dictionary<Type, VHE.Entity.Type>()
         {
             {Type.Point, VHE.Entity.Type.Point },
             {Type.Point2D, VHE.Entity.Type.Point2D },
@@ -120,6 +121,7 @@ namespace MCSM
             model.Name = Name;
             model.Origin = Parse(Origin, Type.Point, Defaults.PZero, bg);
             model.Rotation = Parse(Rotation, Type.Point, Defaults.PZero, bg);
+            model.Offset = Parse(Offset, Type.Point, Defaults.PZero, bg);
             model.Solids = new List<Model.Solid>();
 
             if (TextureKeys != null)
@@ -205,6 +207,7 @@ namespace MCSM
             {
                 Name = ToScript(model.Name),
                 Origin = ToScript(model.Origin, Defaults.PZero),
+                Offset = ToScript(model.Offset, Defaults.PZero),
                 Rotation = ToScript(model.Rotation, Defaults.PZero)
             };
 
@@ -322,32 +325,27 @@ namespace MCSM
             return FromJson(Serialize());
         }
 
-
-        /**/
-
-        private static bool Compare(object obj1, object obj2)
-        {
-            if (obj1 is bool)
-            {
-                return (bool)obj1 == (bool)obj2;
-            }
-            if (obj1 is float)
-            {
-                return (float)obj1 == (float)obj2;
-            }
-            if (obj1 is string)
-            {
-                return (string)obj1 == (string)obj2;
-            }
-
-            throw new Exception("Unsupported type");
-        }
-
-        private dynamic Parse(object value, Type type, object defvalue, BlockGroup bg = null)
+        public static dynamic Parse(object value, Type type, object defvalue, BlockGroup bg = null)
         {
             if (value == null)
             {
-                return defvalue;
+                switch (type)
+                {
+                    case Type.Float:
+                        return defvalue;
+
+                    case Type.Point:
+                        return (defvalue as VHE.Point).Copy();
+
+                    case Type.Point2D:
+                        return (defvalue as VHE.Point2D).Copy();
+
+                    case Type.FaceList:
+                        return null;
+
+                    default:
+                        throw new Exception("Unknown type");
+                }
             }
 
             switch (type)
@@ -369,6 +367,26 @@ namespace MCSM
                 default:
                     throw new Exception("Unknown type");
             }
+        }
+
+        /**/
+
+        private static bool Compare(object obj1, object obj2)
+        {
+            if (obj1 is bool)
+            {
+                return (bool)obj1 == (bool)obj2;
+            }
+            if (obj1 is float)
+            {
+                return (float)obj1 == (float)obj2;
+            }
+            if (obj1 is string)
+            {
+                return (string)obj1 == (string)obj2;
+            }
+
+            throw new Exception("Unsupported type");
         }
 
         private static string ToScript(object value, params object[] defvalues)
