@@ -187,7 +187,7 @@ namespace MCSM
                     break;
 
                 case "TEX":
-                    res = bt.GetTextureName(-1, null);
+                    res = ParseTex(args, bg, bt);
                     break;
 
                 case "IF":
@@ -488,6 +488,60 @@ namespace MCSM
             conds = Splt(conds, "&&");
             conds = Splt(conds, "||");
             return conds.ToArray();
+        }
+
+        private static string ParseTex(string[] args, BlockGroup bg, BlockDescriptor bt)
+        {
+            var mcs = new string[]
+            {
+                "f", //face (array)
+                "s", //solid
+                "d" //read data
+            };
+
+            string GetEquValue(string arg)
+            {
+                var a = arg.Split('=');
+                if (a.Length < 2)
+                {
+                    return null;
+                }
+
+                return a[1];
+            }
+
+            string solid = null;
+            List<string> faces = new List<string>();
+            int data = -1;
+
+            foreach (var arg in args)
+            {
+                for (int i = 0; i < mcs.Length; i++)
+                {
+                    var mac = "$" + mcs[i].ToUpper();
+                    if (arg.ToUpper().IndexOf(mac) != 0)
+                    {
+                        continue;
+                    }
+
+                    switch (i)
+                    {
+                        case 0:
+                            faces.Add(GetEquValue(arg));
+                            break;
+
+                        case 1:
+                            solid = GetEquValue(arg);
+                            break;
+
+                        case 2:
+                            data = bg.Data;
+                            break;
+                    }
+                }
+            }
+
+            return bt.GetTextureName(data, solid, faces.ToArray());
         }
     }
 }
