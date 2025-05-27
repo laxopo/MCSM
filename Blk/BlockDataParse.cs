@@ -107,6 +107,38 @@ namespace MCSM
             return new Point(x, 0, z);
         }
 
+        public static Point Rotation8A(int data)
+        {
+            float y = 0, z = 0;
+
+            switch (data)
+            {
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                    y = 270;
+                    z = Rotation4(data - 1);
+                    break;
+
+                case 5:
+                    y = 180;
+                    z = 270;
+                    break;
+
+                case 6:
+                    y = 180;
+                    z = 180;
+                    break;
+
+                case 7:
+                    z = 90;
+                    break;
+            }
+
+            return new Point(0, y, z);
+        }
+
         public static Point GetRotation(BlockDescriptor.RotationType rotationType, int data)
         {
             switch (rotationType)
@@ -125,6 +157,9 @@ namespace MCSM
 
                 case BlockDescriptor.RotationType.R8:
                     return Rotation8(data);
+
+                case BlockDescriptor.RotationType.R8A:
+                    return Rotation8A(data);
 
                 case BlockDescriptor.RotationType.R16:
                     return new Point(0, 0, Rotation16(data));

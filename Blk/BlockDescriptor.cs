@@ -52,6 +52,7 @@ namespace MCSM
             R4Z,
             R6,
             R8,
+            R8A,
             R16
         }
 
