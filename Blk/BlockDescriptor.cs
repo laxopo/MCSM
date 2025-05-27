@@ -189,7 +189,7 @@ namespace MCSM
         private static string TextureName(List<TextureKey> textures, int blockdata,
             string solidName, params string[] keys)
         {
-            if (solidName == "")
+            if (solidName != null && (solidName == "" || solidName[0] == '_'))
             {
                 solidName = null;
             }
@@ -236,7 +236,7 @@ namespace MCSM
 
                 if (txt.Key == null)
                 {
-                    if (key == null)
+                    if (key == null && solidName == null)
                     {
                         return txt.Texture;
                     }

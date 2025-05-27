@@ -21,6 +21,7 @@ namespace MCSM
         {
             //string
             public string Name { get; set; }
+            public string Entity { get; set; }
 
             //point
             public string AbsOffset { get; set; }
@@ -179,6 +180,8 @@ namespace MCSM
                     TextureLockOffsets = sld.TextureLockOffsets,
                     TextureLockRotanion = sld.TextureLockRotanion,
                     TextureOriented = sld.TextureOriented,
+
+                    Entity = sld.Entity,
                     
                     Faces = faces
                 };
@@ -232,7 +235,8 @@ namespace MCSM
                         TextureScale = ToScript(solid.TextureScale, 0, 1),
                         TextureLockOffsets = solid.TextureLockOffsets,
                         TextureLockRotanion = solid.TextureLockRotanion,
-                        TextureOriented = solid.TextureOriented
+                        TextureOriented = solid.TextureOriented,
+                        Entity = solid.Entity
                     };
 
                     if (solid.TexturedFaces != null && solid.TexturedFaces.Length > 0)

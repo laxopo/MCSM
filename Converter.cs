@@ -1916,19 +1916,45 @@ namespace MCSM
 
         private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDescriptor bt, BlockGroup bg)
         {
-            var se = GetEntity(SolidEntities, bt.Entity);
+            var solidList = new List<VHE.Map.Solid>(solids);
 
+            //build internal entities
+            var ies = new List<VHE.Map.Solid>();
+            foreach (var sld in solidList)
+            {
+                if (sld.Entity == null)
+                {
+                    continue;
+                }
+
+                var ie = GetEntity(SolidEntities, sld.Entity);
+                if (ie == null)
+                {
+                    continue;
+                }
+
+                var entity = GenerateEntity(ie, bg, "E" + Map.Data.Count);
+                MapAddObject(solidList, entity, bg);
+                ies.Add(sld);
+            }
+
+            //remove builded solids with ies
+            ies.ForEach(s => solidList.Remove(s));
+
+            //build solids & entities
+            var se = GetEntity(SolidEntities, bt.Entity);
             if (se != null)
             {
                 var entity = GenerateEntity(se, bg, "E" + Map.Data.Count);
-                MapAddObject(solids, entity, bg);
+                MapAddObject(solidList, entity, bg);
             }
             else
             {
-                solids.ForEach(s => Map.AddSolid(s));
-                SolidsCurrent += solids.Count;
+                solidList.ForEach(s => Map.AddSolid(s));
+                SolidsCurrent += solidList.Count;
             }
 
+            //build system entities
             foreach (var syse in bt.SysEntities)
             {
                 var et = GetEntity(SysEntities, syse);

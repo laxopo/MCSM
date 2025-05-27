@@ -486,6 +486,7 @@ namespace MCSM
                 face.OffsetV = (th - v + (offV + fov) * vs) % th;
             }
 
+            solid.Entity = mdlSolid.Entity;
             return solid;
         }
 
