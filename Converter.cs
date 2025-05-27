@@ -229,7 +229,7 @@ namespace MCSM
 
                         //check register
                     bt_chk:
-                        var bt = GetBT(block, true);
+                        var bt = GetBT(block, false);
                         if (block.ID != 0 && bt == null)
                         {
                             var res = missings.Message(block.ID, block.Data, "at " + (x + Xmin) + " " + 
@@ -296,7 +296,7 @@ namespace MCSM
                                 case BlockGroup.ModelType.Sign:
                                 case BlockGroup.ModelType.Torch:
                                 case BlockGroup.ModelType.Stairs:
-                                    GroupSingle(block, x, y, z, type);
+                                    GroupSingle(block, x, y, z, type, block.Data & bt.DataMask);
                                     break;
                             }
                         }
@@ -674,7 +674,7 @@ namespace MCSM
 
             if (!found && block.ID != 0)
             {
-                BlockGroups.Add(new BlockGroup(block, block.ID, block.Data, x, y, z) { 
+                BlockGroups.Add(new BlockGroup(block, block.ID, block.Data & bt.DataMask, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
                 var last = BlockGroups.Last();

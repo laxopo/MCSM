@@ -101,8 +101,12 @@ namespace MCSM
             string res = "";
             switch (args[0].ToUpper())
             {
-                case "D": //block data
+                case "D": //block masked data
                     res = bg.Data.ToString();
+                    break;
+
+                case "DB": //block data
+                    res = bg.Block.Data.ToString();
                     break;
 
                 case "NBT": //block nbt
@@ -206,6 +210,7 @@ namespace MCSM
             switch (macros.ToUpper())
             {
                 case "D":
+                case "DB":
                 case "SX":
                 case "SY":
                 case "SZ":
