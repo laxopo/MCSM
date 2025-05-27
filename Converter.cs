@@ -1110,7 +1110,7 @@ namespace MCSM
                 {
                     new Model.Solid() //door
                     {
-                        Name = "Main",
+                        Name = "_main",
                         Size = new VHE.Point(th, 1, 2),
                         OriginAlign = new VHE.Point(1, 1, 1),
                         OriginRotOffset = new VHE.Point(th / 2, 0.5f, 0),
@@ -1332,9 +1332,15 @@ namespace MCSM
                 }
             }
 
+            string mainName = "main";
+            if (!ground)
+            {
+                mainName = "_" + mainName;
+            }
+
             var main = new Model.Solid()
             {
-                Name = "main",
+                Name = mainName,
                 Size = new VHE.Point(msx, msy, msz),
                 OriginAlign = morigAligin,
                 Offset = moffset,
@@ -1531,14 +1537,14 @@ namespace MCSM
             //solid
             if (bg.Data < 2 || bg.Data > 5) //horizontal
             {
-                solidSize = new VHE.Point(szx, szy, 0.0625f);
+                solidSize = new VHE.Point(szx, szy, 0.03f);
                 solidRotOff = new VHE.Point();
                 solidRot = new VHE.Point();
             }
             else //angle
             {
-                solidSize = new VHE.Point(1.42f, 1, 0.0625f);
-                solidRotOff = new VHE.Point(0, 0, 0.0625f);
+                solidSize = new VHE.Point(1.42f, 1, 0.03f);
+                solidRotOff = new VHE.Point(0, 0, 0.03f);
                 solidRot = new VHE.Point(0, -45, 0);
 
                 texRot = 90;

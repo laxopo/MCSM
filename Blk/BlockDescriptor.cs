@@ -229,19 +229,31 @@ namespace MCSM
         {
             foreach (var txt in textures)
             {
-                if (txt.SolidName != null && solidName != null && !CompareString(solidName, txt.SolidName))
+                //check solid name
+                if (!CompareString(solidName, txt.SolidName))
                 {
                     continue;
                 }
 
+                //check key
                 if (txt.Key == null)
                 {
-                    if (key == null && solidName == null)
+                    if (solidName == null)
                     {
-                        return txt.Texture;
+                        if (key == null)
+                        {
+                            return txt.Texture;
+                        }
+
+                        continue;
                     }
                     else
                     {
+                        if (CompareString(solidName, txt.SolidName))
+                        {
+                            return txt.Texture;
+                        }
+
                         continue;
                     }
                 }
@@ -275,6 +287,11 @@ namespace MCSM
             if (str1 == null && str2 == null)
             {
                 return true;
+            }
+
+            if (str1 == null || str2 == null)
+            {
+                return false;
             }
 
             return ToUpper(str1) == ToUpper(str2);
