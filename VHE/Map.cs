@@ -10,13 +10,6 @@ namespace MCSM.VHE
     {
         public List<Entity> Data { get; set; } = new List<Entity>();
 
-        public class Solid
-        {
-            public string Name { get; set; }
-            public string Entity { get; set; }
-            public List<Face> Faces { get; set; } = new List<Face>();
-        }
-
         public Map() 
         {
             var header = new Entity("worldspawn");

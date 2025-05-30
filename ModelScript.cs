@@ -38,7 +38,8 @@ namespace MCSM
             public bool TextureLockOffsets { get; set; }
             public bool TextureLockRotanion { get; set; }
             public bool TextureOriented { get; set; }
-            
+            public bool SolidOrigin { get; set; }
+
             //Face sides
             public string[] TexturedFaces { get; set; }
 
@@ -180,6 +181,7 @@ namespace MCSM
                     TextureLockOffsets = sld.TextureLockOffsets,
                     TextureLockRotanion = sld.TextureLockRotanion,
                     TextureOriented = sld.TextureOriented,
+                    SolidOrigin = sld.SolidOrigin,
 
                     Entity = sld.Entity,
                     
@@ -236,7 +238,8 @@ namespace MCSM
                         TextureLockOffsets = solid.TextureLockOffsets,
                         TextureLockRotanion = solid.TextureLockRotanion,
                         TextureOriented = solid.TextureOriented,
-                        Entity = solid.Entity
+                        Entity = solid.Entity,
+                        SolidOrigin = solid.SolidOrigin
                     };
 
                     if (solid.TexturedFaces != null && solid.TexturedFaces.Length > 0)
@@ -357,7 +360,7 @@ namespace MCSM
                 case Type.Float:
                 case Type.Point:
                 case Type.Point2D:
-                    var data = Macros.Parse(value.ToString(), true, bg, false);
+                    var data = Macros.Parse(value.ToString(), bg, false);
                     return VHE.Entity.DeserializeValue(data, Types[type]);
 
                 case Type.FaceList:

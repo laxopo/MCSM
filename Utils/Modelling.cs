@@ -57,12 +57,12 @@ namespace MCSM
             };
         }
 
-        public static VHE.Map.Solid GenerateSolid(Model model, string texture)
+        public static VHE.Solid GenerateSolid(Model model, string texture)
         {
             return GenerateSolids(new BlockDescriptor(), null, model, texture)[0];
         }
 
-        public static VHE.Map.Solid GenerateSolid(BlockDescriptor bt, BlockGroup bg, Model model = null, string texture = null)
+        public static VHE.Solid GenerateSolid(BlockDescriptor bt, BlockGroup bg, Model model = null, string texture = null)
         {
             if (model == null)
             {
@@ -72,12 +72,12 @@ namespace MCSM
             return GenerateSolids(bt, bg, model, texture)[0];
         }
 
-        public static List<VHE.Map.Solid> GenerateSolids(Model model, string texture = null)
+        public static List<VHE.Solid> GenerateSolids(Model model, string texture = null)
         {
             return GenerateSolids(null, null, model, texture);
         }
 
-        public static List<VHE.Map.Solid> GenerateSolids(BlockDescriptor bt, BlockGroup bg, 
+        public static List<VHE.Solid> GenerateSolids(BlockDescriptor bt, BlockGroup bg, 
             Model model, string texture = null)
         {
             var modelBuf = new Model(model);
@@ -123,9 +123,41 @@ namespace MCSM
 
             model.PositionBuf = pos.Copy();
 
-            List<VHE.Map.Solid> solids = new List<VHE.Map.Solid>();
+            List<VHE.Solid> solids = new List<VHE.Solid>();
             bool textureInput = texture != null;
 
+            //create origin solids
+            var origList = new List<Model.Solid>();
+
+            foreach (var mdlSolid in modelBuf.Solids)
+            {
+                if (!mdlSolid.SolidOrigin)
+                {
+                    continue;
+                }
+
+                var orig = new Model.Solid()
+                {
+                    Name = "origin",
+                    Size = new VHE.Point(0.125f, 0.125f, 0.125f),
+                    OriginAlign = new VHE.Point(),
+                    Offset = new VHE.Point(mdlSolid.Offset),
+                };
+
+                origList.Add(orig);
+
+                if (modelBuf.TextureKeys.Find(x => x.SolidName == "origin") == null)
+                {
+                    modelBuf.TextureKeys.Add(new BlockDescriptor.TextureKey() { 
+                        SolidName = "origin",
+                        Texture = "origin"
+                    });
+                }
+            }
+
+            modelBuf.Solids.AddRange(origList);
+
+            //Create VHE solids
             foreach (var mdlSolid in modelBuf.Solids)
             {
                 //get textures
@@ -185,7 +217,7 @@ namespace MCSM
             return solids;
         }
 
-        public static VHE.Map.Solid CreateSolid(Model.Solid mdlSolid, VHE.Point pos, VHE.Point origin, VHE.Point rotation)
+        public static VHE.Solid CreateSolid(Model.Solid mdlSolid, VHE.Point pos, VHE.Point origin, VHE.Point rotation)
         {
             //validate the size values
             if (mdlSolid.Size.X < 0 || mdlSolid.Size.Y < 0 || mdlSolid.Size.Z < 0)
@@ -300,7 +332,7 @@ namespace MCSM
             }
 
             //create a solid
-            var solid = new VHE.Map.Solid()
+            var solid = new VHE.Solid()
             {
                 Faces = {
                     new VHE.Face() { //top
@@ -486,7 +518,10 @@ namespace MCSM
                 face.OffsetV = (th - v + (offV + fov) * vs) % th;
             }
 
+            //Entity parameters
             solid.Entity = mdlSolid.Entity;
+            solid.HasOrigin = mdlSolid.SolidOrigin;
+
             return solid;
         }
 

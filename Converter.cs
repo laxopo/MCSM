@@ -329,17 +329,12 @@ namespace MCSM
             {
                 GroupCurrent++;
 
-            pBegin:
-                var bt = GetBT(bg.ID, bg.Data);
-                if (bt == null)
+                BlockDescriptor bt;
+                while ((bt = GetBT(bg.ID, bg.Data)) == null)
                 {
                     var res = missings.Message(bg.ID, bg.Data, "block is not registered", false);
                     switch (res)
                     {
-                        case BlockMissMsg.Result.Retry:
-                            LoadResources(Resources.Blocks);
-                            goto pBegin;
-
                         case BlockMissMsg.Result.Abort:
                             Aborted = true;
                             return null;
@@ -1251,7 +1246,7 @@ namespace MCSM
 
         private static Model ModelSpecial(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
-            var modelName = Macros.Parse(bt.ModelName, false, bg, false, bt);
+            var modelName = Macros.Parse(bt.ModelName, bg, false, bt);
             var modelScr = Models.Find(x => x.Name == modelName);
             if (modelScr == null)
             {
@@ -1915,19 +1910,21 @@ namespace MCSM
             Map.Data.Add(entity);
         }
 
-        private static void MapAddObject(VHE.Map.Solid solid, BlockDescriptor bt, BlockGroup bg)
+        private static void MapAddObject(VHE.Solid solid, BlockDescriptor bt, BlockGroup bg)
         {
-            MapAddObject(new List<VHE.Map.Solid>() { solid }, bt, bg);
+            MapAddObject(new List<VHE.Solid>() { solid }, bt, bg); 
         }
 
-        private static void MapAddObject(List<VHE.Map.Solid> solids, BlockDescriptor bt, BlockGroup bg)
+        private static void MapAddObject(List<VHE.Solid> solids, BlockDescriptor bt, BlockGroup bg)
         {
-            var solidList = new List<VHE.Map.Solid>(solids);
+            var solidList = new List<VHE.Solid>(solids);
 
             //build internal entities
-            var ies = new List<VHE.Map.Solid>();
-            foreach (var sld in solidList)
+            var ies = new List<VHE.Solid>();
+            for (int i = 0; i < solidList.Count; i++)
             {
+                var sld = solidList[i];
+
                 if (sld.Entity == null)
                 {
                     continue;
@@ -1939,9 +1936,16 @@ namespace MCSM
                     continue;
                 }
 
-                var entity = GenerateEntity(ie, bg, "E" + Map.Data.Count);
-                MapAddObject(solidList, entity, bg);
+                if (sld.HasOrigin)
+                {
+                    ies.Add(solidList[i + 1]);
+                    i++;
+                }
+
                 ies.Add(sld);
+
+                var entity = GenerateEntity(ie, bg, "E" + Map.Data.Count);
+                MapAddObject(ies, entity, bg);
             }
 
             //remove builded solids with ies
@@ -1988,7 +1992,7 @@ namespace MCSM
             }
         }
 
-        private static void MapAddObject(List<VHE.Map.Solid> solids, VHE.Entity entity, BlockGroup bg)
+        private static void MapAddObject(List<VHE.Solid> solids, VHE.Entity entity, BlockGroup bg)
         {
             solids.ForEach(s => entity.AddSolid(s));
             Map.CreateEntity(entity);

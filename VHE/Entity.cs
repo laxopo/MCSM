@@ -95,16 +95,16 @@ namespace MCSM.VHE
             Parameters.Add(new Parameter(name, value, type));
         }
 
-        public void AddSolid(Map.Solid solid)
+        public void AddSolid(Solid solid)
         {
             var par = Parameters.Find(x => x.Name == SolidArrayName);
             if (par == null)
             {
-                par = new Parameter(SolidArrayName, new List<Map.Solid>(), Type.SolidArray);
+                par = new Parameter(SolidArrayName, new List<Solid>(), Type.SolidArray);
                 Parameters.Add(par);
             }
 
-            (par.Value as List<Map.Solid>).Add(solid);
+            (par.Value as List<Solid>).Add(solid);
         }
 
         public static dynamic DeserializeValue(string data, Type type)
@@ -259,7 +259,7 @@ namespace MCSM.VHE
                     return Map.Str(vect2D.X) + " " + Map.Str(vect2D.Y);
 
                 case Type.SolidArray:
-                    foreach (var sld in value as List<Map.Solid>)
+                    foreach (var sld in value as List<Solid>)
                     {
                         if (buf != "")
                         {
@@ -321,7 +321,7 @@ namespace MCSM.VHE
                         break;
 
                     case Type.SolidArray:
-                        eval = new List<Map.Solid>((List<Map.Solid>)par.Value);
+                        eval = new List<Solid>((List<Solid>)par.Value);
                         break;
 
                     case Type.StringArray:

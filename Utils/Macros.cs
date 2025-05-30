@@ -28,7 +28,7 @@ namespace MCSM
 
         public static string TextureName(string name, BlockGroup bg)
         {
-            return Parse(name, false, bg, false);
+            return Parse(name, bg, false);
         }
 
         public static EntityScript GetSignEntity(List<EntityScript> list, string[] signText)
@@ -57,28 +57,26 @@ namespace MCSM
 
         public static string EntityValue(string rawValue, BlockGroup bg, BlockDescriptor bt = null)
         {
-            return Parse(rawValue, true, bg, true, bt);
+            return Parse(rawValue, bg, true, bt);
         }
 
-        public static string Parse(string value, bool isFloat, BlockGroup bg, bool entity, BlockDescriptor bt = null)
+        public static string Parse(string value, BlockGroup bg, bool entity, BlockDescriptor bt = null)
         {
             if (value == null || bg == null)
             {
                 return value;
             }
 
-            if (isFloat)
-            {
-                value = value.Replace('.', ',');
-            }
-            
+            value = value.Replace('.', ',');
+
             string data, newValue = value;
             int index = 0;
 
             //get {data} blocks
-            while ((data = GetBlock(value, ref index)) != null)
+            //{or 33 {if $d>=3&&$d<=5:64:128}}
+            while ((data = GetBlock(value, ref index)).Length > 0)
             {
-                var args = data.Split(' ');
+                var args = ArgSplit(data, ' ');
                 string res = Decode(args, bg, entity, bt);
                 newValue = newValue.Replace("{" + data + "}", res);
             }
@@ -198,6 +196,23 @@ namespace MCSM
                     res = ParseIf(args, bg, entity, bt);
                     break;
 
+                case "OR":
+                case "AND":
+                case "NOT":
+                    res = ParseLogic(args, bg, entity, bt);
+                    break;
+
+                case "ADDI":
+                case "SUBI":
+                case "MULI":
+                case "DIVI":
+                case "ADD":
+                case "SUB":
+                case "MUL":
+                case "DIV":
+                    res = ParseArithmetic(args, bg, entity, bt);
+                    break;
+
                 default:
                     throw new Exception("Unknown macros: " + args[0]);
             }
@@ -214,6 +229,13 @@ namespace MCSM
                 case "SX":
                 case "SY":
                 case "SZ":
+                case "OR":
+                case "AND":
+                case "NOT":
+                case "ADDI":
+                case "SUBI":
+                case "MULI":
+                case "DIVI":
                     return ParseTypes.Int;
 
                 case "NBT":
@@ -225,6 +247,10 @@ namespace MCSM
                 case "X":
                 case "Y":
                 case "Z":
+                case "ADD":
+                case "SUB":
+                case "MUL":
+                case "DIV":
                     return ParseTypes.Float;
 
                 case "IF":
@@ -252,6 +278,8 @@ namespace MCSM
             }
         }
 
+        /*System routine*/
+
         private static int LastIndexOf(string text, string sign, int endIndex)
         {
             int idx = 0, last = -1;
@@ -271,34 +299,120 @@ namespace MCSM
 
         private static string GetBlock(string data, ref int startIndex)
         {
-            int beg = -1, end = -1;
+            //{or 33 {if $d>=3&&$d<=5:64:128}}
+            int lvl = -1;
+            string block = "";
+            bool spec = false;
 
             for (; startIndex < data.Length; startIndex++)
             {
                 var ch = data[startIndex];
 
-                if (ch == '{')
+                if (ch == '&')
                 {
-                    beg = startIndex;
-                }
-                else if (ch == '}' && beg != -1)
-                {
-                    end = startIndex++;
+                    spec = true;
                 }
 
-                if (beg != -1 && end != -1)
+                if (lvl == -1)
                 {
-                    break;
+                    if (ch == '{' && !spec)
+                    {
+                        lvl++;
+                    }
+                }
+                else
+                {
+                    if (ch == '{' && !spec)
+                    {
+                        lvl++;
+                    }
+
+                    if (ch == '}')
+                    {
+                        if (lvl > 0)
+                        {
+                            lvl--;
+                        }
+                        else
+                        {
+                            startIndex++;
+                            break;
+                        }
+                    }
+
+                    block += ch;
+                }
+
+                if (ch != '&')
+                {
+                    spec = false;
                 }
             }
 
-            if (beg == -1 || end == -1)
-            {
-                return null;
-            }
-
-            return data.Substring(beg + 1, end - beg - 1);
+            return block;
         }
+
+        private static string[] ArgSplit(string data, char separator)
+        {
+            //or 33 {if $d>=3&&$d<=5:64:128}
+            var args = new List<string>();
+            string arg = "";
+            int lvl = 0;
+            bool spec = false;
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                var ch = data[i];
+
+                if (ch == '$')
+                {
+                    spec = true;
+                }
+
+                if (ch == '{' && !spec)
+                {
+                    lvl++;
+                }
+
+                if (ch == '}')
+                {
+                    lvl--;
+                    if (lvl < 0)
+                    {
+                        //error
+                    }
+                }
+
+                if (ch == separator && lvl == 0)
+                {
+                    args.Add(arg.Trim());
+                    arg = "";
+                }
+                else
+                {
+                    arg += ch;
+                }
+
+                if (i == data.Length - 1)
+                {
+                    if (lvl > 0)
+                    {
+                        //error
+                    }
+
+                    args.Add(arg.Trim());
+                }
+
+                if (ch != '$')
+                {
+                    spec = false;
+                }
+            }
+
+            return args.ToArray();
+        }
+
+        /*Macros parse*/
 
         private static string ParseCoordinate (double x, string[] args)
         {
@@ -460,6 +574,8 @@ namespace MCSM
                 }
             }
 
+            res = Parse(res, bg, entity, bt);
+
             return res;
         }
 
@@ -547,6 +663,116 @@ namespace MCSM
             }
 
             return bt.GetTextureName(data, solid, faces.ToArray());
+        }
+
+        private static string[] ParseValues(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
+        {
+            var values = new List<string>();
+
+            for (int i = 1; i < args.Length; i++)
+            {
+                var arg = args[i];
+                switch (arg[0])
+                {
+                    case '$':
+                        values.Add(Decode(new string[] { arg.Remove(0, 1) }, bg, entity, bt));
+                        break;
+
+                    case '{':
+                        values.Add(Parse(arg, bg, entity, bt));
+                        break;
+
+                    default:
+                        values.Add(arg);
+                        break;
+                }
+            }
+
+            return values.ToArray();
+        }
+
+        private static string ParseLogic(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
+        {
+            var values = ParseValues(args, bg, entity, bt).ToList();
+            int res = 0;
+
+            try
+            {
+                res = Convert.ToInt32(values[0]);
+                values.RemoveAt(0);
+
+                switch (args[0].ToUpper())
+                {
+                    case "OR":
+                        values.ForEach(x => res |= Convert.ToInt32(x));
+                        break;
+
+                    case "AND":
+                        values.ForEach(x => res &= Convert.ToInt32(x));
+                        break;
+
+                    case "NOT":
+                        values.ForEach(x => res ^= Convert.ToInt32(x));
+                        break;
+                }
+            }
+            catch 
+            {
+                //error
+            }
+
+            return res.ToString();
+        }
+
+        private static string ParseArithmetic(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
+        {
+            var values = ParseValues(args, bg, entity, bt).ToList();
+            double res = 0;
+            bool toInt = false;
+            var mac = args[0].ToUpper();
+            if (mac.Length == 4 && mac[3] == 'I')
+            {
+                toInt = true;
+                mac.Remove(3, 1);
+            }
+
+            try
+            {
+                res = Convert.ToDouble(values[0]);
+                values.RemoveAt(0);
+
+                switch (args[0].ToUpper())
+                {
+                    case "ADD":
+                        values.ForEach(x => res += Convert.ToDouble(x));
+                        break;
+
+                    case "SUB":
+                        values.ForEach(x => res -= Convert.ToDouble(x));
+                        break;
+
+                    case "MUL":
+                        values.ForEach(x => res *= Convert.ToDouble(x));
+                        break;
+
+                    case "DIV":
+                        values.ForEach(x => res /= Convert.ToDouble(x));
+                        break;
+                }
+            }
+            catch 
+            { 
+                //error
+            }
+
+            if (toInt)
+            {
+                return Convert.ToInt32(res).ToString();
+            }
+            else
+            {
+                return res.ToString();
+            }
         }
     }
 }

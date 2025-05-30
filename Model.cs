@@ -32,6 +32,7 @@ namespace MCSM
             public bool TextureLockOffsets { get; set; }
             public bool TextureLockRotanion { get; set; }
             public bool TextureOriented { get; set; }
+            public bool SolidOrigin { get; set; }
             public float TextureScale { get; set; }
             public List<Face> Faces { private get; set; } = new List<Face>();
 
@@ -52,6 +53,7 @@ namespace MCSM
                 solid.TextureOriented = TextureOriented;
                 solid.TextureScale = TextureScale;
                 solid.Entity = Entity;
+                solid.SolidOrigin = SolidOrigin;
 
                 if (TexturedFaces != null)
                 {
