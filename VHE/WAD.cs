@@ -115,6 +115,36 @@ namespace MCSM.VHE
                 Data.Mip3 = MipMap(Data.Mip2);
             }
 
+            public Image GetImage(bool forceTransparent = false)
+            {
+                return GetImage(0, forceTransparent);
+            }
+
+            public Image GetImage(int mipLevel, bool forceTransparent = false)
+            {
+                var tp = Transparent || forceTransparent;
+
+                if (Type == (byte)Format.MipTex)
+                {
+                    switch (mipLevel)
+                    {
+                        case 1:
+                            return ConvertToImage(Data.Mip1, tp);
+
+                        case 2:
+                            return ConvertToImage(Data.Mip2, tp);
+
+                        case 3:
+                            return ConvertToImage(Data.Mip3, tp);
+
+                        default:
+                            return ConvertToImage(Data.Main, tp);
+                    }
+                }
+
+                return ConvertToImage(Data.Main, tp);
+            }
+
             /**/
 
             private Bitmap MipMap(Bitmap image)
@@ -212,18 +242,6 @@ namespace MCSM.VHE
             public Bitmap Mip1 { get; set; }
             public Bitmap Mip2 { get; set; }
             public Bitmap Mip3 { get; set; }
-        }
-
-        public class RGB
-        {
-            public int R { get; set; }
-            public int G { get; set; }
-            public int B { get; set; }
-
-            public Color GetColor()
-            {
-                return Color.FromArgb(255, R, G, B);
-            }
         }
 
         public static class Exceptions
@@ -428,6 +446,115 @@ namespace MCSM.VHE
                 ImageLockMode.WriteOnly, bmp.PixelFormat);
         }
 
+        public static void BMPSetPalette(Bitmap bmp, Bitmap sourse)
+        {
+            BMPSetPalette(bmp, sourse.Palette);
+        }
+
+        public static void BMPSetPalette(Bitmap bmp, ColorPalette palette)
+        {
+            var pal = bmp.Palette;
+            bmp.Palette = pal;
+        }
+
+        public static void BMPSetPalette(Bitmap bmp, Color[] palette)
+        {
+            var pal = bmp.Palette;
+            for (int i = 0; i < 256; i++)
+            {
+                pal.Entries[i] = palette[i];
+            }
+            bmp.Palette = pal;
+        }
+
+        public static Bitmap ConvertToBitmap(Image image)
+        {
+            var texbmp = new Bitmap(image.Width, image.Height, PixelFormat.Format8bppIndexed);
+            var srcbmp = new Bitmap(image);
+            var texbmd = GetBitmapData(texbmp);
+            var pal = new Color[256];
+            var palIdx = 0;
+
+            for (int y = 0; y < texbmp.Height; y++)
+            {
+                for (int x = 0; x < texbmp.Width; x++)
+                {
+                    var c = srcbmp.GetPixel(x, y);
+
+                    if (c.A == 0)
+                    {
+                        c = Color.FromArgb(0, 0, 255);
+
+                        if (pal[255].A != 255)
+                        {
+                            pal[255] = c;
+                        }
+
+                        SetPixel(texbmd, x, y, 255);
+                    }
+                    else
+                    {
+                        int index;
+                        bool found = false;
+                        for (index = 0; index < 256; index++)
+                        {
+                            var p = pal[index];
+                            if (p.A == 255 && p.R == c.R && p.G == c.G && p.B == c.B)
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found)
+                        {
+                            index = palIdx++;
+
+                            if (index == 256)
+                            {
+                                throw GetException(ref Exceptions.PaletteOverflow, "The texture has more than 256 colors");
+                            }
+
+                            pal[index] = c;
+                        }
+
+                        SetPixel(texbmd, x, y, (byte)index);
+                    }
+                }
+            }
+
+            texbmp.UnlockBits(texbmd);
+            BMPSetPalette(texbmp, pal);
+            return texbmp;
+        }
+
+        public static Image ConvertToImage(Bitmap bmp, bool tp)
+        {
+            var al = bmp.Palette.Entries[255];
+            if (al.R != 0 || al.G != 0 || al.B != 255 || !tp)
+            {
+                return bmp;
+            }
+
+            var res = new Bitmap(bmp);
+            var bmd = GetBitmapData(bmp);
+
+
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    if (GetPixel(bmd, x, y) == 255)
+                    {
+                        res.SetPixel(x, y, Color.FromArgb(0, 0, 0, 0));
+                    }
+                }
+            }
+
+            bmp.UnlockBits(bmd);
+            return res;
+        }
+
         /**/
 
         private static Exception GetException(ref Exception e, string text)
@@ -586,85 +713,6 @@ namespace MCSM.VHE
                 ms.WriteByte(c.G);
                 ms.WriteByte(c.B);
             }
-        }
-
-        /**/
-
-        private static void BMPSetPalette(Bitmap bmp, ColorPalette palette)
-        {
-            var pal = bmp.Palette;
-            bmp.Palette = pal;
-        }
-
-        private static void BMPSetPalette(Bitmap bmp, Color[] palette)
-        {
-            var pal = bmp.Palette;
-            for (int i = 0; i < 256; i++)
-            {
-                pal.Entries[i] = palette[i];
-            }
-            bmp.Palette = pal;
-        }
-
-        private static Bitmap ConvertToBitmap(Image image)
-        {
-            var texbmp = new Bitmap(image.Width, image.Height, PixelFormat.Format8bppIndexed);
-            var srcbmp = new Bitmap(image);
-            var texbmd = GetBitmapData(texbmp);
-            var pal = new Color[256];
-            var palIdx = 0;
-
-            for (int y = 0; y < texbmp.Height; y++)
-            {
-                for (int x = 0; x < texbmp.Width; x++)
-                {
-                    var c = srcbmp.GetPixel(x, y);
-
-                    if (c.A == 0)
-                    {
-                        c = Color.FromArgb(0, 0, 255);
-
-                        if (pal[255].A != 255)
-                        {
-                            pal[255] = c;
-                        }
-
-                        SetPixel(texbmd, x, y, 255);
-                    }
-                    else
-                    {
-                        int index;
-                        bool found = false;
-                        for (index = 0; index < 256; index++)
-                        {
-                            var p = pal[index];
-                            if (p.A == 255 && p.R == c.R && p.G == c.G && p.B == c.B)
-                            {
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (!found)
-                        {
-                            index = palIdx++;
-
-                            if (index == 256)
-                            {
-                                throw GetException(ref Exceptions.PaletteOverflow, "The texture has more than 256 colors");
-                            }
-
-                            pal[index] = c;
-                        }
-
-                        SetPixel(texbmd, x, y, (byte)index);
-                    }
-                }
-            }
-
-            texbmp.UnlockBits(texbmd);
-            BMPSetPalette(texbmp, pal);
-            return texbmp;
         }
     }
 }
