@@ -347,6 +347,11 @@ namespace MCSM
                 {
                     spec = false;
                 }
+
+                if (startIndex == data.Length - 1 && lvl > -1)
+                {
+                    block = "";
+                }
             }
 
             return block;
