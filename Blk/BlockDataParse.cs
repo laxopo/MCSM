@@ -79,6 +79,39 @@ namespace MCSM
             return new Point(x, 0, z);
         }
 
+        public static Point Rotation6Button(int data)
+        {
+            float x = 0, y = 0, z = 0;
+
+            switch (data)
+            {
+                case 1:
+                    x = 270;
+                    z = 90;
+                    break;
+
+                case 2:
+                    x = 270;
+                    z = 270;
+                    break;
+
+                case 3:
+                    x = 270;
+                    z = 180;
+                    break;
+
+                case 4:
+                    x = 270;
+                    break;
+
+                case 5:
+                    y = 180;
+                    break;
+            }
+
+            return new Point(x, y, z);
+        }
+
         public static Point Rotation8(int data)
         {
             float x = 0, z = 0;
@@ -154,6 +187,9 @@ namespace MCSM
 
                 case BlockDescriptor.RotationType.R6:
                     return Rotation6(data);
+
+                case BlockDescriptor.RotationType.R6B:
+                    return Rotation6Button(data);
 
                 case BlockDescriptor.RotationType.R8:
                     return Rotation8(data);

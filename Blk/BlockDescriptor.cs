@@ -53,7 +53,8 @@ namespace MCSM
             R6,
             R8,
             R8A,
-            R16
+            R16,
+            R6B
         }
 
         public class TextureKey

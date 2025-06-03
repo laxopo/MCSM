@@ -669,7 +669,12 @@ namespace MCSM
 
             if (!found && block.ID != 0)
             {
-                BlockGroups.Add(new BlockGroup(block, block.ID, block.Data & bt.DataMask, x, y, z) { 
+                int data = block.Data;
+                if (bt.DataMask > 0)
+                {
+                    data &= bt.DataMask;
+                }
+                BlockGroups.Add(new BlockGroup(block, block.ID, data, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
                 var last = BlockGroups.Last();

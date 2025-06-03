@@ -444,7 +444,7 @@ namespace MCSM
             for (int i = 1; i < args.Length; i++)
             {
                 var arg = args[i];
-                var cv = arg.Split(':');
+                var cv = ArgSplit(arg, ':');
                 if (cv.Length < 2)
                 {
                     //error
@@ -732,51 +732,75 @@ namespace MCSM
         private static string ParseArithmetic(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
         {
             var values = ParseValues(args, bg, entity, bt).ToList();
-            double res = 0;
             bool toInt = false;
             var mac = args[0].ToUpper();
             if (mac.Length == 4 && mac[3] == 'I')
             {
                 toInt = true;
-                mac.Remove(3, 1);
+                mac = mac.Remove(3, 1);
             }
 
             try
             {
-                res = Convert.ToDouble(values[0]);
-                values.RemoveAt(0);
-
-                switch (args[0].ToUpper())
+                if (toInt)
                 {
-                    case "ADD":
-                        values.ForEach(x => res += Convert.ToDouble(x));
-                        break;
+                    var res = Convert.ToInt32(values[0]);
+                    values.RemoveAt(0);
 
-                    case "SUB":
-                        values.ForEach(x => res -= Convert.ToDouble(x));
-                        break;
+                    switch (mac.ToUpper())
+                    {
+                        case "ADD":
+                            values.ForEach(x => res += Convert.ToInt32(x));
+                            break;
 
-                    case "MUL":
-                        values.ForEach(x => res *= Convert.ToDouble(x));
-                        break;
+                        case "SUB":
+                            values.ForEach(x => res -= Convert.ToInt32(x));
+                            break;
 
-                    case "DIV":
-                        values.ForEach(x => res /= Convert.ToDouble(x));
-                        break;
+                        case "MUL":
+                            values.ForEach(x => res *= Convert.ToInt32(x));
+                            break;
+
+                        case "DIV":
+                            values.ForEach(x => res /= Convert.ToInt32(x));
+                            break;
+                    }
+
+                    return res.ToString();
                 }
+                else
+                {
+                    var res = Convert.ToDouble(values[0]);
+                    values.RemoveAt(0);
+
+                    switch (mac.ToUpper())
+                    {
+                        case "ADD":
+                            values.ForEach(x => res += Convert.ToDouble(x));
+                            break;
+
+                        case "SUB":
+                            values.ForEach(x => res -= Convert.ToDouble(x));
+                            break;
+
+                        case "MUL":
+                            values.ForEach(x => res *= Convert.ToDouble(x));
+                            break;
+
+                        case "DIV":
+                            values.ForEach(x => res /= Convert.ToDouble(x));
+                            break;
+                    }
+
+                    return res.ToString();
+                }
+
+                
             }
             catch 
-            { 
+            {
                 //error
-            }
-
-            if (toInt)
-            {
-                return Convert.ToInt32(res).ToString();
-            }
-            else
-            {
-                return res.ToString();
+                return "0";
             }
         }
     }

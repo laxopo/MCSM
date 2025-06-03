@@ -149,6 +149,7 @@ namespace MCSM
                     solids[0] = new BlockGroup(Block, ID, Data, Xmin, y, z);
                     solids[0].Xmax = x;
                     solids[0].XClosed = true;
+                    solids[0].Type = Type;
                 }
             } 
             else if (!ZClosed)
@@ -167,6 +168,7 @@ namespace MCSM
                     solids[1].Ymax = y;
                     solids[1].XClosed = true;
                     solids[1].YClosed = true;
+                    solids[0].Type = Type;
                 }
 
                 if (x > Xmin)
