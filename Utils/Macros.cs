@@ -667,7 +667,7 @@ namespace MCSM
                 }
             }
 
-            return bt.GetTextureName(data, solid, faces.ToArray());
+            return bt.GetTextureName(data, solid, true, faces.ToArray());
         }
 
         private static string[] ParseValues(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)

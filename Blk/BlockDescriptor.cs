@@ -166,7 +166,7 @@ namespace MCSM
         public static string GetTextureName(List<TextureKey> textures, BlockGroup bg, 
             string solidName, params string[] keys)
         {
-            var name = TextureName(textures, bg.Data, solidName, keys);
+            var name = TextureName(textures, bg.Data, solidName, false, keys);
             name = Macros.TextureName(name, bg);
             return name;
         }
@@ -181,15 +181,15 @@ namespace MCSM
             return BlockGroup.GetSolidType(ModelClass);
         }
 
-        public string GetTextureName(int blockdata, string solidName, params string[] keys)
+        public string GetTextureName(int blockdata, string solidName, bool get, params string[] keys)
         {
-            return TextureName(Textures, blockdata, solidName, keys);
+            return TextureName(Textures, blockdata, solidName, get, keys);
         }
 
         /**/
 
         private static string TextureName(List<TextureKey> textures, int blockdata,
-            string solidName, params string[] keys)
+            string solidName, bool get, params string[] keys)
         {
             if (solidName != null && (solidName == "" || solidName[0] == '_'))
             {
@@ -216,7 +216,7 @@ namespace MCSM
 
             foreach (var key in keys)
             {
-                var txt = GetDataTexture(textures, macKey, solidName, key);
+                var txt = GetDataTexture(textures, macKey, solidName, key, get);
 
                 if (txt != null)
                 {
@@ -227,7 +227,8 @@ namespace MCSM
             return null;
         }
 
-        private static string GetDataTexture(List<TextureKey> textures, string macKey, string solidName = null, string key = null)
+        private static string GetDataTexture(List<TextureKey> textures, string macKey, 
+            string solidName = null, string key = null, bool get = false)
         {
             foreach (var txt in textures)
             {
@@ -242,7 +243,7 @@ namespace MCSM
                 {
                     if (solidName == null)
                     {
-                        if (key == null)
+                        if (key == null || get)
                         {
                             return txt.Texture;
                         }
