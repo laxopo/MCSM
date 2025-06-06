@@ -10,6 +10,7 @@ namespace MCSM
     {
         public int ReferenceID { get; set; }
         public int ReferenceData { get; set; }
+        public string ReplaceID { get; set; }
         public string ModelClass { get; set; }
         public string ModelName { get; set; }
         public string Entity { get; set; }
@@ -79,6 +80,7 @@ namespace MCSM
             var bt = new BlockDescriptor();
             bt.ReferenceID = ReferenceID;
             bt.ReferenceData = ReferenceData;
+            bt.ReplaceID = ReplaceID;
             bt.ModelClass = ModelClass;
             bt.ModelName = ModelName;
             bt.Entity = Entity;
@@ -266,7 +268,7 @@ namespace MCSM
                 {
                     if (key != null && args.Length > 1)
                     {
-                        if (args[1] == key)
+                        if (ToUpper(args[1]) == ToUpper(key))
                         {
                             return txt.Texture;
                         }

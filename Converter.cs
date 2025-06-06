@@ -267,6 +267,26 @@ namespace MCSM
                             var type = BlockGroup.SType(bt.ModelClass);
                             block.Name = bt.Name;
 
+                            if (bt.ReplaceID != null)
+                            {
+                                var idd = Macros.Parse(bt.ReplaceID, null, false, bt, MCWorld, block);
+                                var ids = idd.Split(':');
+
+                                try
+                                {
+                                    if (ids.Length > 0)
+                                    {
+                                        block.ID = Convert.ToByte(ids[0]);
+                                    }
+
+                                    if (ids.Length > 1)
+                                    {
+                                        block.Data = Convert.ToByte(ids[1]);
+                                    }
+                                }
+                                catch { }
+                            }
+
                             switch (type)
                             {
                                 case BlockGroup.ModelType.Pane:

@@ -60,9 +60,10 @@ namespace MCSM
             return Parse(rawValue, bg, true, bt);
         }
 
-        public static string Parse(string value, BlockGroup bg, bool entity, BlockDescriptor bt = null)
+        public static string Parse(string value, BlockGroup bg, bool entity, 
+            BlockDescriptor bt = null, World world = null, Block block = null)
         {
-            if (value == null || bg == null)
+            if (value == null)// || bg == null)
             {
                 return value;
             }
@@ -77,7 +78,7 @@ namespace MCSM
             while ((data = GetBlock(value, ref index)).Length > 0)
             {
                 var args = ArgSplit(data, ' ');
-                string res = Decode(args, bg, entity, bt);
+                string res = Decode(args, bg, entity, bt, world, block);
                 newValue = newValue.Replace("{" + data + "}", res);
             }
 
@@ -94,7 +95,8 @@ namespace MCSM
 
         /**/
 
-        private static string Decode(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt = null)
+        private static string Decode(string[] args, BlockGroup bg, bool entity, 
+            BlockDescriptor bt = null, World world = null, Block block = null)
         {
             string res = "";
             switch (args[0].ToUpper())
@@ -193,7 +195,7 @@ namespace MCSM
                     break;
 
                 case "IF":
-                    res = ParseIf(args, bg, entity, bt);
+                    res = ParseIf(args, bg, entity, bt, world, block);
                     break;
 
                 case "OR":
@@ -211,6 +213,10 @@ namespace MCSM
                 case "MUL":
                 case "DIV":
                     res = ParseArithmetic(args, bg, entity, bt);
+                    break;
+
+                case "BLK":
+                    res = ParseBlk(args, world, block);
                     break;
 
                 default:
@@ -240,6 +246,7 @@ namespace MCSM
 
                 case "NBT":
                 case "TEX":
+                case "BLK":
                     return ParseTypes.String;
 
                 case "ANG16":
@@ -417,6 +424,16 @@ namespace MCSM
             return args.ToArray();
         }
 
+        private static string BoolToString(bool value)
+        {
+            if (value)
+            {
+                return "1";
+            }
+
+            return "0";
+        }
+
         /*Macros parse*/
 
         private static string ParseCoordinate (double x, string[] args)
@@ -429,7 +446,8 @@ namespace MCSM
             return (x * Scale).ToString();
         }
 
-        private static string ParseIf(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt = null)
+        private static string ParseIf(string[] args, BlockGroup bg, bool entity, 
+            BlockDescriptor bt = null, World world = null, Block block = null)
         {
             //$sx==2||$sy==2:T:F
 
@@ -477,10 +495,22 @@ namespace MCSM
                     var cpval = cc[1]; //2
                     var cpop = cstr.Replace(cond, "").Replace(cpval, ""); //==
 
-                    if (cond[0] == '$')
+                    if (cond[0] == '$' || cond[0] == '{')
                     {
-                        var condArgs = cond.Trim('$').Split(' ');
-                        var condVal = Decode(condArgs, bg, entity, bt);
+                        string condVal;
+                        string[] condArgs;
+
+                        if (cond[0] == '{')
+                        {
+                            int idx = 0;
+                            condArgs = ArgSplit(GetBlock(cond, ref idx), ' ');
+                            condVal = Parse(cond, bg, entity, bt, world, block);
+                        }
+                        else
+                        {
+                            condArgs = ArgSplit(cond.Trim('$'), ' ');
+                            condVal = Decode(condArgs, bg, entity, bt);
+                        }
 
                         bool condRes = false;
                         dynamic cdv = ConvertParseType(condArgs[0], condVal);
@@ -801,6 +831,81 @@ namespace MCSM
             {
                 //error
                 return "0";
+            }
+        }
+
+        private static string ParseBlk(string[] args, World world, Block block)
+        {
+            //"blk" x y z [args] (xyz - relative)
+            //args (choose one):
+            //id data - set this values and the result will be =1 (true) or =0 (false)
+            //"id" - return the id of the block
+            //"idd" - return the id:data of the block
+            //"dat" - return the data of the block
+
+            if (args.Length < 5)
+            {
+                //error
+                return null;
+            }
+
+            int x, y, z;
+
+            try
+            {
+                x = Convert.ToInt32(args[1]) + block.X;
+                y = Convert.ToInt32(args[2]) + block.Y;
+                z = Convert.ToInt32(args[3]) + block.Z;
+            }
+            catch
+            {
+                //error
+                return null;
+            }
+
+            var blk = world.GetBlock(block.RegionPos.Dimension, x, y, z);
+
+            if (blk == null)
+            {
+                return null;
+            }    
+            
+            switch(args[4].ToUpper())
+            {
+                case "ID":
+                    return blk.ID.ToString();
+
+                case "IDD":
+                    return blk.ID.ToString() + ":" + blk.Data.ToString();
+
+                case "DAT":
+                    return blk.Data.ToString();
+
+                default:
+                    int id, data = -1;
+                    try
+                    {
+                        id = Convert.ToInt32(args[4]);
+
+                        if (args.Length > 5)
+                        {
+                            data = Convert.ToInt32(args[5]);
+                        }
+                    }
+                    catch
+                    {
+                        //error
+                        return null;
+                    }
+
+                    if (data == -1)
+                    {
+                        return BoolToString(id == blk.ID);
+                    }
+                    else
+                    {
+                        return BoolToString(id == blk.ID && data == blk.Data);
+                    }
             }
         }
     }
