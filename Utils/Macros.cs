@@ -201,6 +201,8 @@ namespace MCSM
                 case "OR":
                 case "AND":
                 case "NOT":
+                case "SHL":
+                case "SHR":
                     res = ParseLogic(args, bg, entity, bt);
                     break;
 
@@ -238,6 +240,8 @@ namespace MCSM
                 case "OR":
                 case "AND":
                 case "NOT":
+                case "SHL":
+                case "SHR":
                 case "ADDI":
                 case "SUBI":
                 case "MULI":
@@ -748,6 +752,14 @@ namespace MCSM
 
                     case "NOT":
                         values.ForEach(x => res ^= Convert.ToInt32(x));
+                        break;
+
+                    case "SHL":
+                        res <<= Convert.ToInt32(values[0]);
+                        break;
+
+                    case "SHR":
+                        res >>= Convert.ToInt32(values[0]);
                         break;
                 }
             }
