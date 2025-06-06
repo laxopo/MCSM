@@ -312,11 +312,12 @@ namespace MCSM
                                     block.ID = 0;
                                     break;
 
+                                case BlockGroup.ModelType.TrapDoor:
                                 case BlockGroup.ModelType.Grass:
                                 case BlockGroup.ModelType.Sign:
                                 case BlockGroup.ModelType.Torch:
                                 case BlockGroup.ModelType.Stairs:
-                                    GroupSingle(block, x, y, z, type, block.Data & bt.DataMask);
+                                    GroupSingle(block, x, y, z, type, block.Data, bt.DataMask);
                                     break;
                             }
                         }
@@ -429,16 +430,22 @@ namespace MCSM
 
         /*Grouping*/
 
-        private static void GroupSingle(Block block, int x, int y, int z, string type, int data = -1)
+        private static void GroupSingle(Block block, int x, int y, int z, string type, int data = -1, int dataMask = 0)
         {
-            GroupSingle(block, x, y, z, BlockGroup.SType(type), data);
+            GroupSingle(block, x, y, z, BlockGroup.SType(type), data, dataMask);
         }
 
-        private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type, int data = -1)
+        private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type, 
+            int data = -1, int dataMask = 0)
         {
             if (data == -1)
             {
                 data = block.Data;
+            }
+
+            if (dataMask != 0)
+            {
+                data &= dataMask;
             }
 
             BlockGroups.Add(new BlockGroup(block, block.ID, data, x, y, z)
@@ -772,6 +779,9 @@ namespace MCSM
 
                 case BlockGroup.ModelType.Door:
                     return ModelDoor(bg, bt, convEnable);
+
+                case BlockGroup.ModelType.TrapDoor:
+                    return ModelTrapDoor(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Grass:
                     return ModelGrass(bg, bt, convEnable);
@@ -1178,6 +1188,54 @@ namespace MCSM
             }
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+
+            return model;
+        }
+
+        private static Model ModelTrapDoor(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
+        {
+            var rot = BlockDataParse.Rotation4Z((bg.Block.Data & 3) + 2);
+            float offz = 0;
+
+            if ((bg.Block.Data & 8) != 0)
+            {
+                offz = 1 - 0.1875f;
+            }
+
+            var model = new Model()
+            {
+                Name = "TrapDoor",
+                Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Rotation = new VHE.Point(0, 0, rot),
+                Solids = new List<Model.Solid>()
+                {
+                    new Model.Solid()
+                    {
+                        Size = new VHE.Point(1, 1, 0.1875f),
+                        Offset = new VHE.Point(0, 0, offz)
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "origin",
+                        Size = new VHE.Point(0.1875f, 0.1875f, 0.1875f),
+                        OriginAlign = new VHE.Point(0, 0, 1),
+                        Offset = new VHE.Point(0.5f, 1, offz)
+                    }
+                },
+                TextureKeys = new List<BlockDescriptor.TextureKey>()
+                {
+                    new BlockDescriptor.TextureKey()
+                    {
+                        SolidName = "origin",
+                        Texture = "origin"
+                    }
+                }
+            };
+
+            if (convEnable)
+            {
+                MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+            }
 
             return model;
         }
