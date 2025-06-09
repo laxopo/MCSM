@@ -98,8 +98,53 @@ namespace MCSM
         private static string Decode(string[] args, BlockGroup bg, bool entity, 
             BlockDescriptor bt = null, World world = null, Block block = null)
         {
-            string res = "";
-            switch (args[0].ToUpper())
+            string res = null, def = null;
+
+            if (args[0].IndexOf('=') != -1)
+            {
+                var sp = args[0].Split('=');
+                if (sp.Length == 0)
+                {
+                    return "";
+                }
+                else if (sp.Length == 1)
+                {
+                    return sp[0];
+                }
+                else
+                {
+                    def = sp[1];
+                    args[0] = sp[0];
+                }
+            }
+
+            var mac = args[0].ToUpper();
+
+            switch (mac)
+            {
+                case "D":
+                case "DB":
+                case "SX":
+                case "SY":
+                case "SZ":
+                case "X":
+                case "Y":
+                case "Z":
+                case "ANG16":
+                case "ANG4":
+                case "NBT":
+                    if (bg == null)
+                    {
+                        if (def != null && def != "")
+                        {
+                            return def;
+                        }
+                        return GetDefaultValue(mac);
+                    }
+                    break;
+            }
+
+            switch (mac)
             {
                 case "D": //block masked data
                     res = bg.Data.ToString();
@@ -110,20 +155,14 @@ namespace MCSM
                     break;
 
                 case "NBT": //block nbt
-
-                    if (bg.Block == null)
+                    if (bg.Block.Chunk == null)
                     {
-                        throw new Exception("The block is not specified");
+                        return GetDefaultValue(mac);
                     }
 
                     if (args.Length < 3)
                     {
                         throw new Exception("Not enought arguments in macros");
-                    }
-
-                    if (bg.Block.Chunk == null)
-                    {
-                        break;
                     }
 
                     List<NBT> te = bg.Block.Chunk.NBTData.GetTag("Level/" + args[1]);
@@ -225,6 +264,16 @@ namespace MCSM
                     throw new Exception("Unknown macros: " + args[0]);
             }
 
+            if (res == null)
+            {
+                if (def != null && def != "")
+                {
+                    return def;
+                }
+
+                return GetDefaultValue(mac);
+            }
+
             return res;
         }
 
@@ -272,6 +321,19 @@ namespace MCSM
             }
         }
 
+        private static string GetDefaultValue(string macros)
+        {
+            switch (GetParseType(macros))
+            {
+                case ParseTypes.Float:
+                case ParseTypes.Int:
+                    return "0";
+
+                default:
+                    return "";
+            }
+        }
+
         private static dynamic ConvertParseType(string macros, string value)
         {
             var ptype = GetParseType(macros);
@@ -310,7 +372,6 @@ namespace MCSM
 
         private static string GetBlock(string data, ref int startIndex)
         {
-            //{or 33 {if $d>=3&&$d<=5:64:128}}
             int lvl = -1;
             string block = "";
             bool spec = false;
@@ -370,7 +431,6 @@ namespace MCSM
 
         private static string[] ArgSplit(string data, char separator)
         {
-            //or 33 {if $d>=3&&$d<=5:64:128}
             var args = new List<string>();
             string arg = "";
             int lvl = 0;
@@ -440,7 +500,7 @@ namespace MCSM
 
         /*Macros parse*/
 
-        private static string ParseCoordinate (double x, string[] args)
+        private static string ParseCoordinate(double x, string[] args)
         {
             try
             {
@@ -652,6 +712,11 @@ namespace MCSM
 
         private static string ParseTex(string[] args, BlockGroup bg, BlockDescriptor bt)
         {
+            if (bt == null)
+            {
+                return null;
+            }
+
             var mcs = new string[]
             {
                 "f", //face (array)
@@ -695,7 +760,10 @@ namespace MCSM
                             break;
 
                         case 2:
-                            data = bg.Data;
+                            if (bg != null)
+                            {
+                                data = bg.Data;
+                            }
                             break;
                     }
                 }
@@ -765,6 +833,7 @@ namespace MCSM
             }
             catch 
             {
+                return null;
                 //error
             }
 
@@ -842,7 +911,7 @@ namespace MCSM
             catch 
             {
                 //error
-                return "0";
+                return null;
             }
         }
 
@@ -855,7 +924,7 @@ namespace MCSM
             //"idd" - return the id:data of the block
             //"dat" - return the data of the block
 
-            if (args.Length < 5)
+            if (args.Length < 5 || world == null || block == null)
             {
                 //error
                 return null;
