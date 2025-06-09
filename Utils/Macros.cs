@@ -28,7 +28,7 @@ namespace MCSM
 
         public static string TextureName(string name, BlockGroup bg)
         {
-            return Parse(name, bg, false);
+            return Parse(name, bg, false, null, null, null);
         }
 
         public static EntityScript GetSignEntity(List<EntityScript> list, string[] signText)
@@ -57,11 +57,11 @@ namespace MCSM
 
         public static string EntityValue(string rawValue, BlockGroup bg, BlockDescriptor bt = null)
         {
-            return Parse(rawValue, bg, true, bt);
+            return Parse(rawValue, bg, true, bt, null, null);
         }
 
         public static string Parse(string value, BlockGroup bg, bool entity, 
-            BlockDescriptor bt = null, World world = null, Block block = null)
+            BlockDescriptor bt, World world, Block block)
         {
             if (value == null)// || bg == null)
             {
@@ -96,7 +96,7 @@ namespace MCSM
         /**/
 
         private static string Decode(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt = null, World world = null, Block block = null)
+            BlockDescriptor bt, World world, Block block)
         {
             string res = null, def = null;
 
@@ -242,7 +242,7 @@ namespace MCSM
                 case "NOT":
                 case "SHL":
                 case "SHR":
-                    res = ParseLogic(args, bg, entity, bt);
+                    res = ParseLogic(args, bg, entity, bt, world, block);
                     break;
 
                 case "ADDI":
@@ -253,7 +253,7 @@ namespace MCSM
                 case "SUB":
                 case "MUL":
                 case "DIV":
-                    res = ParseArithmetic(args, bg, entity, bt);
+                    res = ParseArithmetic(args, bg, entity, bt, world, block);
                     break;
 
                 case "BLK":
@@ -511,7 +511,7 @@ namespace MCSM
         }
 
         private static string ParseIf(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt = null, World world = null, Block block = null)
+            BlockDescriptor bt, World world, Block block)
         {
             //$sx==2||$sy==2:T:F
 
@@ -573,7 +573,7 @@ namespace MCSM
                         else
                         {
                             condArgs = ArgSplit(cond.Trim('$'), ' ');
-                            condVal = Decode(condArgs, bg, entity, bt);
+                            condVal = Decode(condArgs, bg, entity, bt, world, block);
                         }
 
                         bool condRes = false;
@@ -673,7 +673,7 @@ namespace MCSM
                 }
             }
 
-            res = Parse(res, bg, entity, bt);
+            res = Parse(res, bg, entity, bt, world, block);
 
             return res;
         }
@@ -772,7 +772,8 @@ namespace MCSM
             return bt.GetTextureName(data, solid, true, faces.ToArray());
         }
 
-        private static string[] ParseValues(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
+        private static string[] ParseValues(string[] args, BlockGroup bg, bool entity, 
+            BlockDescriptor bt, World world, Block block)
         {
             var values = new List<string>();
 
@@ -782,11 +783,11 @@ namespace MCSM
                 switch (arg[0])
                 {
                     case '$':
-                        values.Add(Decode(new string[] { arg.Remove(0, 1) }, bg, entity, bt));
+                        values.Add(Decode(new string[] { arg.Remove(0, 1) }, bg, entity, bt, world, block));
                         break;
 
                     case '{':
-                        values.Add(Parse(arg, bg, entity, bt));
+                        values.Add(Parse(arg, bg, entity, bt, world, block));
                         break;
 
                     default:
@@ -798,9 +799,10 @@ namespace MCSM
             return values.ToArray();
         }
 
-        private static string ParseLogic(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
+        private static string ParseLogic(string[] args, BlockGroup bg, bool entity, 
+            BlockDescriptor bt, World world, Block block)
         {
-            var values = ParseValues(args, bg, entity, bt).ToList();
+            var values = ParseValues(args, bg, entity, bt, world, block).ToList();
             int res = 0;
 
             try
@@ -840,9 +842,10 @@ namespace MCSM
             return res.ToString();
         }
 
-        private static string ParseArithmetic(string[] args, BlockGroup bg, bool entity, BlockDescriptor bt)
+        private static string ParseArithmetic(string[] args, BlockGroup bg, bool entity, 
+            BlockDescriptor bt, World world, Block block)
         {
-            var values = ParseValues(args, bg, entity, bt).ToList();
+            var values = ParseValues(args, bg, entity, bt, world, block).ToList();
             bool toInt = false;
             var mac = args[0].ToUpper();
             if (mac.Length == 4 && mac[3] == 'I')

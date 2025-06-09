@@ -110,7 +110,8 @@ namespace MCSM
 
                 if (bt.Align != null)
                 {
-                    var al = ModelScript.Parse(bt.Align, ModelScript.Type.Point, new VHE.Point(1, 1, 1), bg);
+                    var al = ModelScript.Parse(bt.Align, ModelScript.Type.Point, new VHE.Point(1, 1, 1), bt, bg, 
+                        Converter.MCWorld, bg.Block);
                     var alPos = new VHE.Point(
                         GetEdgeMin(bg.Xmax - bg.Xmin, al.X),
                         GetEdgeMin(bg.Ymax - bg.Ymin, al.Y),

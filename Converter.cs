@@ -38,11 +38,11 @@ namespace MCSM
         public static List<ModelScript> Models { get; set; }
         public static VHE.Map Map { get; private set; }
         public static List<BlockGroup> BlockGroups { get; private set; } = new List<BlockGroup>();
+        public static World MCWorld { get; set; }
+
 
         private static FontDim FontDim = new FontDim();
-        private static World MCWorld;
         private static List<VHE.Entity> GenSysEntities = new List<VHE.Entity>();
-
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
             {Resources.Models, @"data\models.json"},
             {Resources.Blocks, @"data\blocks.json"},
@@ -1329,14 +1329,14 @@ namespace MCSM
 
         private static Model ModelSpecial(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
-            var modelName = Macros.Parse(bt.ModelName, bg, false, bt);
+            var modelName = Macros.Parse(bt.ModelName, bg, false, bt, MCWorld, bg.Block);
             var modelScr = Models.Find(x => x.Name == modelName);
             if (modelScr == null)
             {
                 throw new Exception("Model not found");
             }
 
-            var model = modelScr.ToModel(bg);
+            var model = modelScr.ToModel(bt, bg, MCWorld, bg.Block);
 
             if (bt.Rotation != BlockDescriptor.RotationType.None)
             {
