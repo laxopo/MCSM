@@ -106,6 +106,8 @@ namespace MCSM
 
             if (bt != null)
             {
+                pos.Summ(ModelScript.Parse(bt.Offset, ModelScript.Type.Point, new VHE.Point(), bt, bg,
+                        Converter.MCWorld, bg.Block));
                 bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
 
                 if (bt.Align != null)

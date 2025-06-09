@@ -35,11 +35,14 @@ namespace MCSM.VHE
             Z = xyz[2];
         }
 
-        public Point Summ(Point add)
+        public Point Summ(params Point[] add)
         {
-            X += add.X;
-            Y += add.Y;
-            Z += add.Z;
+            foreach (var pt in add)
+            {
+                X += pt.X;
+                Y += pt.Y;
+                Z += pt.Z;
+            }
 
             return this;
         }

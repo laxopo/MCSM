@@ -22,6 +22,7 @@ namespace MCSM
         public bool IgnoreExcluded { get; set; }
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
+        public string Offset { get; set; }
         public GroupType Grouping { get; set; }
         public RotationType Rotation { get; set; }
         public string Align { get; set; }
@@ -96,6 +97,7 @@ namespace MCSM
             bt.Rotation = Rotation;
             bt.Grouping = Grouping;
             bt.WorldOffset = WorldOffset;
+            bt.Offset = Offset;
             bt.Align = Align;
             bt.Textures = new List<TextureKey>();
 
