@@ -269,7 +269,7 @@ namespace MCSM
 
                             if (bt.ReplaceID != null)
                             {
-                                var idd = Macros.Parse(bt.ReplaceID, null, false, bt, MCWorld, block);
+                                var idd = Macros.Parse(bt.ReplaceID, null, false, bt, MCWorld, block, false);
                                 var ids = idd.Split(':');
 
                                 try
@@ -704,29 +704,7 @@ namespace MCSM
                 BlockGroups.Add(new BlockGroup(block, block.ID, data, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
-                var last = BlockGroups.Last();
-                BlockGroups.Remove(last);
-                BlockGroups.Insert(0, last);
                 added = true;
-            }
-
-            if (added)
-            {
-                int idmax = -1;
-                foreach (var sld in BlockGroups)
-                {
-                    if (sld.TestID > idmax || (sld.TestID != -1 && idmax == -1))
-                    {
-                        idmax = sld.TestID;
-                    }
-                }
-                foreach (var sld in BlockGroups)
-                {
-                    if (sld.TestID == -1)
-                    {
-                        sld.TestID = ++idmax;
-                    }
-                }
             }
         }
 
@@ -1329,7 +1307,7 @@ namespace MCSM
 
         private static Model ModelSpecial(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
-            var modelName = Macros.Parse(bt.ModelName, bg, false, bt, MCWorld, bg.Block);
+            var modelName = Macros.Parse(bt.ModelName, bg, false, bt, MCWorld, bg.Block, false);
             var modelScr = Models.Find(x => x.Name == modelName);
             if (modelScr == null)
             {

@@ -118,13 +118,19 @@ namespace MCSM
 
         /**/
 
-        public Model ToModel(BlockDescriptor bt = null, BlockGroup bg = null, World world = null, Block block = null)
+        public Model ToModelDefault()
+        {
+            return ToModel(null, null, null, null, true);
+        }
+
+        public Model ToModel(BlockDescriptor bt = null, BlockGroup bg = null, 
+            World world = null, Block block = null, bool forceDefault = false)
         {
             var model = new Model();
             model.Name = Name;
-            model.Origin = Parse(Origin, Type.Point, Defaults.PZero, bt, bg, world, block);
-            model.Rotation = Parse(Rotation, Type.Point, Defaults.PZero, bt, bg, world, block);
-            model.Offset = Parse(Offset, Type.Point, Defaults.PZero, bt, bg, world, block);
+            model.Origin = Parse(Origin, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault);
+            model.Rotation = Parse(Rotation, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault);
+            model.Offset = Parse(Offset, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault);
             model.Solids = new List<Model.Solid>();
 
             if (TextureKeys != null)
@@ -145,13 +151,13 @@ namespace MCSM
                             Name = Model.GetFaceEnum(fc.Name),
                             Texture = fc.Texture,
 
-                            OffsetU = Parse(fc.OffsetU, Type.Float, 0, bt, bg, world, block),
-                            OffsetV = Parse(fc.OffsetV, Type.Float, 0, bt, bg, world, block),
-                            ScaleU = Parse(fc.ScaleU, Type.Float, 1, bt, bg, world, block),
-                            ScaleV = Parse(fc.ScaleV, Type.Float, 1, bt, bg, world, block),
-                            Rotation = Parse(fc.Rotation, Type.Float, 0, bt, bg, world, block),
+                            OffsetU = Parse(fc.OffsetU, Type.Float, 0, bt, bg, world, block, forceDefault),
+                            OffsetV = Parse(fc.OffsetV, Type.Float, 0, bt, bg, world, block, forceDefault),
+                            ScaleU = Parse(fc.ScaleU, Type.Float, 1, bt, bg, world, block, forceDefault),
+                            ScaleV = Parse(fc.ScaleV, Type.Float, 1, bt, bg, world, block, forceDefault),
+                            Rotation = Parse(fc.Rotation, Type.Float, 0, bt, bg, world, block, forceDefault),
 
-                            Origin = Parse(fc.Origin, Type.Point2D, Defaults.P2DZero, bt, bg, world, block),
+                            Origin = Parse(fc.Origin, Type.Point2D, Defaults.P2DZero, bt, bg, world, block, forceDefault),
 
                             Frame = fc.Frame,
                             ReverseV = fc.ReverseV,
@@ -170,14 +176,14 @@ namespace MCSM
                 {
                     Name = sld.Name,
 
-                    AbsOffset = Parse(sld.AbsOffset, Type.Point, Defaults.PZero, bt, bg, world, block),
-                    Offset = Parse(sld.Offset, Type.Point, Defaults.PZero, bt, bg, world, block),
-                    OriginAlign = Parse(sld.OriginAlign, Type.Point, Defaults.POne, bt, bg, world, block),
-                    OriginRotOffset = Parse(sld.OriginRotOffset, Type.Point, Defaults.PZero, bt, bg, world, block),
-                    Rotation = Parse(sld.Rotation, Type.Point, Defaults.PZero, bt, bg, world, block),
-                    Size = Parse(sld.Size, Type.Point, Defaults.PZero, bt, bg, world, block),
+                    AbsOffset = Parse(sld.AbsOffset, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
+                    Offset = Parse(sld.Offset, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
+                    OriginAlign = Parse(sld.OriginAlign, Type.Point, Defaults.POne, bt, bg, world, block, forceDefault),
+                    OriginRotOffset = Parse(sld.OriginRotOffset, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
+                    Rotation = Parse(sld.Rotation, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
+                    Size = Parse(sld.Size, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
 
-                    TextureScale = Parse(sld.TextureScale, Type.Float, 1, bt, bg, world, block),
+                    TextureScale = Parse(sld.TextureScale, Type.Float, 1, bt, bg, world, block, forceDefault),
 
                     TextureLockOffsets = sld.TextureLockOffsets,
                     TextureLockRotanion = sld.TextureLockRotanion,
@@ -190,7 +196,7 @@ namespace MCSM
                 };
                 
 
-                solid.TexturedFaces = Parse(sld.TexturedFaces, Type.FaceList, null, bt, bg, world, block);
+                solid.TexturedFaces = Parse(sld.TexturedFaces, Type.FaceList, null, bt, bg, world, block, forceDefault);
 
                 model.Solids.Add(solid);
             }
@@ -334,7 +340,7 @@ namespace MCSM
         }
 
         public static dynamic Parse(object value, Type type, object defvalue, 
-            BlockDescriptor bt, BlockGroup bg, World world, Block block)
+            BlockDescriptor bt, BlockGroup bg, World world, Block block, bool forceDefault)
         {
             if (value == null)
             {
@@ -362,7 +368,7 @@ namespace MCSM
                 case Type.Float:
                 case Type.Point:
                 case Type.Point2D:
-                    var data = Macros.Parse(value.ToString(), bg, false, bt, world, block);
+                    var data = Macros.Parse(value.ToString(), bg, false, bt, world, block, forceDefault);
                     return VHE.Entity.DeserializeValue(data, Types[type]);
 
                 case Type.FaceList:

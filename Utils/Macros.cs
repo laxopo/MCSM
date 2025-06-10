@@ -28,7 +28,7 @@ namespace MCSM
 
         public static string TextureName(string name, BlockGroup bg)
         {
-            return Parse(name, bg, false, null, null, null);
+            return Parse(name, bg, false, null, null, null, false);
         }
 
         public static EntityScript GetSignEntity(List<EntityScript> list, string[] signText)
@@ -57,11 +57,11 @@ namespace MCSM
 
         public static string EntityValue(string rawValue, BlockGroup bg, BlockDescriptor bt = null)
         {
-            return Parse(rawValue, bg, true, bt, null, null);
+            return Parse(rawValue, bg, true, bt, null, null, false);
         }
 
         public static string Parse(string value, BlockGroup bg, bool entity, 
-            BlockDescriptor bt, World world, Block block)
+            BlockDescriptor bt, World world, Block block, bool forceDefault)
         {
             if (value == null)// || bg == null)
             {
@@ -78,11 +78,11 @@ namespace MCSM
             while ((data = GetBlock(value, ref index)).Length > 0)
             {
                 var args = ArgSplit(data, ' ');
-                string res = Decode(args, bg, entity, bt, world, block);
+                string res = Decode(args, bg, entity, bt, world, block, forceDefault);
                 newValue = newValue.Replace("{" + data + "}", res);
             }
 
-            return newValue;
+            return newValue.Replace("\"", ""); ;
         }
 
         /*Exceptions*/
@@ -96,29 +96,23 @@ namespace MCSM
         /**/
 
         private static string Decode(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt, World world, Block block)
+            BlockDescriptor bt, World world, Block block, bool forceDefault)
         {
             string res = null, def = null;
 
-            if (args[0].IndexOf('=') != -1)
+            var md = GetMacrosDef(args[0]);
+            if (md[0] == null)
             {
-                var sp = args[0].Split('=');
-                if (sp.Length == 0)
-                {
-                    return "";
-                }
-                else if (sp.Length == 1)
-                {
-                    return sp[0];
-                }
-                else
-                {
-                    def = sp[1];
-                    args[0] = sp[0];
-                }
+                return md[1];
             }
 
-            var mac = args[0].ToUpper();
+            var mac = md[0].ToUpper();
+            def = md[1];
+
+            if (forceDefault && def != null && def != "")
+            {
+                return def;
+            }
 
             switch (mac)
             {
@@ -234,7 +228,7 @@ namespace MCSM
                     break;
 
                 case "IF":
-                    res = ParseIf(args, bg, entity, bt, world, block);
+                    res = ParseIf(args, bg, entity, bt, world, block, forceDefault);
                     break;
 
                 case "OR":
@@ -242,7 +236,7 @@ namespace MCSM
                 case "NOT":
                 case "SHL":
                 case "SHR":
-                    res = ParseLogic(args, bg, entity, bt, world, block);
+                    res = ParseLogic(args, bg, entity, bt, world, block, forceDefault);
                     break;
 
                 case "ADDI":
@@ -253,7 +247,7 @@ namespace MCSM
                 case "SUB":
                 case "MUL":
                 case "DIV":
-                    res = ParseArithmetic(args, bg, entity, bt, world, block);
+                    res = ParseArithmetic(args, bg, entity, bt, world, block, forceDefault);
                     break;
 
                 case "BLK":
@@ -279,6 +273,15 @@ namespace MCSM
 
         private static ParseTypes GetParseType(string macros)
         {
+            if (macros.Contains('='))
+            {
+                macros = GetMacrosDef(macros)[0];
+                if (macros == null)
+                {
+                    return ParseTypes.Undefined;
+                }
+            }
+
             switch (macros.ToUpper())
             {
                 case "D":
@@ -334,6 +337,35 @@ namespace MCSM
             }
         }
 
+        private static string[] GetMacrosDef(string macros)
+        {
+            var res = new string[2];
+
+            if (macros.Contains('='))
+            {
+                var sp = macros.Split('=');
+                if (sp.Length == 0)
+                {
+                    return res;
+                }
+                else if (sp.Length == 1)
+                {
+                    res[1] = sp[0];
+                }
+                else
+                {
+                    res[1] = sp[1];
+                    res[0] = sp[0];
+                }
+            }
+            else
+            {
+                res[0] = macros;
+            }
+
+            return res;
+        }
+
         private static dynamic ConvertParseType(string macros, string value)
         {
             var ptype = GetParseType(macros);
@@ -374,11 +406,29 @@ namespace MCSM
         {
             int lvl = -1;
             string block = "";
-            bool spec = false;
+            bool spec = false, quote = false;
 
             for (; startIndex < data.Length; startIndex++)
             {
                 var ch = data[startIndex];
+
+                if (ch == '\"')
+                {
+                    if (quote)
+                    {
+                        quote = false;
+                        continue;
+                    }
+                    else
+                    {
+                        quote = true;
+                    }
+                }
+
+                if (quote)
+                {
+                    continue;
+                }
 
                 if (ch == '&')
                 {
@@ -511,7 +561,7 @@ namespace MCSM
         }
 
         private static string ParseIf(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt, World world, Block block)
+            BlockDescriptor bt, World world, Block block, bool forceDefault)
         {
             //$sx==2||$sy==2:T:F
 
@@ -568,12 +618,12 @@ namespace MCSM
                         {
                             int idx = 0;
                             condArgs = ArgSplit(GetBlock(cond, ref idx), ' ');
-                            condVal = Parse(cond, bg, entity, bt, world, block);
+                            condVal = Parse(cond, bg, entity, bt, world, block, forceDefault);
                         }
                         else
                         {
                             condArgs = ArgSplit(cond.Trim('$'), ' ');
-                            condVal = Decode(condArgs, bg, entity, bt, world, block);
+                            condVal = Decode(condArgs, bg, entity, bt, world, block, forceDefault);
                         }
 
                         bool condRes = false;
@@ -666,6 +716,7 @@ namespace MCSM
                 if (cd1)
                 {
                     res = valTrue;
+                    break;
                 }
                 else
                 {
@@ -673,7 +724,7 @@ namespace MCSM
                 }
             }
 
-            res = Parse(res, bg, entity, bt, world, block);
+            res = Parse(res, bg, entity, bt, world, block, forceDefault);
 
             return res;
         }
@@ -773,7 +824,7 @@ namespace MCSM
         }
 
         private static string[] ParseValues(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt, World world, Block block)
+            BlockDescriptor bt, World world, Block block, bool forceDefault)
         {
             var values = new List<string>();
 
@@ -783,11 +834,11 @@ namespace MCSM
                 switch (arg[0])
                 {
                     case '$':
-                        values.Add(Decode(new string[] { arg.Remove(0, 1) }, bg, entity, bt, world, block));
+                        values.Add(Decode(new string[] { arg.Remove(0, 1) }, bg, entity, bt, world, block, forceDefault));
                         break;
 
                     case '{':
-                        values.Add(Parse(arg, bg, entity, bt, world, block));
+                        values.Add(Parse(arg, bg, entity, bt, world, block, forceDefault));
                         break;
 
                     default:
@@ -800,9 +851,9 @@ namespace MCSM
         }
 
         private static string ParseLogic(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt, World world, Block block)
+            BlockDescriptor bt, World world, Block block, bool forceDefault)
         {
-            var values = ParseValues(args, bg, entity, bt, world, block).ToList();
+            var values = ParseValues(args, bg, entity, bt, world, block, forceDefault).ToList();
             int res = 0;
 
             try
@@ -843,9 +894,9 @@ namespace MCSM
         }
 
         private static string ParseArithmetic(string[] args, BlockGroup bg, bool entity, 
-            BlockDescriptor bt, World world, Block block)
+            BlockDescriptor bt, World world, Block block, bool forceDefault)
         {
-            var values = ParseValues(args, bg, entity, bt, world, block).ToList();
+            var values = ParseValues(args, bg, entity, bt, world, block, forceDefault).ToList();
             bool toInt = false;
             var mac = args[0].ToUpper();
             if (mac.Length == 4 && mac[3] == 'I')

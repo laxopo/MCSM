@@ -107,13 +107,13 @@ namespace MCSM
             if (bt != null)
             {
                 pos.Summ(ModelScript.Parse(bt.Offset, ModelScript.Type.Point, new VHE.Point(), bt, bg,
-                        Converter.MCWorld, bg.Block));
+                        Converter.MCWorld, bg.Block, true));
                 bt.Textures.ForEach(x => modelBuf.TextureKeys.Add(x));
 
                 if (bt.Align != null)
                 {
                     var al = ModelScript.Parse(bt.Align, ModelScript.Type.Point, new VHE.Point(1, 1, 1), bt, bg, 
-                        Converter.MCWorld, bg.Block);
+                        Converter.MCWorld, bg.Block, true);
                     var alPos = new VHE.Point(
                         GetEdgeMin(bg.Xmax - bg.Xmin, al.X),
                         GetEdgeMin(bg.Ymax - bg.Ymin, al.Y),
