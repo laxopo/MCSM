@@ -684,13 +684,11 @@ namespace MCSM
                 }
             }
 
-            bool added = false;
             foreach (var cut in cuts)
             {
                 if (cut != null)
                 {
                     BlockGroups.Add(cut);
-                    added = true;
                 }
             }
 
@@ -704,7 +702,6 @@ namespace MCSM
                 BlockGroups.Add(new BlockGroup(block, block.ID, data, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
-                added = true;
             }
         }
 

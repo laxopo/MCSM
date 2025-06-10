@@ -118,9 +118,9 @@ namespace MCSM
 
         /**/
 
-        public Model ToModelDefault()
+        public Model ToModelDefault(BlockDescriptor bt)
         {
-            return ToModel(null, null, null, null, true);
+            return ToModel(bt, null, null, null, true);
         }
 
         public Model ToModel(BlockDescriptor bt = null, BlockGroup bg = null, 

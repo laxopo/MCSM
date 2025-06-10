@@ -68,6 +68,36 @@ namespace MCSM
                 return value;
             }
 
+            //user variables
+            int varIdx = 0;
+            while((varIdx = value.IndexOf("@", varIdx)) != -1)
+            {
+                if (bt == null)
+                {
+                    return "";
+                }
+
+                string variable = "";
+                for (int i = varIdx ; i < value.Length; i++)
+                {
+                    var c = value[i];
+                    if (c != '@' && !char.IsLetterOrDigit(c))
+                    {
+                        break;
+                    }
+
+                    variable += c;
+                }
+
+                var varVal = Variable.GetVariableValue(bt.Variables, variable);
+                if (varVal == null)
+                {
+                    return "";
+                }
+                value = value.Replace(variable, varVal);
+                varIdx += varVal.Length;
+            }
+
             value = value.Replace('.', ',');
 
             string data, newValue = value;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace MCSM
 {
@@ -27,13 +28,7 @@ namespace MCSM
         public RotationType Rotation { get; set; }
         public string Align { get; set; }
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
-
-        /*public enum ThreeState
-        {
-            Auto,
-            Enable,
-            Disable
-        }*/
+        public List<Variable> Variables { get; set; } = new List<Variable>();
 
         public enum GroupType
         {
@@ -78,7 +73,10 @@ namespace MCSM
 
         public BlockDescriptor Copy()
         {
-            var bt = new BlockDescriptor();
+            var s = JsonConvert.SerializeObject(this);
+            return JsonConvert.DeserializeObject<BlockDescriptor>(s);
+
+            /*var bt = new BlockDescriptor();
             bt.ReferenceID = ReferenceID;
             bt.ReferenceData = ReferenceData;
             bt.ReplaceID = ReplaceID;
@@ -112,7 +110,7 @@ namespace MCSM
 
             Textures.ForEach(x => bt.Textures.Add(x.Copy()));
 
-            return bt;
+            return bt;*/
         }
 
         public static string[] GetGroupTypeList()
