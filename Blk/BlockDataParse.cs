@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MCSM.VHE;
+using NamedBinaryTag;
 namespace MCSM
 {
     public static class BlockDataParse
@@ -15,6 +16,12 @@ namespace MCSM
 
         public static int Rotation4L(int data)
         {
+            return AngleLimit(data * 90);
+        }
+
+        public static int Rotation4L(int x, int y, int z)
+        {
+            int data = Math.Abs((int)World.GetLocationSeed(x, y, z)) % 4;
             return AngleLimit(data * 90);
         }
 
@@ -172,7 +179,7 @@ namespace MCSM
             return new Point(0, y, z);
         }
 
-        public static Point GetRotation(BlockDescriptor.RotationType rotationType, int data)
+        public static Point GetRotation(BlockDescriptor.RotationType rotationType, int data, Block block)
         {
             switch (rotationType)
             {
@@ -181,6 +188,9 @@ namespace MCSM
 
                 case BlockDescriptor.RotationType.R4L:
                     return new Point(0, 0, Rotation4L(data));
+
+                case BlockDescriptor.RotationType.R4L_Rand:
+                    return new Point(0, 0, Rotation4L(block.X, block.Y, block.Z));
 
                 case BlockDescriptor.RotationType.R4Z:
                     return new Point(0, 0, Rotation4Z(data));

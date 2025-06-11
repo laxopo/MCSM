@@ -647,15 +647,16 @@ namespace MCSM
 
                 if (bt != null)
                 {
-                    grXY = bt.Grouping == BlockDescriptor.GroupType.DataXY
-                    || bt.Grouping == BlockDescriptor.GroupType.XY
-                    || bt.Grouping == BlockDescriptor.GroupType.DataXYZ
-                    || bt.Grouping == BlockDescriptor.GroupType.XYZ;
+                    var gp = bt.GetGroupType();
+                    grXY = gp == BlockDescriptor.GroupType.DataXY
+                    || gp == BlockDescriptor.GroupType.XY
+                    || gp == BlockDescriptor.GroupType.DataXYZ
+                    || gp == BlockDescriptor.GroupType.XYZ;
 
-                    grZ = bt.Grouping == BlockDescriptor.GroupType.DataZ
-                    || bt.Grouping == BlockDescriptor.GroupType.Z
-                    || bt.Grouping == BlockDescriptor.GroupType.DataXYZ
-                    || bt.Grouping == BlockDescriptor.GroupType.XYZ;
+                    grZ = gp == BlockDescriptor.GroupType.DataZ
+                    || gp == BlockDescriptor.GroupType.Z
+                    || gp == BlockDescriptor.GroupType.DataXYZ
+                    || gp == BlockDescriptor.GroupType.XYZ;
                 }
 
                 var rngX = x >= solid.Xmin && x < solid.Xmax;
@@ -826,7 +827,7 @@ namespace MCSM
             var model = new Model()
             {
                 Origin = VHE.Point.Divide(size, 2),
-                Rotation = BlockDataParse.GetRotation(bt.Rotation, bg.Data),
+                Rotation = BlockDataParse.GetRotation(bt.GetRotationType(), bg.Data, bg.Block),
                 Position = new VHE.Point(bg.Xmin, bg.Ymin, bg.Zmin + offz),
                 Solids =
                 {
@@ -1399,9 +1400,9 @@ namespace MCSM
 
             var model = modelScr.ToModel(bt, bg, MCWorld, bg.Block);
 
-            if (bt.Rotation != BlockDescriptor.RotationType.None)
+            if (bt.GetRotationType() != BlockDescriptor.RotationType.None)
             {
-                var rot = BlockDataParse.GetRotation(bt.Rotation, bg.Data);
+                var rot = BlockDataParse.GetRotation(bt.GetRotationType(), bg.Data, bg.Block);
                 model.Rotation.Summ(rot);
             }
 
@@ -2549,9 +2550,10 @@ namespace MCSM
                     continue;
                 }
 
-                var grF = bt.Grouping == BlockDescriptor.GroupType.XY
-                    || bt.Grouping == BlockDescriptor.GroupType.XYZ
-                    || bt.Grouping == BlockDescriptor.GroupType.Z;
+                var gp = bt.GetGroupType();
+                var grF = gp == BlockDescriptor.GroupType.XY
+                    || gp == BlockDescriptor.GroupType.XYZ
+                    || gp == BlockDescriptor.GroupType.Z;
 
                 if (bt.Data == -1 && grF) //Ignore the data value
                 {

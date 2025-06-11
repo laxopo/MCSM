@@ -24,18 +24,18 @@ namespace MCSM
         public bool TextureOriented { get; set; }
         public bool WorldOffset { get; set; }
         public string Offset { get; set; }
-        public GroupType Grouping { get; set; }
-        public RotationType Rotation { get; set; }
+        public string Grouping { get; set; }
+        public string Rotation { get; set; }
         public string Align { get; set; }
         public List<TextureKey> Textures { get; set; } = new List<TextureKey>();
         public List<Variable> Variables { get; set; } = new List<Variable>();
 
         public enum GroupType
         {
-            None = 2,
-            DataXYZ = 0,
-            DataXY = 1,
-            DataZ = 3,
+            None,
+            DataXYZ,
+            DataXY,
+            DataZ,
             XYZ,
             XY,
             Z
@@ -48,10 +48,11 @@ namespace MCSM
             R4L,
             R4Z,
             R6,
+            R6B,
             R8,
             R8A,
             R16,
-            R6B
+            R4L_Rand
         }
 
         public class TextureKey
@@ -75,42 +76,6 @@ namespace MCSM
         {
             var s = JsonConvert.SerializeObject(this);
             return JsonConvert.DeserializeObject<BlockDescriptor>(s);
-
-            /*var bt = new BlockDescriptor();
-            bt.ReferenceID = ReferenceID;
-            bt.ReferenceData = ReferenceData;
-            bt.ReplaceID = ReplaceID;
-            bt.ModelClass = ModelClass;
-            bt.ModelName = ModelName;
-            bt.Entity = Entity;
-            bt.SysEntities = new List<string>(SysEntities);
-            bt.DataOffset = DataOffset;
-            bt.DataMask = DataMask;
-            bt.Data = Data;
-            bt.DataMax = DataMax;
-            bt.Name = Name;
-            bt.ID = ID;
-            bt.IgnoreExcluded = IgnoreExcluded;
-            bt.TextureOriented = TextureOriented;
-            bt.Rotation = Rotation;
-            bt.Grouping = Grouping;
-            bt.WorldOffset = WorldOffset;
-            bt.Offset = Offset;
-            bt.Align = Align;
-            bt.Textures = new List<TextureKey>();
-
-            if (DataExceptions != null)
-            {
-                bt.DataExceptions = new int[DataExceptions.Length];
-                for (int i = 0; i < DataExceptions.Length; i++)
-                {
-                    bt.DataExceptions[i] = DataExceptions[i];
-                }
-            }
-
-            Textures.ForEach(x => bt.Textures.Add(x.Copy()));
-
-            return bt;*/
         }
 
         public static string[] GetGroupTypeList()
@@ -186,6 +151,20 @@ namespace MCSM
         public string GetTextureName(int blockdata, string solidName, bool get, params string[] keys)
         {
             return TextureName(Textures, blockdata, solidName, get, keys);
+        }
+
+        public GroupType GetGroupType()
+        {
+            GroupType gp;
+            Enum.TryParse(Grouping, true, out gp);
+            return gp;
+        }
+
+        public RotationType GetRotationType()
+        {
+            RotationType rt;
+            Enum.TryParse(Rotation, true, out rt);
+            return rt;
         }
 
         /**/
