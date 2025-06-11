@@ -204,5 +204,10 @@ namespace MCSM
                     throw new Exception("Invalid face name: " + name);
             }
         }
+
+        public Solid GetSolid(string name)
+        {
+            return Solids.Find(x => x.Name == name);
+        }
     }
 }

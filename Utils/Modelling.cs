@@ -361,12 +361,12 @@ namespace MCSM
 
             //Rotation lock
             var rotl = new float[6];
-            rotl[0] = -mdlSolid.Rotation.Z;
-            rotl[1] = mdlSolid.Rotation.Z;
-            rotl[2] = -mdlSolid.Rotation.X;
-            rotl[3] = mdlSolid.Rotation.X;
-            rotl[4] = -mdlSolid.Rotation.Y;
-            rotl[5] = mdlSolid.Rotation.Y;
+            rotl[0] = -mdlSolid.Rotation.Z - rotation.Z;
+            rotl[1] = mdlSolid.Rotation.Z + rotation.Z;
+            rotl[2] = -mdlSolid.Rotation.X - rotation.X;
+            rotl[3] = mdlSolid.Rotation.X + rotation.X;
+            rotl[4] = -mdlSolid.Rotation.Y - rotation.Y;
+            rotl[5] = mdlSolid.Rotation.Y + rotation.Y;
 
             //face texturing
             for (int i = 0; i < 6; i++)

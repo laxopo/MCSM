@@ -45,6 +45,14 @@ namespace MCSM.VHE
             {
                 return Entity.SerializeValue(Value, ValueType);
             }
+
+            public Parameter Copy()
+            {
+                var par = new Parameter(Name);
+                par.Value = Value;
+                par.ValueType = ValueType;
+                return par;
+            }
         }
 
         public enum Type
@@ -380,6 +388,17 @@ namespace MCSM.VHE
             }
 
             return pars.Count == epars.Count;
+        }
+
+        public Entity Copy()
+        {
+            var entity = new Entity(ClassName);
+            foreach (var par in Parameters)
+            {
+                entity.Parameters.Add(par.Copy());
+            }
+
+            return entity;
         }
 
         /**/

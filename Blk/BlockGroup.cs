@@ -44,6 +44,7 @@ namespace MCSM
             Pane,
             Fence,
             Door,
+            Gate,
             TrapDoor,
             Liquid,
             Grass,

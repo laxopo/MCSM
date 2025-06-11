@@ -313,6 +313,7 @@ namespace MCSM
                                     break;
 
                                 case BlockGroup.ModelType.TrapDoor:
+                                case BlockGroup.ModelType.Gate:
                                 case BlockGroup.ModelType.Grass:
                                 case BlockGroup.ModelType.Sign:
                                 case BlockGroup.ModelType.Torch:
@@ -749,7 +750,10 @@ namespace MCSM
                     return ModelPane(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Fence:
-                    ModelFence(bg, bt);
+                    if (convEnable)
+                    {
+                        ModelFence(bg, bt);
+                    }
                     return new Model();
 
                 case BlockGroup.ModelType.Door:
@@ -757,6 +761,13 @@ namespace MCSM
 
                 case BlockGroup.ModelType.TrapDoor:
                     return ModelTrapDoor(bg, bt, convEnable);
+
+                case BlockGroup.ModelType.Gate:
+                    if (convEnable)
+                    {
+                        ModelGate(bg, bt);
+                    }
+                    return new Model();
 
                 case BlockGroup.ModelType.Grass:
                     return ModelGrass(bg, bt, convEnable);
@@ -1213,6 +1224,81 @@ namespace MCSM
             }
 
             return model;
+        }
+
+        private static void ModelGate(BlockGroup bg, BlockDescriptor bt)
+        {
+            float rot = 0;
+            if ((bg.Data & 1) != 0)
+            {
+                rot = 90;
+            }
+
+            var model = new Model()
+            {
+                Name = "Gate",
+                Offset = new VHE.Point(0, 0, -0.005f),
+                Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Rotation = new VHE.Point(0, 0, rot),
+                Solids = new List<Model.Solid>()
+                {
+                    new Model.Solid()
+                    {
+                        Name = "_L",
+                        Size = new VHE.Point(0.125f, 0.125f, 0.6875f),
+                        OriginAlign = new VHE.Point(1, 0, 1),
+                        Offset = new VHE.Point(0, 0.5f, 0.3125f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_U",
+                        Size = new VHE.Point(0.375f, 0.125f, 0.1875f),
+                        OriginAlign = new VHE.Point(1, 0, 1),
+                        Offset = new VHE.Point(0.125f, 0.5f, 0.75f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_D",
+                        Size = new VHE.Point(0.375f, 0.125f, 0.1875f),
+                        OriginAlign = new VHE.Point(1, 0, 1),
+                        Offset = new VHE.Point(0.125f, 0.5f, 0.375f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_C",
+                        Size = new VHE.Point(0.125f, 0.125f, 0.1875f),
+                        OriginAlign = new VHE.Point(1, 0, 1),
+                        Offset = new VHE.Point(0.375f, 0.5f, 0.5625f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "origin",
+                        Size = new VHE.Point(0.125f, 0.125f, 0.1875f),
+                        OriginAlign = new VHE.Point(-0.8f, 0, 1),
+                        Offset = new VHE.Point(0, 0.5f, 0.5625f),
+                    }
+                },
+                TextureKeys = new List<BlockDescriptor.TextureKey>()
+                {
+                    new BlockDescriptor.TextureKey()
+                    {
+                        SolidName = "origin",
+                        Texture = "origin"
+                    }
+                }
+            };
+
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+            model.Rotation.Z += 180;
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
         }
 
         private static Model ModelGrass(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
@@ -2052,8 +2138,9 @@ namespace MCSM
 
         private static void MapAddObject(List<VHE.Solid> solids, VHE.Entity entity, BlockGroup bg)
         {
-            solids.ForEach(s => entity.AddSolid(s));
-            Map.CreateEntity(entity);
+            var ent = entity.Copy();
+            solids.ForEach(s => ent.AddSolid(s));
+            Map.CreateEntity(ent);
             EntitiesCurrent += solids.Count;
         }
 
