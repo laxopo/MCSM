@@ -1874,6 +1874,71 @@ namespace MCSM
 
         private static Model ModelStairs(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
         {
+            bool IsPinRight(int dat, int bdata)
+            {
+                switch (dat)
+                {
+                    case 0:
+                        return bdata == 2;
+                       
+                    case 1:
+                        return bdata == 3;
+                       
+                    case 2:
+                        return bdata == 1;
+                       
+                    case 3:
+                        return bdata == 0;
+                }
+
+                return false;
+            }
+
+            bool IsSide(int dat, int bdata)
+            {
+                switch (dat)
+                {
+                    case 0:
+                    case 1:
+                        return bdata == 2 || bdata == 3;
+
+
+                    case 2:
+                    case 3:
+                        return bdata == 0 || bdata == 1;
+                }
+
+                return false;
+            }
+
+            bool BlockCheck(Block blk, bool hdata)
+            {
+                if (blk.ID != bg.ID)
+                {
+                    return false;
+                }
+
+                if (hdata != blk.Data > 3)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            bool DataCheck(Block blk, bool hdata, ref int dataout)
+            {
+                bool bc = BlockCheck(blk, hdata);
+
+                if (blk.Data > 3)
+                {
+                    dataout -= 4;
+                }
+
+                return bc;
+            }
+
+            const float cut = 0.002f;
             float zbase = 0;
             var data = bg.Data;
             bool highData = false;
@@ -1884,145 +1949,356 @@ namespace MCSM
                 highData = true;
             }
 
-            bool pinShort = false, pinRight = false, pinSecond = false;
+            bool bfr = false, br = false, bl = false;
+            int[] pins = new int[] { 1, 1, 0, 0 };
 
             if (convEnable)
             {
                 var points = new VHE.PointInt[]
                 {
-                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z),
-                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z)
+                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z), //front
+                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z), //rear
+                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z), //right
+                    new VHE.PointInt(bg.Block.X, bg.Block.Y, bg.Block.Z)  //left
                 };
 
                 switch (data)
                 {
                     case 0:
-                        points[0].X = bg.Block.X + 1;
-                        points[1].X = bg.Block.X - 1;
+                        points[0].X = bg.Block.X - 1;
+                        points[1].X = bg.Block.X + 1;
+                        points[2].Z = bg.Block.Z + 1;
+                        points[3].Z = bg.Block.Z - 1;
                         break;
 
                     case 1:
-                        points[0].X = bg.Block.X - 1;
-                        points[1].X = bg.Block.X + 1;
+                        points[0].X = bg.Block.X + 1;
+                        points[1].X = bg.Block.X - 1;
+                        points[2].Z = bg.Block.Z - 1;
+                        points[3].Z = bg.Block.Z + 1;
                         break;
 
                     case 2:
-                        points[0].Z = bg.Block.Z + 1;
-                        points[1].Z = bg.Block.Z - 1;
+                        points[0].Z = bg.Block.Z - 1;
+                        points[1].Z = bg.Block.Z + 1;
+                        points[2].X = bg.Block.X - 1;
+                        points[3].X = bg.Block.X + 1;
                         break;
 
                     case 3:
-                        points[0].Z = bg.Block.Z - 1;
-                        points[1].Z = bg.Block.Z + 1;
+                        points[0].Z = bg.Block.Z + 1;
+                        points[1].Z = bg.Block.Z - 1;
+                        points[2].X = bg.Block.X + 1;
+                        points[3].X = bg.Block.X - 1;
                         break;
 
                     default:
                         throw new Exception("Bad block data");
                 }
 
+                var blocks = new List<Block>();
+                foreach (var pt in points)
+                {
+                    blocks.Add(MCWorld.GetBlock(Dimension, pt.X, pt.Y, pt.Z));
+                }
+
+                bfr = blocks[0].ID != 0;
+                br = blocks[2].ID != 0;
+                bl = blocks[3].ID != 0;
+
+                if (BlockCheck(blocks[3], highData) && blocks[3].Data == bg.Data)
+                {
+                    pins[0] = 2;
+                    pins[2] = -2;
+                }
+
+                if (BlockCheck(blocks[2], highData) && blocks[2].Data == bg.Data)
+                {
+                    pins[1] = 2;
+                    pins[3] = -2;
+                }
+
                 for (int i = 0; i < 2; i++)
                 {
-                    var pt = points[i];
-                    var block = MCWorld.GetBlock(Dimension, pt.X, pt.Y, pt.Z);
-                    if (block.ID == bg.ID)
+                    var block = blocks[i];
+                    int bdata = block.Data;
+
+                    if (!DataCheck(block, highData, ref bdata))
                     {
-                        var bdata = block.Data;
-                        bool bHighData = false;
+                        continue;
+                    }
 
-                        if (bdata > 3)
-                        {
-                            bdata -= 4;
-                            bHighData = true;
-                        }
+                    if (!IsSide(data, bdata))
+                    {
+                        continue;
+                    }
 
-                        if (highData != bHighData)
-                        {
-                            continue;
-                        }
+                    switch (i)
+                    {
+                        case 0: //front
+                            if (IsPinRight(data, bdata))
+                            {
+                                if (pins[3] == 0)
+                                {
+                                    pins[3] = 1;
+                                }
+                            }
+                            else
+                            {
+                                if (pins[2] == 0)
+                                {
+                                    pins[2] = 1;
+                                }
+                            }
+                            break;
 
-                        if ((data < 2 && bdata < 2) || (data >= 2 && bdata >= 2))
-                        {
-                            continue;
-                        }
-
-                        switch (data)
-                        {
-                            case 0:
-                                pinRight = bdata == 2;
-                                break;
-
-                            case 1:
-                                pinRight = bdata == 3;
-                                break;
-
-                            case 2:
-                                pinRight = bdata == 1;
-                                break;
-
-                            case 3:
-                                pinRight = bdata == 0;
-                                break;
-                        }
-
-                        if (i == 0) //back
-                        {
-                            pinShort = true;
-                        }
-                        else //front
-                        {
-                            pinSecond = true;
-                        }
-
-                        break;
+                        case 1: //rear
+                            pins[2] = 0;
+                            pins[3] = 0;
+                            if (IsPinRight(data, bdata))
+                            {
+                                if (pins[0] == 1)
+                                {
+                                    pins[0] = 0;
+                                }
+                            }
+                            else
+                            {
+                                if (pins[1] == 1)
+                                {
+                                    pins[1] = 0;
+                                }
+                            }
+                            break;
                     }
                 }
             }
 
             var rot = BlockDataParse.Rotation4(data);
-            float psy = 0, poy = 0;
 
-            if (!pinShort)
-            {
-                psy = 0.5f;
-            }
+            float bhrsy = 0, bhroy = 0;
+            float bhflsy = 0, bhfloy = 0, bhflx = 0;
+            float bhfrsy = 0, bhfroy = 0, bhfrx = 0;
 
-            if (pinRight)
+            if (!highData)
             {
-                poy = 0.5f;
+                if ((pins[0] <= 0 && !bl) || (pins[1] <= 0 && !br))
+                {
+                    bhrsy = cut;
+                }
+
+                if (pins[0] <= 0 && !bl)
+                {
+                    bhroy = cut;
+                }
+
+                if (pins[2] <= 0)
+                {
+                    if (!bl)
+                    {
+                        bhflsy += cut;
+                        bhfloy = cut;
+                    }
+
+                    if (!bfr)
+                    {
+                        bhflx = cut;
+                    }
+                }
+
+                if (pins[3] <= 0)
+                {
+                    if (!br)
+                    {
+                        bhfrsy = cut;
+                    }
+
+                    if (!bfr)
+                    {
+                        bhfrx = cut;
+                    }
+                }
             }
 
             var model = new Model()
             {
                 Name = "Stairs",
                 Origin = new VHE.Point(0.5f, 0.5f, 0),
+                Rotation = new VHE.Point(0, 0, rot),
                 Solids = new List<Model.Solid>()
                 {
-                    new Model.Solid() //base
+                    new Model.Solid()
                     {
-                        Size = new VHE.Point(1, 1, 0.5f),
+                        Name = "_baseL",
+                        Size = new VHE.Point(1, 1, 0.25f),
                         Offset = new VHE.Point(0, 0, zbase),
-                        TextureLockOffsets = true
-                    },
-                    new Model.Solid() //pin
-                    {
-                        Size = new VHE.Point(0.5f, 0.5f + psy, 0.5f),
-                        Offset = new VHE.Point(0.5f, poy, 0.5f - zbase),
-                        OriginRotOffset = new VHE.Point(0, 0.5f, 0),
-                        Rotation = new VHE.Point(0, 0, rot),
                         TextureLockOffsets = true,
-                        TextureLockRotanion = true,
-                    }
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_baseHR",
+                        Size = new VHE.Point(0.5f, 1 - bhrsy, 0.25f),
+                        Offset = new VHE.Point(0.5f, bhroy, zbase + 0.25f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_baseHFL",
+                        Size = new VHE.Point(0.5f - bhflx, 0.5f - bhflsy, 0.25f),
+                        Offset = new VHE.Point(bhflx, bhfloy, zbase + 0.25f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_baseHFR",
+                        Size = new VHE.Point(0.5f - bhfrx, 0.5f - bhfrsy, 0.25f),
+                        Offset = new VHE.Point(bhfrx, 0.5f - bhfroy, zbase + 0.25f),
+                        TextureLockOffsets = true,
+                        TextureLockRotanion = true
+                    },
                 }
             };
 
-            if (pinSecond)
+            for (int i = 0; i < 4; i++)
             {
-                var ps = model.Solids[1].Copy();
-                ps.Size.Y = 0.5f;
-                ps.Offset.X = 0;
-                ps.Offset.Y = 0;
-                ps.OriginRotOffset.X = 0.5f;
-                model.Solids.Add(ps);
+                var pin = pins[i];
+                if (pin <= 0)
+                {
+                    continue;
+                }
+
+                float sx = 0, sy = 0;
+                if (!highData)
+                {
+                    switch (i)
+                    {
+                        case 0:
+                            if (pins[1] <= 0)
+                            {
+                                sy = cut;
+                            }
+                            if (pins[2] <= 0)
+                            {
+                                sx = cut;
+                            }
+                            break;
+
+                        case 1:
+                            if (pins[0] <= 0)
+                            {
+                                sy = cut;
+                            }
+                            if (pins[3] <= 0)
+                            {
+                                sx = cut;
+                            }
+                            break;
+
+                        case 2:
+                            if (pins[0] <= 0)
+                            {
+                                sx = cut;
+                            }
+                            if (pins[3] <= 0)
+                            {
+                                sy = cut;
+                            }
+                            break;
+
+                        case 3:
+                            if (pins[1] <= 0)
+                            {
+                                sx = cut;
+                            }
+                            if (pins[2] <= 0)
+                            {
+                                sy = cut;
+                            }
+                            break;
+                    }
+                }
+                
+                switch (i)
+                {
+                    case 0:
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "H",
+                            Size = new VHE.Point(0.5f - sx, 0.5f - sy, 0.25f),
+                            Offset = new VHE.Point(0.5f + sx, 0, 0.75f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "L",
+                            Size = new VHE.Point(0.5f, 0.5f, 0.25f),
+                            Offset = new VHE.Point(0.5f, 0, 0.5f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        break;
+
+                    case 1:
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "H",
+                            Size = new VHE.Point(0.5f - sx, 0.5f - sy, 0.25f),
+                            Offset = new VHE.Point(0.5f + sx, 0.5f + sy, 0.75f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "L",
+                            Size = new VHE.Point(0.5f, 0.5f, 0.25f),
+                            Offset = new VHE.Point(0.5f, 0.5f, 0.5f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        break;
+
+                    case 2:
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "H",
+                            Size = new VHE.Point(0.5f - sx, 0.5f - sy, 0.25f),
+                            Offset = new VHE.Point(0, 0, 0.75f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "L",
+                            Size = new VHE.Point(0.5f, 0.5f, 0.25f),
+                            Offset = new VHE.Point(0, 0, 0.5f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        break;
+
+                    case 3:
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "H",
+                            Size = new VHE.Point(0.5f - sx, 0.5f - sy, 0.25f),
+                            Offset = new VHE.Point(0, 0.5f + sy, 0.75f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        model.Solids.Add(new Model.Solid()
+                        {
+                            Name = "_pin" + i + "L",
+                            Size = new VHE.Point(0.5f, 0.5f, 0.25f),
+                            Offset = new VHE.Point(0, 0.5f, 0.5f - zbase),
+                            TextureLockOffsets = true,
+                            TextureLockRotanion = true
+                        });
+                        break;
+                }
             }
 
             if (!convEnable)
