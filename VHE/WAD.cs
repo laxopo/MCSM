@@ -17,6 +17,7 @@ namespace MCSM.VHE
         public class Texture
         {
             public string Name { get; set; }
+            public WAD WAD { get; set; }
             public bool Transparent { get; set; }
             public bool Water { get; set; }
             public bool Animated { get; set; }
@@ -287,6 +288,7 @@ namespace MCSM.VHE
 
                 var texture = ReadTexture(fs, offset, type);
                 texture.Rename(name);
+                texture.WAD = this;
                 Textures.Add(texture);
                 fs.Position = pos;
             }

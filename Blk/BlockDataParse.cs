@@ -21,7 +21,7 @@ namespace MCSM
 
         public static int Rotation4L(int x, int y, int z)
         {
-            int data = Math.Abs((int)World.GetLocationSeed(x, y, z)) % 4;
+            int data = Math.Abs((int)World.GetLocationSeed(x, y, z) % 4);
             return AngleLimit(data * 90);
         }
 

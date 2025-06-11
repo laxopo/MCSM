@@ -413,10 +413,15 @@ namespace MCSM
                     }
                 };
 
-                Map.AddSolids(Modelling.GenerateSolids(model, "sky"));
+                Map.AddSolids(Modelling.GenerateSolids(model, "SKY"));
             }
 
             Process = ProcessType.Done;
+
+            //Check textures
+            Message.Mute = true;
+            CheckTextures();
+
             return Map;
         }
 
@@ -3150,6 +3155,116 @@ namespace MCSM
             {
                 SysEntities = JsonConvert.DeserializeObject<List<EntityScript>>(
                     File.ReadAllText(Resource[Resources.SysEntities]));
+            }
+        }
+
+        public static VHE.WAD.Texture[] GetTextures(string textureName)
+        {
+            var list = new List<VHE.WAD.Texture>();
+
+            if (textureName == null)
+            {
+                return list.ToArray();
+            }
+
+            foreach (var wad in Wads)
+            {
+                var tex = wad.GetTexture(textureName);
+                if (tex != null)
+                {
+                    list.Add(tex);
+                }
+            }
+
+            return list.ToArray();
+        }
+
+        private static void CheckTextures()
+        {
+            var missTex = new List<string>();
+            var conflicTex = new List<string>();
+            var conflictWads = new List<string>();
+
+            foreach (var entity in Map.Data)
+            {
+                foreach (var par in entity.Parameters)
+                {
+                    if (par.ValueType != VHE.Entity.Type.SolidArray)
+                    {
+                        continue;
+                    }
+
+                    var solids = par.Value as List<VHE.Solid>;
+                    foreach (var sld in solids)
+                    {
+                        foreach (var face in sld.Faces)
+                        {
+                            if (face.Texture == null)
+                            {
+                                continue;
+                            }
+
+                            var res = GetTextures(face.Texture);
+
+                            if (res.Length == 0)
+                            {
+                                if (missTex.Contains(face.Texture))
+                                {
+                                    continue;
+                                }
+
+                                missTex.Add(face.Texture);
+                            }
+                            else if (res.Length > 1)
+                            {
+                                if (conflicTex.Contains(face.Texture))
+                                {
+                                    continue;
+                                }
+
+                                conflicTex.Add(face.Texture);
+                                string wads = "";
+                                foreach (var tex in res)
+                                {
+                                    wads += Path.GetFileNameWithoutExtension(tex.WAD.FilePath) + "$";
+                                }
+
+                                conflictWads.Add(wads);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (missTex.Count > 0)
+            {
+                Message.Write("Warning: found missing textures:");
+                foreach (var tex in missTex)
+                {
+                    Message.Write(tex);
+                }
+            }
+
+            if (conflicTex.Count > 0)
+            {
+                Message.Write("Warning: found texture conflicts:");
+                Message.Write("-Name-\t\t-Found in wads-");
+                for (int i = 0; i < conflicTex.Count; i++)
+                {
+                    var wads = conflictWads[i].Split('$');
+                    string row = conflicTex[i] + "\t\t";
+
+                    for (int w = 1; w < wads.Length; w++)
+                    {
+                        row += wads[w];
+                        if (w != wads.Length - 1)
+                        {
+                            row += ", ";
+                        }
+                    }
+
+                    Message.Write(row);
+                }
             }
         }
 

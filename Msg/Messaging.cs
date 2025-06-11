@@ -14,6 +14,7 @@ namespace MCSM
         public bool Unread { get; private set; }
         public bool UnreadUrgent { get; private set; }
         public bool UrgentState { get; set; }
+        public bool Mute { get; set; }
 
         public enum MessageType
         {
@@ -48,6 +49,11 @@ namespace MCSM
         {
             if (messageType == MessageType.Default)
             {
+                if (Mute)
+                {
+                    return;
+                }
+
                 for (int i = Index; i < Messages.Count; i++)
                 {
                     Console.WriteLine(Messages[i]);
