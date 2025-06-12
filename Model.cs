@@ -27,6 +27,7 @@ namespace MCSM
             public VHE.Point OriginAlign { get; set; } = new VHE.Point(1, 1, 1);
             public VHE.Point OriginRotOffset { get; set; } = new VHE.Point();
             public VHE.Point Rotation { get; set; } = new VHE.Point();
+            public List<string> IncludedSolids { get; set; } = new List<string>();
             public string Entity { get; set; }
             public Faces[] TexturedFaces { get; set; }
             public bool TextureLockOffsets { get; set; }
@@ -54,6 +55,7 @@ namespace MCSM
                 solid.TextureScale = TextureScale;
                 solid.Entity = Entity;
                 solid.SolidOrigin = SolidOrigin;
+                solid.IncludedSolids = new List<string>(IncludedSolids);
 
                 if (TexturedFaces != null)
                 {

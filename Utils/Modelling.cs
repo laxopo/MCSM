@@ -132,8 +132,10 @@ namespace MCSM
             //create origin solids
             var origList = new List<Model.Solid>();
 
-            foreach (var mdlSolid in modelBuf.Solids)
+            for (int i = 0; i < modelBuf.Solids.Count; i++)
             {
+                var mdlSolid = modelBuf.Solids[i];
+
                 if (!mdlSolid.SolidOrigin)
                 {
                     continue;
@@ -147,7 +149,8 @@ namespace MCSM
                     Offset = new VHE.Point(mdlSolid.Offset),
                 };
 
-                origList.Add(orig);
+                i++;
+                modelBuf.Solids.Insert(i, orig);
 
                 if (modelBuf.TextureKeys.Find(x => x.SolidName == "origin") == null)
                 {
@@ -157,8 +160,6 @@ namespace MCSM
                     });
                 }
             }
-
-            modelBuf.Solids.AddRange(origList);
 
             //Create VHE solids
             foreach (var mdlSolid in modelBuf.Solids)
@@ -337,6 +338,10 @@ namespace MCSM
             //create a solid
             var solid = new VHE.Solid()
             {
+                Name = mdlSolid.Name,
+                Entity = mdlSolid.Entity,
+                HasOrigin = mdlSolid.SolidOrigin,
+                IncludedSolids = new List<string>(mdlSolid.IncludedSolids),
                 Faces = {
                     new VHE.Face() { //top
                         Vertexes = new VHE.Point[] { pts[6], pts[2], pts[1] }
@@ -520,10 +525,6 @@ namespace MCSM
                 face.OffsetU = (tw - u + (offU + fou) * us) % tw;
                 face.OffsetV = (th - v + (offV + fov) * vs) % th;
             }
-
-            //Entity parameters
-            solid.Entity = mdlSolid.Entity;
-            solid.HasOrigin = mdlSolid.SolidOrigin;
 
             return solid;
         }

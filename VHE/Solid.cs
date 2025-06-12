@@ -10,7 +10,8 @@ namespace MCSM.VHE
     {
         public string Name { get; set; }
         public string Entity { get; set; }
-        public List<Face> Faces { get; set; } = new List<Face>();
         public bool HasOrigin { get; set; }
+        public List<Face> Faces { get; set; } = new List<Face>();
+        public List<string> IncludedSolids { get; set; } = new List<string>();
     }
 }

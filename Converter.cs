@@ -2344,8 +2344,32 @@ namespace MCSM
         private static void MapAddObject(List<VHE.Solid> solids, BlockDescriptor bt, BlockGroup bg)
         {
             var solidList = new List<VHE.Solid>(solids);
+            var includes = new List<VHE.Solid>();
 
-            //build internal entities
+            //get included solids
+            foreach (var sld in solidList)
+            {
+                foreach (var inc in sld.IncludedSolids)
+                {
+                    var incs = solidList.FindAll(x => x.Name == inc);
+                    if (incs.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (var incsld in incs)
+                    {
+                        if (includes.Contains(incsld))
+                        {
+                            continue;
+                        }
+
+                        includes.Add(incsld);
+                    }
+                }
+            }
+
+            //build internal & included entities
             var ies = new List<VHE.Solid>();
             for (int i = 0; i < solidList.Count; i++)
             {
@@ -2362,13 +2386,29 @@ namespace MCSM
                     continue;
                 }
 
+                ies.Add(sld);
+
                 if (sld.HasOrigin)
                 {
                     ies.Add(solidList[i + 1]);
                     i++;
                 }
 
-                ies.Add(sld);
+                foreach (var inc in sld.IncludedSolids)
+                {
+                    var incs = includes.FindAll(x => x.Name == inc);
+                    foreach (var incsld in incs)
+                    {
+                        if (ies.Contains(incsld) || sld == incsld)
+                        {
+                            continue;
+                        }
+
+                        ies.Add(incsld);
+                    }
+
+                    
+                }
 
                 var entity = GenerateEntity(ie, bg, "E" + Map.Data.Count);
                 MapAddObject(ies, entity, bg);

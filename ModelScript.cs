@@ -23,6 +23,7 @@ namespace MCSM
             //string
             public string Name { get; set; }
             public string Entity { get; set; }
+            public List<string> IncludedSolids { get; set; } = new List<string>();
 
             //point
             public string AbsOffset { get; set; }
@@ -182,6 +183,7 @@ namespace MCSM
                     OriginRotOffset = Parse(sld.OriginRotOffset, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
                     Rotation = Parse(sld.Rotation, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
                     Size = Parse(sld.Size, Type.Point, Defaults.PZero, bt, bg, world, block, forceDefault),
+                    IncludedSolids = new List<string>(sld.IncludedSolids),
 
                     TextureScale = Parse(sld.TextureScale, Type.Float, 1, bt, bg, world, block, forceDefault),
 
@@ -246,7 +248,8 @@ namespace MCSM
                         TextureLockRotanion = solid.TextureLockRotanion,
                         TextureOriented = solid.TextureOriented,
                         Entity = solid.Entity,
-                        SolidOrigin = solid.SolidOrigin
+                        SolidOrigin = solid.SolidOrigin,
+                        IncludedSolids = new List<string>(solid.IncludedSolids)
                     };
 
                     if (solid.TexturedFaces != null && solid.TexturedFaces.Length > 0)
