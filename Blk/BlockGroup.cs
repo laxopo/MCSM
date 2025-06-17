@@ -32,7 +32,11 @@ namespace MCSM
         {
             None,
             X,
+            Xm,
+            Xp,
             Y,
+            Ym,
+            Yp,
             Z
         }
 
@@ -43,6 +47,7 @@ namespace MCSM
             Slab,
             Pane,
             Fence,
+            Wall,
             Door,
             Gate,
             TrapDoor,
@@ -84,7 +89,6 @@ namespace MCSM
             {
                 Block = block;
             }
-            
             
             if (id == -1)
             {
@@ -170,7 +174,7 @@ namespace MCSM
                     solids[1].Ymax = y;
                     solids[1].XClosed = true;
                     solids[1].YClosed = true;
-                    solids[0].Type = Type;
+                    solids[1].Type = Type;
                 }
 
                 if (x > Xmin)

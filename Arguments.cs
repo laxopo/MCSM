@@ -19,6 +19,7 @@ namespace MCSM
         public string BlockIDName { get; set; }
         public int BlockID { get; set; }
         public bool SkyBoxEnable { get; set; }
+        public bool Ignore { get; set; }
 
         public enum Programs
         {
@@ -88,6 +89,10 @@ namespace MCSM
                     case Args.SkyBox:
                         SkyBoxEnable = true;
                         break;
+
+                    case Args.Ignore:
+                        Ignore = true;
+                        break;
                 }
             }
 
@@ -121,7 +126,8 @@ namespace MCSM
             Range,
             NBT,
             Help,
-            SkyBox
+            SkyBox,
+            Ignore
         }
 
         public static Dictionary<string, Args> ArgCommands = new Dictionary<string, Args>()
@@ -132,7 +138,8 @@ namespace MCSM
             { "-r", Args.Range },
             { "-nbt", Args.NBT },
             { "-help", Args.Help },
-            { "-sky",  Args.SkyBox}
+            { "-sky",  Args.SkyBox},
+            { "-ign",  Args.Ignore}
         };
 
         public static string GetArgCommand(Args arg)
@@ -153,6 +160,10 @@ namespace MCSM
                     if (SkyBoxEnable)
                     {
                         com += " " + GetArgCommand(Args.SkyBox);
+                    }
+                    if (Ignore)
+                    {
+                        com += " " + GetArgCommand(Args.Ignore);
                     }
 
                     break;
@@ -203,7 +214,10 @@ namespace MCSM
             "\tlist   : listTag in the NBT structure (can be skipped)",
             "\ttag    : tag name in the list",
             "\tIDName : block ID name (minecraft:blockName)",
-            GetArgCommand(Args.SkyBox) + "\t: enable skybox generation (only for converter)",
+            "",
+            "Optional flags:",
+            GetArgCommand(Args.SkyBox) + "\t: enable skybox generation (only for the converter)",
+            GetArgCommand(Args.Ignore) + "\t: ignore non-registered blocks (id) (only for the converter)",
             "",
             "Programs: (devault = converter)",
             "[ " + GetArgCommand(Args.WorldPath) + " " + GetArgCommand(Args.MapOutputPath) + " " 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace MCSM.VHE
 {
@@ -148,10 +149,18 @@ namespace MCSM.VHE
 
         public string Serialize()
         {
+            int i = 0;
+            return Serialize(ref i);
+        }
+
+        public string Serialize(ref int i)
+        {
             List<string> data = new List<string>();
 
-            foreach (var obj in Data)
+            for (i = 0; i < Data.Count; i++)
             {
+                var obj = Data[i];
+
                 data.Add("{");
                 data.Add("\"classname\" \"" + obj.ClassName + "\"");
 

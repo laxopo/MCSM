@@ -11,7 +11,6 @@ namespace MCSM
 {
     public static class Converter
     {
-        public static bool Debuging = false;
         public static float CSScale = 37;
         public static float TextureRes = 128;
         public static bool SkyBoxEnable = false;
@@ -181,17 +180,17 @@ namespace MCSM
             return BuildModel(bg, bt, false);
         }
 
-        public static VHE.Map ConvertToMap(string worldPath, int[] range)
+        public static VHE.Map ConvertToMap(string worldPath, Arguments args)
         {
             BlockProcessed = 0;
             Aborted = false;
-            Dimension = range[0];
-            Xmin = range[1];
-            Ymin = range[2];
-            Zmin = range[3];
-            Xmax = range[4];
-            Ymax = range[5];
-            Zmax = range[6];
+            Dimension = args.Range[0];
+            Xmin = args.Range[1];
+            Ymin = args.Range[2];
+            Zmin = args.Range[3];
+            Xmax = args.Range[4];
+            Ymax = args.Range[5];
+            Zmax = args.Range[6];
 
             LoadResources(Resources.All);
             Macros.Initialize(CSScale);
@@ -216,15 +215,15 @@ namespace MCSM
             BlockGroups = new List<BlockGroup>();
             
             var missings = new BlockMissMsg(Message);
-            
+
             //coordinates of cs map
-            for (int z = 0; z <= Ymax - Ymin; z++)
+            for (int z = MapOffZ(Ymin); z <= MapOffZ(Ymax); z++)
             {
-                for (int y = 0; y <= Zmax - Zmin; y++)
+                for (int y = MapOffY(Zmin); y <= MapOffY(Zmax); y++)
                 {
-                    for (int x = 0; x <= Xmax - Xmin; x++)
+                    for (int x = MapOffX(Xmin); x <= MapOffX(Xmax); x++)
                     {
-                        var block = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin);
+                        var block = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y));
                         BlockCurrent++;
 
                         //check register
@@ -232,8 +231,8 @@ namespace MCSM
                         var bt = GetBT(block, false);
                         if (block.ID != 0 && bt == null)
                         {
-                            var res = missings.Message(block.ID, block.Data, "at " + (x + Xmin) + " " + 
-                                (z + Ymin) + " " + (y + Zmin) + " is unregistered", true);
+                            var res = missings.Message(block.ID, block.Data, "at " + MCCX(x) + " " + 
+                                MCCY(z) + " " + MCCZ(y) + " is unregistered", true, args.Ignore);
 
                             switch (res)
                             {
@@ -298,7 +297,7 @@ namespace MCSM
                                 case BlockGroup.ModelType.Door:
                                     if (block.Data < 8)
                                     {
-                                        int data = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin).Data;
+                                        int data = MCWorld.GetBlock(0, MCCX(x), MCCY(z) + 1, MCCZ(y)).Data;
                                         if (data == 8)
                                         {
                                             data = block.Data;
@@ -325,11 +324,6 @@ namespace MCSM
 
                         //Normal block
                         GroupNormal(block, x, y, z, bt);
-
-                        if (Debuging)
-                        {
-                            Debug(x, y, z);
-                        }
                     }
                     BlockGroups.ForEach(x => x.XClosed = true);
 
@@ -338,11 +332,6 @@ namespace MCSM
 
             }
             BlockGroups.ForEach(x => x.ZClosed = true);
-
-            if (Debuging)
-            {
-                Debug(Xmax - Xmin, Zmax - Zmin, Ymax - Ymin);
-            }
 
             //Generate cs solids
             Process = ProcessType.GenerateSolids;
@@ -382,32 +371,32 @@ namespace MCSM
                     {
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(0, -1, 0),
+                            AbsOffset = new VHE.Point(MapOffX(0), -1, 0),
                             Size = new VHE.Point(sbx, 1, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(sbx, -1, 0),
+                            AbsOffset = new VHE.Point(MapOffX(sbx), -1, 0),
                             Size = new VHE.Point(1, sby + 2, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(0, sby, 0),
+                            AbsOffset = new VHE.Point(MapOffX(0), sby, 0),
                             Size = new VHE.Point(sbx, 1, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(-1, -1, 0),
+                            AbsOffset = new VHE.Point(MapOffX(-1), -1, 0),
                             Size = new VHE.Point(1, sby + 2, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(-1, -1, sbz),
+                            AbsOffset = new VHE.Point(MapOffX(-1), -1, sbz),
                             Size = new VHE.Point(sbx + 2, sby + 2, 1),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(-1, -1, -1),
+                            AbsOffset = new VHE.Point(MapOffX(-1), -1, -1),
                             Size = new VHE.Point(sbx + 2, sby + 2, 1),
                         }
                     }
@@ -432,6 +421,47 @@ namespace MCSM
             {
                 Map.AddString("worldspawn", "wad", wad);
             }
+        }
+
+        private static int MapOffX(int mcx)
+        {
+            return MOffset(Xmin, Xmax) + mcx - Xmin;
+        }
+
+        private static int MapOffY(int mcz)
+        {
+            return MOffset(Zmin, Zmax) + mcz - Zmin;
+        }
+
+        private static int MapOffZ(int mcy)
+        {
+            return MOffset(Ymin, Ymax) + mcy - Ymin;
+        }
+
+        private static int MOffset(int mcmin, int mcmax)
+        {
+            int c0 = mcmin - mcmax;
+            if (c0 % 2 != 0)
+            {
+                c0--;
+            }
+
+            c0 /= 2;
+            return c0;
+        }
+        private static int MCCX(int x)
+        {
+            return Xmin - MOffset(Xmin, Xmax) + x;
+        }
+
+        private static int MCCY(int z)
+        {
+            return Ymin - MOffset(Ymin, Ymax) + z;
+        }
+
+        private static int MCCZ(int y)
+        {
+            return Zmin - MOffset(Zmin, Zmax) + y;
         }
 
         /*Grouping*/
@@ -477,10 +507,10 @@ namespace MCSM
                 paneX.Type = model;
 
                 //X
-                var bmx = MCWorld.GetBlock(0, x + Xmin - 1, z + Ymin, y + Zmin);
+                var bmx = MCWorld.GetBlock(0, MCCX(x) - 1, MCCY(z), MCCZ(y));
                 var btmx = BlockDescriptors.Find(e => e.ID == bmx.ID);
                 var nbmx = btmx != null && btmx.ModelClass == "Normal";
-                var bpx = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
+                var bpx = MCWorld.GetBlock(0, MCCX(x) + 1, MCCY(z), MCCZ(y));
                 var btpx = BlockDescriptors.Find(e => e.ID == bpx.ID);
                 var nbpx = btpx != null && btpx.ModelClass == "Normal";
                 px = nbmx || nbpx || bpx.ID == block.ID;
@@ -504,7 +534,7 @@ namespace MCSM
                 paneX.Expand(x, y, z);
                 px = true;
 
-                var bp = MCWorld.GetBlock(0, x + Xmin + 1, z + Ymin, y + Zmin);
+                var bp = MCWorld.GetBlock(0, MCCX(x) + 1, MCCY(z), MCCZ(y));
                 var btp = BlockDescriptors.Find(e => e.ID == bp.ID);
                 var nbp = btp != null && btp.ModelClass == "Normal";
 
@@ -531,10 +561,10 @@ namespace MCSM
                 paneY.Type = model;
 
                 //Y
-                var bmy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin - 1);
+                var bmy = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y) - 1);
                 var btmy = BlockDescriptors.Find(e => e.ID == bmy.ID);
                 var nbmy = btmy != null && btmy.ModelClass == "Normal";
-                var bpy = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
+                var bpy = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y) + 1);
                 var btpy = BlockDescriptors.Find(e => e.ID == bpy.ID);
                 var nbpy = btpy != null && btpy.ModelClass == "Normal";
                 py = nbmy || nbpy || bpy.ID == block.ID;
@@ -558,7 +588,7 @@ namespace MCSM
                 paneY.Expand(x, y, z);
                 py = true;
 
-                var bp = MCWorld.GetBlock(0, x + Xmin, z + Ymin, y + Zmin + 1);
+                var bp = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y) + 1);
                 var btp = BlockDescriptors.Find(e => e.ID == bp.ID);
                 var nbp = btp != null && btp.ModelClass == "Normal";
 
@@ -596,7 +626,7 @@ namespace MCSM
                     pillar.Type = model;
                     pillar.Orientation = BlockGroup.Orient.Z;
 
-                    var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
+                    var bpz = MCWorld.GetBlock(0, MCCX(x), MCCY(z) + 1, MCCZ(y));
                     var btmy = BlockDescriptors.Find(e => e.ID == bpz.ID);
                     if (btmy == null || btmy.ID != block.ID)
                     {
@@ -608,7 +638,7 @@ namespace MCSM
                 else
                 {
                     pillar.Expand(x, y, z);
-                    var bpz = MCWorld.GetBlock(0, x + Xmin, z + Ymin + 1, y + Zmin);
+                    var bpz = MCWorld.GetBlock(0, MCCX(x), MCCY(z) + 1, MCCZ(y));
                     var btmy = BlockDescriptors.Find(e => e.ID == bpz.ID);
                     if (btmy == null || btmy.ID != block.ID)
                     {
@@ -616,6 +646,72 @@ namespace MCSM
                     }
                 }
             }
+        }
+
+        private static void GroupWall(Block block, BlockDescriptor bt, int x, int y, int z)
+        {
+            foreach (var bg in BlockGroups)
+            {
+                if (bg.Type != BlockGroup.ModelType.Wall)
+                {
+                    continue;
+                }
+            }
+
+            //new BGs
+            var fxm = MCWorld.GetBlock(Dimension, MCCX(x) - 1, y, z).ID != 0;
+            var fxp = MCWorld.GetBlock(Dimension, MCCX(x) + 1, y, z).ID != 0;
+            var fym = MCWorld.GetBlock(Dimension, MCCX(x), y, z - 1).ID != 0;
+            var fyp = MCWorld.GetBlock(Dimension, MCCX(x), y, z + 1).ID != 0;
+            var fz = MCWorld.GetBlock(Dimension, MCCX(x), y + 1, z).ID != 0;
+
+            if (!fz)
+            {
+                bool fx = !(fxm && fxp);
+                bool fy = !(fym && fyp);
+                bool fxy = fx && (fym ^ fyp);
+                bool fyx = fy && (fxm ^ fxp);
+                fz = fx || fy || fxy || fyx;
+            }
+
+            var orientList = new List<BlockGroup.Orient>();
+
+            if (fxm || fxp)
+            {
+                orientList.Add(BlockGroup.Orient.X);
+            }
+            /*else if (fxm)
+            {
+                orientList.Add(BlockGroup.Orient.Xm);
+            }
+            else
+            {
+                orientList.Add(BlockGroup.Orient.Xp);
+            }*/
+
+            if (fym || fyp)
+            {
+                orientList.Add(BlockGroup.Orient.Y);
+            }
+            /*else if (fym)
+            {
+                orientList.Add(BlockGroup.Orient.Ym);
+            }
+            else
+            {
+                orientList.Add(BlockGroup.Orient.Yp);
+            }*/
+
+            if (fz)
+            {
+                orientList.Add(BlockGroup.Orient.Z);
+            }
+
+            orientList.ForEach(o => BlockGroups.Add(
+                new BlockGroup(block, block.ID, block.Data, x, y, z) {
+                    Orientation = o,
+                    Type = BlockGroup.ModelType.Wall
+                }));
         }
 
         private static void GroupNormal(Block block, int x, int y, int z, BlockDescriptor bt)
@@ -1314,7 +1410,7 @@ namespace MCSM
 
             if (bt.WorldOffset)
             {
-                worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
+                worldOffset = World.GetBlockXZOffset(MCCX(bg.Xmin), MCCZ(bg.Ymin));
             }
 
             var texture = Modelling.GetTexture(Wads, bt.GetTextureName(bg));
@@ -1413,7 +1509,7 @@ namespace MCSM
 
             if (bt.WorldOffset)
             {
-                var worldOffset = World.GetBlockXZOffset(bg.Xmin + Xmin, bg.Ymin + Zmin);
+                var worldOffset = World.GetBlockXZOffset(MCCX(bg.Xmin), MCCZ(bg.Ymin));
                 
                 foreach (var sld in model.Solids)
                 {
@@ -2746,380 +2842,7 @@ namespace MCSM
             return entity;
         }
 
-        /*Debug*/
-
-        private static void Debug(int x, int y, int z)
-        {
-            Settings.DebugEnable = false;
-            Console.CursorVisible = false;
-
-            //Build empty field
-            for (int cz = 0; cz <= Ymax - Ymin; cz++)
-            {
-                for (int cy = 0; cy <= Zmax - Zmin; cy++)
-                {
-                    for (int cx = 0; cx <= Xmax - Xmin; cx++)
-                    {
-                        if (cx == x && cy == y && cz == z)
-                        {
-                            Console.BackgroundColor = ConsoleColor.Blue;
-                            Console.ForegroundColor = ConsoleColor.Yellow;
-                        }
-
-                        Console.SetCursorPosition(cx + (Xmax - Xmin + 4) * cz + 1, cy + 1);
-                        Console.Write(".");
-
-                        Console.BackgroundColor = ConsoleColor.Black;
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
-                }
-
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.SetCursorPosition((Xmax - Xmin + 4) * cz + 1, Zmax - Zmin + 2);
-                Console.Write("z=" + cz);
-
-                Console.SetCursorPosition((Xmax - Xmin + 4) * cz + 1, 0);
-                for (int i = 0; i <= Xmax - Xmin; i++)
-                {
-                    Console.Write(ToHex(i));
-                }
-                for (int i = 0; i <= Zmax - Zmin; i++)
-                {
-                    Console.SetCursorPosition((Xmax - Xmin + 4) * cz, i + 1);
-                    Console.Write(ToHex(i));
-                }
-
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-
-            //Render solids
-            for (int i = 0; i < BlockGroups.Count; i++)
-            {
-                var sld = BlockGroups[i];
-                if (sld.Type != BlockGroup.ModelType.Normal)
-                {
-                    continue;
-                }
-
-                for (int cz = sld.Zmin; cz < sld.Zmax; cz++)
-                {
-                    for (int cy = sld.Ymin; cy < sld.Ymax; cy++)
-                    {
-                        for (int cx = sld.Xmin; cx < sld.Xmax; cx++)
-                        {
-                            if (cx == x && cy == y && cz == z)
-                            {
-                                Console.BackgroundColor = ConsoleColor.Blue;
-                            }
-                            else
-                            {
-                                if (sld.ZClosed)
-                                {
-                                    Console.ForegroundColor = ConsoleColor.Blue;
-                                }
-                                else if (sld.YClosed)
-                                {
-                                    Console.ForegroundColor = ConsoleColor.Green;
-                                }
-                                else if (sld.XClosed)
-                                {
-                                    Console.ForegroundColor = ConsoleColor.Yellow;
-                                }
-                            }
-
-                            Console.SetCursorPosition(cx + (Xmax - Xmin + 4) * cz + 1, cy + 1);
-                            Console.Write(ToHex(sld.TestID));
-                            Console.BackgroundColor = ConsoleColor.Black;
-                            Console.ForegroundColor = ConsoleColor.White;
-
-                        }
-                    }
-                }
-            }
-
-
-            //Render panes
-            char[,,] matrix = new char[Xmax - Xmin + 1, Zmax - Zmin + 1, Ymax - Ymin + 1];
-
-            for (int i = 0; i < BlockGroups.Count; i++)
-            {
-                var pane = BlockGroups[i];
-                if (pane.Type != BlockGroup.ModelType.Pane)
-                {
-                    continue;
-                }
-
-                for (int cz = pane.Zmin; cz < pane.Zmax; cz++)
-                {
-                    for (int cy = pane.Ymin; cy < pane.Ymax; cy++)
-                    {
-                        for (int cx = pane.Xmin; cx < pane.Xmax; cx++)
-                        {
-                            if (pane.Orientation == BlockGroup.Orient.X)
-                            {
-                                bool left = false, right = false;
-                                if (cx == pane.Xmin)
-                                {
-                                    if (pane.XBegTouch)
-                                    {
-                                        left = true;
-                                    }
-
-                                    if (cx != pane.Xmax - 1)
-                                    {
-                                        right = true;
-                                    }
-                                    else
-                                    {
-                                        if (pane.XEndTouch)
-                                        {
-                                            right = true;
-                                        }
-                                    }
-                                }
-
-                                if (cx == pane.Xmax - 1)
-                                {
-                                    if (pane.XEndTouch)
-                                    {
-                                        right = true;
-                                    }
-
-                                    if (cx != pane.Xmin)
-                                    {
-                                        left = true;
-                                    }
-                                    else
-                                    {
-                                        if (pane.XBegTouch)
-                                        {
-                                            left = true;
-                                        }
-                                    }
-                                }
-
-                                if (cx > pane.Xmin && cx < pane.Xmax - 1)
-                                {
-                                    left = true;
-                                    right = true;
-                                }
-
-                                matrix[cx, cy, cz] = CharPaneComb(matrix[cx, cy, cz], left, right, false, false);
-
-                            }
-                            else if (pane.Orientation == BlockGroup.Orient.Y)
-                            {
-                                bool up = false, down = false;
-                                if (cy == pane.Ymin)
-                                {
-                                    if (pane.YBegTouch)
-                                    {
-                                        up = true;
-                                    }
-
-                                    if (cy != pane.Ymax - 1)
-                                    {
-                                        down = true;
-                                    }
-                                    else
-                                    {
-                                        if (pane.YEndTouch)
-                                        {
-                                            down = true;
-                                        }
-                                    }
-                                }
-
-                                if (cy == pane.Ymax - 1)
-                                {
-                                    if (pane.YEndTouch)
-                                    {
-                                        down = true;
-                                    }
-
-                                    if (cy != pane.Ymin)
-                                    {
-                                        up = true;
-                                    }
-                                    else if (pane.YBegTouch)
-                                    {
-                                        up = true;
-                                    }
-                                }
-
-                                if (cy > pane.Ymin && cy < pane.Ymax - 1)
-                                {
-                                    up = true;
-                                    down = true;
-                                }
-
-                                matrix[cx, cy, cz] = CharPaneComb(matrix[cx, cy, cz], false, false, up, down);
-                            }
-                            else
-                            {
-                                matrix[cx, cy, cz] = CharPaneComb(matrix[cx, cy, cz], false, false, false, false);
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (int cz = 0; cz <= Ymax - Ymin; cz++)
-            {
-                for (int cy = 0; cy <= Zmax - Zmin; cy++)
-                {
-                    for (int cx = 0; cx <= Xmax - Xmin; cx++)
-                    {
-                        if (cx == x && cy == y && cz == z)
-                        {
-                            Console.BackgroundColor = ConsoleColor.Blue;
-                        }
-
-                        if (matrix[cx, cy, cz] != '\0')
-                        {
-                            Console.SetCursorPosition(cx + (Xmax - Xmin + 4) * cz + 1, cy + 1);
-                            Console.Write(matrix[cx, cy, cz]);
-                        }
-
-                        Console.BackgroundColor = ConsoleColor.Black;
-                        Console.ForegroundColor = ConsoleColor.White;
-                    }
-                }
-            }
-
-
-            Console.SetCursorPosition(0, Zmax - Zmin + 4);
-            ClearCurrentConsoleLine();
-            Console.WriteLine(" X={0}  Y={1}  Z={2}", x, y, z);
-            Console.CursorVisible = true;
-            Console.ReadKey();
-        }
-
-        private static char CharPaneComb(char ch, bool l, bool r, bool u, bool d)
-        {
-            bool bl = false, br = false, bu = false, bd = false;
-
-            switch (ch)
-            {
-                case '│': // DU
-                    bu = true;
-                    bd = true;
-                    break;
-
-                case '─': // RL
-                    br = true;
-                    bl = true;
-                    break;
-
-                case '┤': // DUL
-                    bu = true;
-                    bd = true;
-                    bl = true;
-                    break;
-
-                case '┴': // URL
-                    bu = true;
-                    br = true;
-                    bl = true;
-                    break;
-
-                case '┬': // DRL
-                    bd = true;
-                    br = true;
-                    bl = true;
-                    break;
-
-                case '├': // DUR
-                    bu = true;
-                    br = true;
-                    bd = true;
-                    break;
-
-                case '┐': // DL
-                    bl = true;
-                    bd = true;
-                    break;
-
-                case '└': // UR
-                    bu = true;
-                    bd = true;
-                    break;
-
-                case '┘': // UL
-                    bu = true;
-                    bl = true;
-                    break;
-
-                case '┌': // DR
-                    bd = true;
-                    br = true;
-                    break;
-
-                case '┼': // DURL
-                    bu = true;
-                    bd = true;
-                    br = true;
-                    bl = true;
-                    break;
-
-                case 'v':
-                    bd = true;
-                    break;
-
-                case '^':
-                    bu = true;
-                    break;
-
-                case '>':
-                    br = true;
-                    break;
-
-                case '<':
-                    bl = true;
-                    break;
-            }
-
-            bl = bl | l;
-            br = br | r;
-            bu = bu | u;
-            bd = bd | d;
-
-            int res = Convert.ToInt32(bl) | Convert.ToInt32(br) << 1 |
-                Convert.ToInt32(bu) << 2 | Convert.ToInt32(bd) << 3;
-
-            switch (res)
-            {
-                case 0b0001: return '<';
-                case 0b0010: return '>';
-                case 0b0100: return '^';
-                case 0b1000: return 'v';
-
-                case 0b0011: return '─';
-                case 0b1100: return '│';
-
-                case 0b0101: return '┘';
-                case 0b1001: return '┐';
-                case 0b0110: return '└';
-                case 0b1010: return '┌';
-
-                case 0b1110: return '├';
-                case 0b1101: return '┤';
-                case 0b1011: return '┬';
-                case 0b0111: return '┴';
-
-                case 0b1111: return '┼';
-
-                default: return '*';
-            }
-        }
-
-        private static void ClearCurrentConsoleLine()
-        {
-            int currentLineCursor = Console.CursorTop;
-            Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write(new string(' ', Console.WindowWidth));
-            Console.SetCursorPosition(0, currentLineCursor);
-        }
+        /**/
 
         private static char ToHex(int value)
         {
@@ -3307,71 +3030,5 @@ namespace MCSM
                 }
             }
         }
-
-        /*private static bool CheckWads()
-        {
-            bool fault = false;
-            Console.Write("Checking WADs...");
-
-            var texList = new List<string>();
-
-            //check texture availability in wads
-            foreach (var bd in BlockDescriptors)
-            {
-                var texs = bd.GetTexureNamesList();
-                
-                foreach (var tex in texs)
-                {
-                    if (!texList.Contains(tex))
-                    {
-                        texList.Add(tex);
-                    }
-                }
-
-                foreach (var tex in texs)
-                {
-                    if (Modelling.GetTexture(Wads, tex) == null)
-                    {
-                        if (!fault)
-                        {
-                            fault = true;
-                            Console.WriteLine();
-                        }
-
-                        Console.WriteLine("Error: texture \"{0}\" not found. ID:{1}, Data:{2}",
-                            tex, bd.ID, bd.Data);
-                        Console.ReadKey();
-                    }
-                }
-            }
-
-            //validate textures
-            foreach (var texName in texList)
-            {
-                var tex = Modelling.GetTexture(Wads, texName);
-                if (tex == null)
-                {
-                    continue;
-                }
-
-                //transparent
-                if (tex.Transparent)
-                {
-                    var rgb = tex.Data.Palette[255];
-
-                    if (rgb.R != 0 || rgb.G != 0 || rgb.B != 255)
-                    {
-                        Console.WriteLine("Error: invalid tansparent color in texture \"{0}\"", texName);
-                    }
-                }
-            }
-
-            if (!fault)
-            {
-                Console.WriteLine("OK");
-            }
-
-            return !fault;
-        }*/
     }
 }

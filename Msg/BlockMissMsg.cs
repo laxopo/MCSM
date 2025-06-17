@@ -25,22 +25,34 @@ namespace MCSM
             Abort
         }
 
-        public Result Message(int blockID, int blockData, string text, bool onlyIDs)
+        public Result Message(int blockID, int blockData, string text, bool onlyIDs, bool ignore = false)
         {
+            if (ignore)
+            {
+                onlyIDs = true;
+            }
+
             string msg = "Warning: Block=" + blockID + ":" + blockData + " " + text;
             bool present;
 
             if (onlyIDs)
             {
-                present = BlockID.Find(x => x.ID == blockID && x.Data == blockData) != null;
+                present = BlockID.Find(x => x.ID == blockID) != null;
             }
             else
             {
-                present = Messages.Contains(msg);
+                present = BlockID.Find(x => x.ID == blockID && x.Data == blockData) != null;
             }
 
             if (!present)
             {
+                if (ignore)
+                {
+                    BlockID.Add(new BlockIDs() { ID = blockID, Data = blockData });
+                    Messaging.Write("Skipped ID: {0} {1}", blockID, text);
+                    return Result.Skip;
+                }
+
                 Messaging.WriteUrgent(msg);
                 Messaging.WriteUrgent("[R]etry, [S]kip, [A]bort ?");
 
@@ -73,7 +85,7 @@ namespace MCSM
                 }
             }
 
-            return Result.None;
+            return Result.Skip;
         }
     }
 }
