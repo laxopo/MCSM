@@ -232,7 +232,7 @@ namespace MCSM
                         if (block.ID != 0 && bt == null)
                         {
                             var res = missings.Message(block.ID, block.Data, "at " + MCCX(x) + " " + 
-                                MCCY(z) + " " + MCCZ(y) + " is unregistered", true, args.Ignore);
+                                MCCY(z) + " " + MCCZ(y) + " is unregistered", true, args.Replace > -1);
 
                             switch (res)
                             {
@@ -241,7 +241,14 @@ namespace MCSM
                                     goto bt_chk;
 
                                 case BlockMissMsg.Result.Skip:
-                                    block.ID = 0;
+                                    if (args.Replace > -1)
+                                    {
+                                        block.ID = (byte)args.Replace;
+                                    }
+                                    else
+                                    {
+                                        block.ID = 0;
+                                    }
                                     block.Data = 0;
                                     break;
 
@@ -371,32 +378,32 @@ namespace MCSM
                     {
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(MapOffX(0), -1, 0),
+                            AbsOffset = new VHE.Point(MOffX(0), MOffY(-1), MOffZ(0)),
                             Size = new VHE.Point(sbx, 1, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(MapOffX(sbx), -1, 0),
+                            AbsOffset = new VHE.Point(MOffX(sbx), MOffY(-1), MOffZ(0)),
                             Size = new VHE.Point(1, sby + 2, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(MapOffX(0), sby, 0),
+                            AbsOffset = new VHE.Point(MOffX(0), MOffY(sby), MOffZ(0)),
                             Size = new VHE.Point(sbx, 1, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(MapOffX(-1), -1, 0),
+                            AbsOffset = new VHE.Point(MOffX(-1), MOffY(-1), MOffZ(0)),
                             Size = new VHE.Point(1, sby + 2, sbz),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(MapOffX(-1), -1, sbz),
+                            AbsOffset = new VHE.Point(MOffX(-1), MOffY(-1), MOffZ(sbz)),
                             Size = new VHE.Point(sbx + 2, sby + 2, 1),
                         },
                         new Model.Solid()
                         {
-                            AbsOffset = new VHE.Point(MapOffX(-1), -1, -1),
+                            AbsOffset = new VHE.Point(MOffX(-1), MOffY(-1), MOffZ(-1)),
                             Size = new VHE.Point(sbx + 2, sby + 2, 1),
                         }
                     }
@@ -425,17 +432,32 @@ namespace MCSM
 
         private static int MapOffX(int mcx)
         {
-            return MOffset(Xmin, Xmax) + mcx - Xmin;
+            return MOffX() + mcx - Xmin;
         }
 
         private static int MapOffY(int mcz)
         {
-            return MOffset(Zmin, Zmax) + mcz - Zmin;
+            return MOffY() + mcz - Zmin;
         }
 
         private static int MapOffZ(int mcy)
         {
-            return MOffset(Ymin, Ymax) + mcy - Ymin;
+            return MOffZ() + mcy - Ymin;
+        }
+
+        private static int MOffX(int x = 0)
+        {
+            return MOffset(Xmin, Xmax) + x;
+        }
+
+        private static int MOffY(int y = 0)
+        {
+            return MOffset(Zmin, Zmax) + y;
+        }
+
+        private static int MOffZ(int z = 0)
+        {
+            return MOffset(Ymin, Ymax) + z;
         }
 
         private static int MOffset(int mcmin, int mcmax)
@@ -1778,13 +1800,13 @@ namespace MCSM
             //solid
             if (bg.Data < 2 || bg.Data > 5) //horizontal
             {
-                solidSize = new VHE.Point(szx, szy, 0.03f);
+                solidSize = new VHE.Point(szx, szy, 0);
                 solidRotOff = new VHE.Point();
                 solidRot = new VHE.Point();
             }
             else //angle
             {
-                solidSize = new VHE.Point(1.42f, 1, 0.03f);
+                solidSize = new VHE.Point(1.42f, 1, 0);
                 solidRotOff = new VHE.Point(0, 0, 0.03f);
                 solidRot = new VHE.Point(0, -45, 0);
 

@@ -19,7 +19,7 @@ namespace MCSM
         public string BlockIDName { get; set; }
         public int BlockID { get; set; }
         public bool SkyBoxEnable { get; set; }
-        public bool Ignore { get; set; }
+        public int Replace { get; set; } = -1;
 
         public enum Programs
         {
@@ -90,8 +90,9 @@ namespace MCSM
                         SkyBoxEnable = true;
                         break;
 
-                    case Args.Ignore:
-                        Ignore = true;
+                    case Args.Replace:
+                        Replace = GetInt(args, i + 1);
+                        i++;
                         break;
                 }
             }
@@ -127,7 +128,7 @@ namespace MCSM
             NBT,
             Help,
             SkyBox,
-            Ignore
+            Replace
         }
 
         public static Dictionary<string, Args> ArgCommands = new Dictionary<string, Args>()
@@ -139,7 +140,7 @@ namespace MCSM
             { "-nbt", Args.NBT },
             { "-help", Args.Help },
             { "-sky",  Args.SkyBox},
-            { "-ign",  Args.Ignore}
+            { "-rep",  Args.Replace}
         };
 
         public static string GetArgCommand(Args arg)
@@ -161,9 +162,9 @@ namespace MCSM
                     {
                         com += " " + GetArgCommand(Args.SkyBox);
                     }
-                    if (Ignore)
+                    if (Replace > -1)
                     {
-                        com += " " + GetArgCommand(Args.Ignore);
+                        com += " " + GetArgCommand(Args.Replace) + " " + Replace;
                     }
 
                     break;
@@ -214,10 +215,10 @@ namespace MCSM
             "\tlist   : listTag in the NBT structure (can be skipped)",
             "\ttag    : tag name in the list",
             "\tIDName : block ID name (minecraft:blockName)",
+            GetArgCommand(Args.Replace) + "id\t: replace non-registered blocks with spec. id (only for the converter)",
             "",
             "Optional flags:",
             GetArgCommand(Args.SkyBox) + "\t: enable skybox generation (only for the converter)",
-            GetArgCommand(Args.Ignore) + "\t: ignore non-registered blocks (id) (only for the converter)",
             "",
             "Programs: (devault = converter)",
             "[ " + GetArgCommand(Args.WorldPath) + " " + GetArgCommand(Args.MapOutputPath) + " " 
