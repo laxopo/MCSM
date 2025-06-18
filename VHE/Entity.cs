@@ -9,6 +9,7 @@ namespace MCSM.VHE
     public class Entity
     {
         public const string SolidArrayName = "Solids";
+        public static int SolidCounter;
         public string ClassName { get; set; }
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 
@@ -43,6 +44,13 @@ namespace MCSM.VHE
 
             public string SerializeValue()
             {
+                int s = 0;
+                return SerializeValue(ref s);
+            }
+
+            public string SerializeValue(ref int s)
+            {
+                s = ref SolidCounter;
                 return Entity.SerializeValue(Value, ValueType);
             }
 
@@ -267,8 +275,12 @@ namespace MCSM.VHE
                     return Map.Str(vect2D.X) + " " + Map.Str(vect2D.Y);
 
                 case Type.SolidArray:
-                    foreach (var sld in value as List<Solid>)
+
+                    var val = value as List<Solid>;
+                    for (SolidCounter = 0; SolidCounter < val.Count; SolidCounter++)
                     {
+                        var sld = val[SolidCounter];
+
                         if (buf != "")
                         {
                             buf += Environment.NewLine;
