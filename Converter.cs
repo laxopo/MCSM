@@ -11,8 +11,6 @@ namespace MCSM
 {
     public static class Converter
     {
-        public static float CSScale = 37;
-        public static float TextureRes = 128;
         public static bool SkyBoxEnable = false;
         public static bool EntityNaming = false;  //(!) true can break down some entity functionality
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
@@ -194,8 +192,8 @@ namespace MCSM
             Zmax = args.Range[6];
 
             LoadResources(Resources.All);
-            Macros.Initialize(CSScale);
-            Modelling.Initialize(CSScale, TextureRes, Wads, SolidEntities);
+            Macros.Initialize(Config.BlockScale);
+            Modelling.Initialize(Config.BlockScale, Config.TextureResolution, Wads, SolidEntities);
             BlockCount = (Xmax - Xmin + 1) * (Zmax - Zmin + 1) * (Ymax - Ymin + 1);
             BlockCurrent = 0;
             GroupCurrent = 0;
@@ -1451,7 +1449,7 @@ namespace MCSM
                 return null;
             }
 
-            float height = texture.Height / (int)TextureRes;
+            float height = texture.Height / (int)Config.TextureResolution;
 
             var model = new Model()
             {
@@ -1746,7 +1744,7 @@ namespace MCSM
                                 Size = new VHE.Point(sx, min * 2, sy),
                                 OriginAlign = new VHE.Point(0, 0, -1),
                                 Offset = new VHE.Point(txoff, yoff, zoff - tzoff - oy),
-                                TextureScale = pScale / fontScale * 128 * (TextureRes / 16),
+                                TextureScale = pScale / fontScale * 128 * ((float)Config.TextureResolution / 16),
                                 TexturedFaces = new Model.Faces[]
                                 {
                                     Model.Faces.Front
@@ -2454,9 +2452,9 @@ namespace MCSM
 
         private static void MapAddEntity(VHE.Entity entity, float x, float y, float z)
         {
-            x *= CSScale;
-            y *= -CSScale;
-            z *= CSScale;
+            x *= Config.BlockScale;
+            y *= -Config.BlockScale;
+            z *= Config.BlockScale;
 
             var pos = new VHE.Point(x, y, z);
             entity.Parameters.Add(new VHE.Entity.Parameter("origin", pos, VHE.Entity.Type.Point));
@@ -2909,8 +2907,8 @@ namespace MCSM
                 Config = JsonConvert.DeserializeObject<Config>(
                     File.ReadAllText(Resource[Resources.Config]));
 
-                CSScale = Config.BlockScale;
-                TextureRes = Config.TextureResolution;
+                Config.BlockScale = Config.BlockScale;
+                Config.TextureResolution = Config.TextureResolution;
             }
 
             if (res == Resources.Wad || res == Resources.All)
