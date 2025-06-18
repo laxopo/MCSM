@@ -47,13 +47,14 @@ namespace MCSM.VHE
 
         public string Serialize()
         {
-            int i = 0, s = 0;
-            return Serialize(ref i, ref s);
+            int i = 0;
+            return Serialize(ref i);
         }
 
-        public string Serialize(ref int e, ref int s)
+        public string Serialize(ref int e)
         {
             List<string> data = new List<string>();
+            Entity.SolidCounter = 0;
 
             for (e = 0; e < Data.Count; e++)
             {
@@ -66,11 +67,11 @@ namespace MCSM.VHE
                 {
                     if (par.ValueType == Entity.Type.SolidArray)
                     {
-                        data.Add(par.SerializeValue(ref s));
+                        data.Add(par.SerializeValue());
                     }
                     else
                     {
-                        data.Add("\"" + par.Name + "\" \"" + par.SerializeValue(ref s) + "\"");
+                        data.Add("\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
                     }
                 }
 

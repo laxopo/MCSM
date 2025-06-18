@@ -68,6 +68,7 @@ namespace MCSM
             Idle,
             ScanBlocks,
             GenerateSolids,
+            TextureCheck,
             Done
         }
 
@@ -226,6 +227,13 @@ namespace MCSM
                         var block = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y));
                         BlockCurrent++;
 
+                        //ignore
+                        if (block.ID >= 8 && block.ID <= 11)
+                        {
+                            block.ID = 0;
+                            block.Data = 0;
+                        }
+
                         //check register
                     bt_chk:
                         var bt = GetBT(block, false);
@@ -241,15 +249,16 @@ namespace MCSM
                                     goto bt_chk;
 
                                 case BlockMissMsg.Result.Skip:
+                                    block.Data = 0;
                                     if (args.Replace > -1)
                                     {
                                         block.ID = (byte)args.Replace;
+                                        goto bt_chk;
                                     }
                                     else
                                     {
                                         block.ID = 0;
                                     }
-                                    block.Data = 0;
                                     break;
 
                                 case BlockMissMsg.Result.Abort:
@@ -412,12 +421,13 @@ namespace MCSM
                 Map.AddSolids(Modelling.GenerateSolids(model, "SKY"));
             }
 
-            Process = ProcessType.Done;
+            
 
             //Check textures
             Message.Mute = true;
+            Process = ProcessType.TextureCheck;
             CheckTextures();
-
+            Process = ProcessType.Done;
             return Map;
         }
 
@@ -2966,6 +2976,7 @@ namespace MCSM
 
         private static void CheckTextures()
         {
+            SolidsCurrent = 0;
             var missTex = new List<string>();
             var conflicTex = new List<string>();
             var conflictWads = new List<string>();
@@ -3017,6 +3028,8 @@ namespace MCSM
                                 conflictWads.Add(wads);
                             }
                         }
+
+                        SolidsCurrent++;
                     }
                 }
             }

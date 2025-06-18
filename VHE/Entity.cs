@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace MCSM.VHE
 {
@@ -42,15 +42,9 @@ namespace MCSM.VHE
                 ValueType = Types[type.ToUpper()];
             }
 
+
             public string SerializeValue()
             {
-                int s = 0;
-                return SerializeValue(ref s);
-            }
-
-            public string SerializeValue(ref int s)
-            {
-                s = ref SolidCounter;
                 return Entity.SerializeValue(Value, ValueType);
             }
 
@@ -275,12 +269,8 @@ namespace MCSM.VHE
                     return Map.Str(vect2D.X) + " " + Map.Str(vect2D.Y);
 
                 case Type.SolidArray:
-
-                    var val = value as List<Solid>;
-                    for (SolidCounter = 0; SolidCounter < val.Count; SolidCounter++)
+                    foreach (var sld in value as List<Solid>)
                     {
-                        var sld = val[SolidCounter];
-
                         if (buf != "")
                         {
                             buf += Environment.NewLine;
@@ -309,6 +299,8 @@ namespace MCSM.VHE
                                 Map.Str(face.Rotation) + " " + Map.Str(face.ScaleU) + " " + Map.Str(face.ScaleV) + " " + Environment.NewLine;
                         }
                         buf += "}";
+
+                        SolidCounter++;
                     }
                     return buf;
 

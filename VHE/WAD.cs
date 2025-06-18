@@ -254,9 +254,12 @@ namespace MCSM.VHE
             public static Exception PaletteOverflow;
         }
 
+        public WAD() { }
+
         public WAD(string filepath)
         {
             FilePath = filepath;
+
             var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read);
 
             //Header
@@ -305,6 +308,11 @@ namespace MCSM.VHE
 
         public void AddTexture(Image image, string name)
         {
+            if (image.Width < 16 || image.Height < 16 || image.Width > 512 || image.Height > 512)
+            {
+                throw new Exception("Invalid texture size. Must be between 16 and 512");
+            }
+
             if (!CheckTextureName(name))
             {
                 throw GetException(ref Exceptions.NameAlreadyPresent, 
