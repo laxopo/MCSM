@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.IO;
 
 namespace MCSM.VHE
 {
     public class Entity
     {
         public const string SolidArrayName = "Solids";
-        public static int SolidCounter;
+        public static int SolidCounter { get; set; }
         public string ClassName { get; set; }
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 
@@ -46,6 +47,11 @@ namespace MCSM.VHE
             public string SerializeValue()
             {
                 return Entity.SerializeValue(Value, ValueType);
+            }
+
+            public void SerializeSolidArray(MemoryStream ms)
+            {
+                Entity.SerializeSolidArray(ms, Value as List<Solid>);
             }
 
             public Parameter Copy()
@@ -228,6 +234,7 @@ namespace MCSM.VHE
                     throw new Exception("Undefined value type.");
             }
         }
+
         public static string SerializeValue(object value, Type valueType)
         {
             string buf = "";
@@ -269,43 +276,51 @@ namespace MCSM.VHE
                     return Map.Str(vect2D.X) + " " + Map.Str(vect2D.Y);
 
                 case Type.SolidArray:
-                    foreach (var sld in value as List<Solid>)
-                    {
-                        if (buf != "")
-                        {
-                            buf += Environment.NewLine;
-                        }
-
-                        buf += "{" + Environment.NewLine;
-                        foreach (var face in sld.Faces)
-                        {
-                            string texture;
-                            if (face.Texture == null)
-                            {
-                                texture = "NULL";
-                            }
-                            else
-                            {
-                                texture = face.Texture.ToUpper();
-                            }
-
-                            buf +=
-                                "( " + Map.Str(face.Vertexes[0].X) + " " + Map.Str(face.Vertexes[0].Y) + " " + Map.Str(face.Vertexes[0].Z) + " ) " +
-                                "( " + Map.Str(face.Vertexes[1].X) + " " + Map.Str(face.Vertexes[1].Y) + " " + Map.Str(face.Vertexes[1].Z) + " ) " +
-                                "( " + Map.Str(face.Vertexes[2].X) + " " + Map.Str(face.Vertexes[2].Y) + " " + Map.Str(face.Vertexes[2].Z) + " ) " +
-                                texture + " " +
-                                "[ " + Map.Str(face.AxisU.X) + " " + Map.Str(face.AxisU.Y) + " " + Map.Str(face.AxisU.Z) + " " + Map.Str(face.OffsetU) + " ] " +
-                                "[ " + Map.Str(face.AxisV.X) + " " + Map.Str(face.AxisV.Y) + " " + Map.Str(face.AxisV.Z) + " " + Map.Str(face.OffsetV) + " ] " +
-                                Map.Str(face.Rotation) + " " + Map.Str(face.ScaleU) + " " + Map.Str(face.ScaleV) + " " + Environment.NewLine;
-                        }
-                        buf += "}";
-
-                        SolidCounter++;
-                    }
-                    return buf;
+                    
 
                 default:
                     throw new Exception("Undefined value type.");
+            }
+        }
+
+        public static void SerializeSolidArray(MemoryStream ms, List<Solid> array)
+        {
+            bool begin = true;
+            foreach (var sld in array)
+            {
+                string buf = "";
+                if (begin)
+                {
+                    begin = false;
+                    buf += Environment.NewLine;
+                }
+
+                buf += "{" + Environment.NewLine;
+                foreach (var face in sld.Faces)
+                {
+                    string texture;
+                    if (face.Texture == null)
+                    {
+                        texture = "NULL";
+                    }
+                    else
+                    {
+                        texture = face.Texture.ToUpper();
+                    }
+
+                    buf +=
+                        "( " + Map.Str(face.Vertexes[0].X) + " " + Map.Str(face.Vertexes[0].Y) + " " + Map.Str(face.Vertexes[0].Z) + " ) " +
+                        "( " + Map.Str(face.Vertexes[1].X) + " " + Map.Str(face.Vertexes[1].Y) + " " + Map.Str(face.Vertexes[1].Z) + " ) " +
+                        "( " + Map.Str(face.Vertexes[2].X) + " " + Map.Str(face.Vertexes[2].Y) + " " + Map.Str(face.Vertexes[2].Z) + " ) " +
+                        texture + " " +
+                        "[ " + Map.Str(face.AxisU.X) + " " + Map.Str(face.AxisU.Y) + " " + Map.Str(face.AxisU.Z) + " " + Map.Str(face.OffsetU) + " ] " +
+                        "[ " + Map.Str(face.AxisV.X) + " " + Map.Str(face.AxisV.Y) + " " + Map.Str(face.AxisV.Z) + " " + Map.Str(face.OffsetV) + " ] " +
+                        Map.Str(face.Rotation) + " " + Map.Str(face.ScaleU) + " " + Map.Str(face.ScaleV) + " " + Environment.NewLine;
+                }
+                buf += "}";
+
+                SolidCounter++;
+                Map.MemoryWrite(ms, buf);
             }
         }
 

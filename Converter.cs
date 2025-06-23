@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using NamedBinaryTag;
 using Newtonsoft.Json;
 using System.IO;
@@ -11,6 +11,7 @@ namespace MCSM
 {
     public static class Converter
     {
+        public static bool ProcessSync;
         public static bool SkyBoxEnable = false;
         public static bool EntityNaming = false;  //(!) true can break down some entity functionality
         public static int Xmin, Ymin, Zmin, Xmax, Ymax, Zmax; //mc coordinates
@@ -22,10 +23,12 @@ namespace MCSM
         public static int BlockCurrent { get; private set; }
         public static int GroupCurrent { get; private set; }
         public static int SolidsCurrent { get; private set; }
-        public static int EntitiesCurrent { get; private set; }
+        public static int SolidsCountAll { get; private set; }
+        public static int EntitySolidsCurrent { get; private set; }
         public static ProcessType Process { get; private set; }
         public static Messaging Message { get; private set; } = new Messaging();
 
+        public static bool SyncWait { get; set; }
         public static Config Config { get; set; }
         public static List<BlockDescriptor> BlockDescriptors { get; set; }
         public static List<VHE.WAD> Wads { get; set; }
@@ -33,8 +36,10 @@ namespace MCSM
         public static List<EntityScript> SolidEntities { get; set; }
         public static List<EntityScript> SysEntities { get; set; }
         public static List<ModelScript> Models { get; set; }
+        public static List<string> TexturesUsed { get; set; }
         public static VHE.Map Map { get; private set; }
         public static List<BlockGroup> BlockGroups { get; private set; } = new List<BlockGroup>();
+        public static List<BlockGroup> BlockGroupsOpen { get; private set; } = new List<BlockGroup>();
         public static World MCWorld { get; set; }
 
 
@@ -67,6 +72,7 @@ namespace MCSM
             ScanBlocks,
             GenerateSolids,
             TextureCheck,
+            Save,
             Done
         }
 
@@ -179,7 +185,7 @@ namespace MCSM
             return BuildModel(bg, bt, false);
         }
 
-        public static VHE.Map ConvertToMap(string worldPath, Arguments args)
+        public static void ConvertToMap(Arguments args)
         {
             BlockProcessed = 0;
             Aborted = false;
@@ -198,7 +204,7 @@ namespace MCSM
             BlockCurrent = 0;
             GroupCurrent = 0;
             SolidsCurrent = 0;
-            EntitiesCurrent = 0;
+            EntitySolidsCurrent = 0;
 
             /*if (!CheckWads())
             {
@@ -206,18 +212,33 @@ namespace MCSM
                 Process = ProcessType.Done;
             }*/
 
-            MCWorld = new World(worldPath);
+            MCWorld = new World(args.WorldPath);
             Settings.DebugEnable = false;
 
             Process = ProcessType.ScanBlocks;
             InitializeMap();
             BlockGroups = new List<BlockGroup>();
-            
+            BlockGroupsOpen = new List<BlockGroup>();
+
             var missings = new BlockMissMsg(Message);
 
             //coordinates of cs map
             for (int z = MapOffZ(Ymin); z <= MapOffZ(Ymax); z++)
             {
+                if (z > MapOffZ(Ymin))
+                {
+                    var rem = new List<BlockGroup>();
+                    foreach (var bg in BlockGroupsOpen)
+                    {
+                        if (GroupClose(bg, false, true, bg.Zmax < z, false))
+                        {
+                            rem.Add(bg);
+                        }
+                    }
+
+                    rem.ForEach(b => BlockGroupsOpen.Remove(b));
+                }
+
                 for (int y = MapOffY(Zmin); y <= MapOffY(Zmax); y++)
                 {
                     for (int x = MapOffX(Xmin); x <= MapOffX(Xmax); x++)
@@ -228,11 +249,17 @@ namespace MCSM
                         //ignore
                         if (block.ID >= 8 && block.ID <= 11)
                         {
+                            block.ID = 1;
+                            block.Data = 0;
+                        }
+
+                        if (block.ID == 85)
+                        {
                             block.ID = 0;
                             block.Data = 0;
                         }
 
-                        //check register
+                    //check register
                     bt_chk:
                         var bt = GetBT(block, false);
                         if (block.ID != 0 && bt == null)
@@ -261,7 +288,7 @@ namespace MCSM
 
                                 case BlockMissMsg.Result.Abort:
                                     Aborted = true;
-                                    return null;
+                                    return;
                             }
                         }
 
@@ -339,16 +366,17 @@ namespace MCSM
                         //Normal block
                         GroupNormal(block, x, y, z, bt);
                     }
-                    BlockGroups.ForEach(x => x.XClosed = true);
-
+                    GroupCloseAll(true, false, false);
                 }
-                BlockGroups.ForEach(x => x.YClosed = true);
+                GroupCloseAll(false, true, false);
 
             }
-            BlockGroups.ForEach(x => x.ZClosed = true);
+            BlockGroupsOpen.ForEach(x => BlockGroups.Add(x));
+
 
             //Generate cs solids
             Process = ProcessType.GenerateSolids;
+            Sync();
             Aborted = false;
             foreach (var bg in BlockGroups)
             {
@@ -362,7 +390,7 @@ namespace MCSM
                     {
                         case BlockMissMsg.Result.Abort:
                             Aborted = true;
-                            return null;
+                            return;
                     }
                 }
 
@@ -370,6 +398,8 @@ namespace MCSM
 
                 BuildModel(bg, bt);
             }
+
+            SolidsCountAll = SolidsCurrent;
 
             //Generate skybox
             if (SkyBoxEnable)
@@ -419,14 +449,31 @@ namespace MCSM
                 Map.AddSolids(Modelling.GenerateSolids(model, "SKY"));
             }
 
-            
-
             //Check textures
-            Message.Mute = true;
             Process = ProcessType.TextureCheck;
+            Sync();
             CheckTextures();
+
+            //Save map to file
+            Process = ProcessType.Save;
+            Sync();
+            Map.SaveToFile(args.MapOutputPath);
             Process = ProcessType.Done;
-            return Map;
+        }
+
+        /**/
+
+        private static void Sync()
+        {
+            if (!ProcessSync)
+            {
+                return;
+            }
+
+            while (SyncWait) 
+            { 
+                Thread.Sleep(100);
+            }
         }
 
         private static void InitializeMap()
@@ -437,6 +484,8 @@ namespace MCSM
                 Map.AddString("worldspawn", "wad", wad);
             }
         }
+
+        /*Coordinates*/
 
         private static int MapOffX(int mcx)
         {
@@ -479,6 +528,7 @@ namespace MCSM
             c0 /= 2;
             return c0;
         }
+
         private static int MCCX(int x)
         {
             return Xmin - MOffset(Xmin, Xmax) + x;
@@ -495,11 +545,6 @@ namespace MCSM
         }
 
         /*Grouping*/
-
-        private static void GroupSingle(Block block, int x, int y, int z, string type, int data = -1, int dataMask = 0)
-        {
-            GroupSingle(block, x, y, z, BlockGroup.SType(type), data, dataMask);
-        }
 
         private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type, 
             int data = -1, int dataMask = 0)
@@ -525,16 +570,24 @@ namespace MCSM
         private static void GroupPaneFence(Block block, BlockDescriptor bt, int x, int y, int z)
         {
             bool px = false, py = false;
-            var model = BlockGroup.SType(bt.ModelClass);
+            var modelType = BlockGroup.SType(bt.ModelClass);
 
             //X
-            var paneX = BlockGroups.Find(p => p.Type == model && !p.XClosed &&
+            var paneX = BlockGroupsOpen.Find(p => p.Type == modelType && !p.XClosed &&
                 p.Xmax == x && p.Ymin == y && p.Orientation != BlockGroup.Orient.Y && p.ID == block.ID);
 
             if (paneX == null) //create new pane
             {
-                paneX = new BlockGroup(block, block.ID, block.Data, x, y, z);
-                paneX.Type = model;
+                paneX = new BlockGroup(block, block.ID, block.Data, x, y, z)
+                {
+                    Type = modelType,
+                    YClosed = true
+                };
+
+                if (modelType == BlockGroup.ModelType.Fence)
+                {
+                    paneX.ZClosed = true;
+                }
 
                 //X
                 var bmx = MCWorld.GetBlock(0, MCCX(x) - 1, MCCY(z), MCCZ(y));
@@ -555,7 +608,7 @@ namespace MCSM
                     if (!PaneMerge(paneX, z))
                     {
                         //create new pane
-                        BlockGroups.Add(paneX);
+                        BlockGroupsOpen.Add(paneX);
                     }
                 }
             }
@@ -582,13 +635,21 @@ namespace MCSM
 
 
             //Y
-            var paneY = BlockGroups.Find(p => p.Type == model && !p.YClosed &&
+            var paneY = BlockGroupsOpen.Find(p => p.Type == modelType && !p.YClosed &&
                 p.Ymax == y && p.Xmin == x && p.Orientation != BlockGroup.Orient.X && p.ID == block.ID);
 
             if (paneY == null) //create new pane
             {
-                paneY = new BlockGroup(block, block.ID, block.Data, x, y, z);
-                paneY.Type = model;
+                paneY = new BlockGroup(block, block.ID, block.Data, x, y, z)
+                {
+                    Type = modelType,
+                    XClosed = true
+                };
+
+                if (modelType == BlockGroup.ModelType.Fence)
+                {
+                    paneY.ZClosed = true;
+                }
 
                 //Y
                 var bmy = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y) - 1);
@@ -609,7 +670,7 @@ namespace MCSM
                     if (!PaneMerge(paneY, z))
                     {
                         //create new pane
-                        BlockGroups.Add(paneY);
+                        BlockGroupsOpen.Add(paneY);
                     }
                 }
             }
@@ -640,21 +701,25 @@ namespace MCSM
                 if (!PaneMerge(paneY, z))
                 {
                     //create new pane
-                    BlockGroups.Add(paneY);
+                    BlockGroupsOpen.Add(paneY);
                 }
             }
 
             //Z
-            if (model == BlockGroup.ModelType.Fence)
+            if (modelType == BlockGroup.ModelType.Fence)
             {
-                var pillar = BlockGroups.Find(p => p.Type == model && !p.ZClosed && p.ID == block.ID &&
+                var pillar = BlockGroupsOpen.Find(p => p.Type == modelType && !p.ZClosed && p.ID == block.ID &&
                     p.Orientation == BlockGroup.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
 
                 if (pillar == null)
                 {
-                    pillar = new BlockGroup(block, block.ID, block.Data, x, y, z);
-                    pillar.Type = model;
-                    pillar.Orientation = BlockGroup.Orient.Z;
+                    pillar = new BlockGroup(block, block.ID, block.Data, x, y, z)
+                    {
+                        Type = modelType,
+                        Orientation = BlockGroup.Orient.Z,
+                        XClosed = true,
+                        YClosed = true
+                    };
 
                     var bpz = MCWorld.GetBlock(0, MCCX(x), MCCY(z) + 1, MCCZ(y));
                     var btmy = BlockDescriptors.Find(e => e.ID == bpz.ID);
@@ -663,7 +728,7 @@ namespace MCSM
                         pillar.ZClosed = true;
                     }
 
-                    BlockGroups.Add(pillar);
+                    BlockGroupsOpen.Add(pillar);
                 }
                 else
                 {
@@ -678,7 +743,7 @@ namespace MCSM
             }
         }
 
-        private static void GroupWall(Block block, BlockDescriptor bt, int x, int y, int z)
+        /*private static void GroupWall(Block block, BlockDescriptor bt, int x, int y, int z)
         {
             foreach (var bg in BlockGroups)
             {
@@ -710,27 +775,11 @@ namespace MCSM
             {
                 orientList.Add(BlockGroup.Orient.X);
             }
-            /*else if (fxm)
-            {
-                orientList.Add(BlockGroup.Orient.Xm);
-            }
-            else
-            {
-                orientList.Add(BlockGroup.Orient.Xp);
-            }*/
 
             if (fym || fyp)
             {
                 orientList.Add(BlockGroup.Orient.Y);
-            }
-            /*else if (fym)
-            {
-                orientList.Add(BlockGroup.Orient.Ym);
-            }
-            else
-            {
-                orientList.Add(BlockGroup.Orient.Yp);
-            }*/
+
 
             if (fz)
             {
@@ -742,7 +791,7 @@ namespace MCSM
                     Orientation = o,
                     Type = BlockGroup.ModelType.Wall
                 }));
-        }
+        }*/
 
         private static void GroupNormal(Block block, int x, int y, int z, BlockDescriptor bt)
         {
@@ -757,12 +806,12 @@ namespace MCSM
                 BlockGroup.ModelType.Path
             };
 
-            foreach (var solid in BlockGroups)
+            foreach (var bg in BlockGroupsOpen)
             {
                 bool typec = false;
                 foreach (var t in types)
                 {
-                    if (t == solid.Type)
+                    if (t == bg.Type)
                     {
                         typec = true;
                         break;
@@ -790,12 +839,12 @@ namespace MCSM
                     || gp == BlockDescriptor.GroupType.XYZ;
                 }
 
-                var rngX = x >= solid.Xmin && x < solid.Xmax;
-                var rngY = y >= solid.Ymin && y < solid.Ymax;
-                var rngZ = z < solid.Zmax;
-                var expX = !solid.XClosed && y == solid.Ymax - 1 && x == solid.Xmax;
-                var expY = !solid.YClosed && y == solid.Ymax && rngX;
-                var expZ = !solid.ZClosed && z == solid.Zmax && rngX && rngY;
+                var rngX = x >= bg.Xmin && x < bg.Xmax;
+                var rngY = y >= bg.Ymin && y < bg.Ymax;
+                var rngZ = z < bg.Zmax;
+                var expX = !bg.XClosed && y == bg.Ymax - 1 && x == bg.Xmax;
+                var expY = !bg.YClosed && y == bg.Ymax && rngX;
+                var expZ = !bg.ZClosed && z == bg.Zmax && rngX && rngY;
 
                 if (expX || expY || expZ || (rngX && rngY && rngZ))
                 {
@@ -805,14 +854,14 @@ namespace MCSM
                         exp = false;
                     }
 
-                    if (block.ID != 0 && exp && CompareID(block, solid.ID, solid.Data) && !found)
+                    if (block.ID != 0 && exp && CompareID(block, bg.ID, bg.Data) && !found)
                     {
-                        solid.Expand(x, y, z);
+                        bg.Expand(x, y, z);
                         found = true;
                     }
                     else
                     {
-                        cuts.AddRange(solid.Cut(x, y, z));
+                        cuts.AddRange(bg.Cut(x, y, z));
                     }
                 }
             }
@@ -821,7 +870,7 @@ namespace MCSM
             {
                 if (cut != null)
                 {
-                    BlockGroups.Add(cut);
+                    BlockGroupsOpen.Add(cut);
                 }
             }
 
@@ -832,7 +881,7 @@ namespace MCSM
                 {
                     data &= bt.DataMask;
                 }
-                BlockGroups.Add(new BlockGroup(block, block.ID, data, x, y, z) { 
+                BlockGroupsOpen.Add(new BlockGroup(block, block.ID, data, x, y, z) { 
                     Type = bt.GetSolidType()
                 });
             }
@@ -848,7 +897,7 @@ namespace MCSM
             if (pane.XClosed || pane.YClosed)
             {
                 //looking for the same pane in the previous Z layer
-                var paneZ = BlockGroups.Find(pz => pz.Type == BlockGroup.ModelType.Pane &&
+                var paneZ = BlockGroupsOpen.Find(pz => pz.Type == BlockGroup.ModelType.Pane &&
                     pz.Xmin == pane.Xmin && pz.Xmax == pane.Xmax &&
                     pz.Ymin == pane.Ymin && pz.Ymax == pane.Ymax && pz.Zmax == z &&
                     pz.XBegTouch == pane.XBegTouch && pz.XEndTouch == pane.XEndTouch &&
@@ -858,12 +907,58 @@ namespace MCSM
                 if (paneZ != null)
                 {
                     paneZ.Zmax++;
-                    BlockGroups.Remove(pane);
+                    BlockGroupsOpen.Remove(pane);
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static bool GroupClose(BlockGroup bg, bool x, bool y, bool z, bool remove = true)
+        {
+            if (x)
+            {
+                bg.XClosed = x;
+            }
+
+            if (y)
+            {
+                bg.YClosed = y;
+            }
+
+            if (z)
+            {
+                bg.ZClosed = z;
+            }
+
+            if (bg.XClosed && bg.YClosed && bg.ZClosed)
+            {
+                if (remove)
+                {
+                    BlockGroupsOpen.Remove(bg);
+                }
+
+                BlockGroups.Add(bg);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void GroupCloseAll(bool x, bool y, bool z)
+        {
+            var remove = new List<BlockGroup>();
+
+            foreach (var bg in BlockGroupsOpen)
+            {
+                if (GroupClose(bg, x, y, z, false))
+                {
+                    remove.Add(bg);
+                }
+            }
+
+            remove.ForEach(b => BlockGroupsOpen.Remove(b));
         }
 
         /*Models*/
@@ -2589,7 +2684,7 @@ namespace MCSM
             var ent = entity.Copy();
             solids.ForEach(s => ent.AddSolid(s));
             Map.CreateEntity(ent);
-            EntitiesCurrent += solids.Count;
+            EntitySolidsCurrent += solids.Count;
         }
 
         private static EntityScript GetEntity(List<EntityScript> list, string entityName)
@@ -2978,6 +3073,7 @@ namespace MCSM
             var missTex = new List<string>();
             var conflicTex = new List<string>();
             var conflictWads = new List<string>();
+            TexturesUsed = new List<string>();
 
             foreach (var entity in Map.Data)
             {
@@ -3024,6 +3120,14 @@ namespace MCSM
                                 }
 
                                 conflictWads.Add(wads);
+                            }
+
+                            if (res.Length > 0)
+                            {
+                                if (!TexturesUsed.Contains(res[0].Name))
+                                {
+                                    TexturesUsed.Add(res[0].Name);
+                                }
                             }
                         }
 

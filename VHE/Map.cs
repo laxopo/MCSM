@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.IO;
 
 namespace MCSM.VHE
 {
@@ -45,42 +46,41 @@ namespace MCSM.VHE
             return buf;
         }
 
-        public string Serialize()
+        public byte[] Serialize()
         {
-            int i = 0;
-            return Serialize(ref i);
-        }
-
-        public string Serialize(ref int e)
-        {
-            List<string> data = new List<string>();
-            Entity.SolidCounter = 0;
-
-            for (e = 0; e < Data.Count; e++)
+            using (var ms = new MemoryStream())
             {
-                var obj = Data[e];
+                Entity.SolidCounter = 0;
 
-                data.Add("{");
-                data.Add("\"classname\" \"" + obj.ClassName + "\"");
-
-                foreach (var par in obj.Parameters)
+                foreach (var obj in Data)
                 {
-                    if (par.ValueType == Entity.Type.SolidArray)
+                    MemoryWrite(ms, "{");
+                    MemoryWrite(ms, "\"classname\" \"" + obj.ClassName + "\"");
+
+                    foreach (var par in obj.Parameters)
                     {
-                        data.Add(par.SerializeValue());
+                        if (par.ValueType == Entity.Type.SolidArray)
+                        {
+                            par.SerializeSolidArray(ms);
+                        }
+                        else
+                        {
+                            MemoryWrite(ms,  "\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
+                        }
                     }
-                    else
-                    {
-                        data.Add("\"" + par.Name + "\" \"" + par.SerializeValue() + "\"");
-                    }
+
+                    MemoryWrite(ms,  "}");
                 }
 
-                data.Add("}");
+                MemoryWrite(ms,  "");
+
+                return ms.ToArray();
             }
+        }
 
-            data.Add("");
-
-            return string.Join(Environment.NewLine, data);
+        public void SaveToFile(string path)
+        {
+            File.WriteAllBytes(path, Serialize());
         }
 
         public void SetParameter(string className, string paramName, object value)
@@ -169,6 +169,11 @@ namespace MCSM.VHE
         }
 
         /**/
+
+        internal static void MemoryWrite(MemoryStream ms, string data)
+        {
+            ms.Write(Encoding.ASCII.GetBytes(data + Environment.NewLine), 0, data.Length);
+        }
 
         private float[][] GetValuesRow(string row, ref int index, int count = 1, string range = null)
         {
