@@ -247,7 +247,7 @@ namespace MCSM
                         BlockCurrent++;
 
                         //ignore
-                        if (block.ID >= 8 && block.ID <= 11)
+                        /*if (block.ID >= 8 && block.ID <= 11)
                         {
                             block.ID = 1;
                             block.Data = 0;
@@ -257,7 +257,7 @@ namespace MCSM
                         {
                             block.ID = 0;
                             block.Data = 0;
-                        }
+                        }*/
 
                     //check register
                     bt_chk:
@@ -331,6 +331,7 @@ namespace MCSM
                             {
                                 case BlockGroup.ModelType.Pane:
                                 case BlockGroup.ModelType.Fence:
+                                case BlockGroup.ModelType.Wall:
                                     GroupPaneFence(block, bt, x, y, z);
                                     block.ID = 0;
                                     break;
@@ -612,11 +613,27 @@ namespace MCSM
                     }
                 }
             }
-            else //expand existing pane
+            else //expand or cut existing pane
             {
-                paneX.Expand(x, y, z);
-                px = true;
+                if (paneX.Data != block.Data) //cut
+                {
+                    paneX.XClosed = true;
+                    paneX.XEndTouch = true;
+                    paneX = new BlockGroup(block, block.ID, block.Data, x, y, z)
+                    {
+                        Orientation = BlockGroup.Orient.X,
+                        Type = modelType,
+                        XBegTouch = true
+                    };
 
+                    BlockGroupsOpen.Add(paneX);
+                }
+                else
+                {
+                    paneX.Expand(x, y, z);
+                }
+
+                px = true;
                 var bp = MCWorld.GetBlock(0, MCCX(x) + 1, MCCY(z), MCCZ(y));
                 var btp = BlockDescriptors.Find(e => e.ID == bp.ID);
                 var nbp = btp != null && btp.ModelClass == "Normal";
@@ -674,11 +691,27 @@ namespace MCSM
                     }
                 }
             }
-            else //expand existing pane
+            else //expand or cut existing pane
             {
-                paneY.Expand(x, y, z);
-                py = true;
+                if (paneY.Data != block.Data) //cut
+                {
+                    paneY.YClosed = true;
+                    paneY.YEndTouch = true;
+                    paneY = new BlockGroup(block, block.ID, block.Data, x, y, z)
+                    {
+                        Orientation = BlockGroup.Orient.Y,
+                        Type = modelType,
+                        YBegTouch = true
+                    };
 
+                    BlockGroupsOpen.Add(paneY);
+                }
+                else
+                {
+                    paneY.Expand(x, y, z);
+                }
+
+                py = true;
                 var bp = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y) + 1);
                 var btp = BlockDescriptors.Find(e => e.ID == bp.ID);
                 var nbp = btp != null && btp.ModelClass == "Normal";
@@ -696,7 +729,7 @@ namespace MCSM
             }
 
             //None
-            if (!px && !py)
+            if (!px && !py && modelType == BlockGroup.ModelType.Pane)
             {
                 if (!PaneMerge(paneY, z))
                 {
@@ -706,10 +739,57 @@ namespace MCSM
             }
 
             //Z
-            if (modelType == BlockGroup.ModelType.Fence)
+            if (modelType == BlockGroup.ModelType.Fence || modelType == BlockGroup.ModelType.Wall)
             {
-                var pillar = BlockGroupsOpen.Find(p => p.Type == modelType && !p.ZClosed && p.ID == block.ID &&
-                    p.Orientation == BlockGroup.Orient.Z && p.Xmin == x && p.Ymin == y && p.Zmax == z);
+                //check wall post rules
+                if (modelType == BlockGroup.ModelType.Wall)
+                {
+                    /*
+                    * #  U R L F E Z
+                    * 0  1 X X X X 1 +
+                    * 1  0 0 0 A=0 0 +
+                    * 2  0 0 0 A=1 1 +
+                    * 3  0 0 1 X X 1
+                    * 4  0 1 0 X X 1
+                    * 5  0 1 1 B=0 0 +
+                    * 6  0 1 1 B=1 1 +
+                    * 
+                    * A: !(F&E)
+                    * B: F|E
+                    */
+
+                    var u = MCWorld.GetBlock(Dimension, MCCX(x), MCCY(z) + 1, MCCZ(y)).ID != 0; //#0
+                    if (!u)
+                    {
+                        var l = MCWorld.GetBlock(Dimension, MCCX(x) - 1, MCCY(z), MCCZ(y)).ID != 0;
+                        var r = MCWorld.GetBlock(Dimension, MCCX(x) + 1, MCCY(z), MCCZ(y)).ID != 0;
+
+                        if (r == l) //#1-2, 5-6
+                        {
+                            var e = MCWorld.GetBlock(Dimension, MCCX(x), MCCY(z), MCCZ(y) - 1).ID != 0;
+                            var f = MCWorld.GetBlock(Dimension, MCCX(x), MCCY(z), MCCZ(y) + 1).ID != 0;
+
+                            if (!r)//#1-2 (A)
+                            {
+                                if (f && e) //#1
+                                {
+                                    return;
+                                }
+                            }
+                            else //#5-6 (B)
+                            {
+                                if (!(f || e)) //#5
+                                {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                var pillar = BlockGroupsOpen.Find(p => p.Type == modelType && !p.ZClosed && 
+                    p.ID == block.ID && p.Orientation == BlockGroup.Orient.Z && 
+                    p.Xmin == x && p.Ymin == y && p.Zmax == z);
 
                 if (pillar == null)
                 {
@@ -732,7 +812,22 @@ namespace MCSM
                 }
                 else
                 {
-                    pillar.Expand(x, y, z);
+                    if (pillar.Data != block.Data) //cut
+                    {
+                        pillar.ZClosed = true;
+                        pillar = new BlockGroup(block, block.ID, block.Data, x, y, z)
+                        {
+                            Orientation = BlockGroup.Orient.Z,
+                            Type = modelType,
+                        };
+
+                        BlockGroupsOpen.Add(pillar);
+                    }
+                    else
+                    {
+                        pillar.Expand(x, y, z);
+                    }
+
                     var bpz = MCWorld.GetBlock(0, MCCX(x), MCCY(z) + 1, MCCZ(y));
                     var btmy = BlockDescriptors.Find(e => e.ID == bpz.ID);
                     if (btmy == null || btmy.ID != block.ID)
@@ -742,56 +837,6 @@ namespace MCSM
                 }
             }
         }
-
-        /*private static void GroupWall(Block block, BlockDescriptor bt, int x, int y, int z)
-        {
-            foreach (var bg in BlockGroups)
-            {
-                if (bg.Type != BlockGroup.ModelType.Wall)
-                {
-                    continue;
-                }
-            }
-
-            //new BGs
-            var fxm = MCWorld.GetBlock(Dimension, MCCX(x) - 1, y, z).ID != 0;
-            var fxp = MCWorld.GetBlock(Dimension, MCCX(x) + 1, y, z).ID != 0;
-            var fym = MCWorld.GetBlock(Dimension, MCCX(x), y, z - 1).ID != 0;
-            var fyp = MCWorld.GetBlock(Dimension, MCCX(x), y, z + 1).ID != 0;
-            var fz = MCWorld.GetBlock(Dimension, MCCX(x), y + 1, z).ID != 0;
-
-            if (!fz)
-            {
-                bool fx = !(fxm && fxp);
-                bool fy = !(fym && fyp);
-                bool fxy = fx && (fym ^ fyp);
-                bool fyx = fy && (fxm ^ fxp);
-                fz = fx || fy || fxy || fyx;
-            }
-
-            var orientList = new List<BlockGroup.Orient>();
-
-            if (fxm || fxp)
-            {
-                orientList.Add(BlockGroup.Orient.X);
-            }
-
-            if (fym || fyp)
-            {
-                orientList.Add(BlockGroup.Orient.Y);
-
-
-            if (fz)
-            {
-                orientList.Add(BlockGroup.Orient.Z);
-            }
-
-            orientList.ForEach(o => BlockGroups.Add(
-                new BlockGroup(block, block.ID, block.Data, x, y, z) {
-                    Orientation = o,
-                    Type = BlockGroup.ModelType.Wall
-                }));
-        }*/
 
         private static void GroupNormal(Block block, int x, int y, int z, BlockDescriptor bt)
         {
@@ -889,11 +934,6 @@ namespace MCSM
 
         private static bool PaneMerge(BlockGroup pane, int z)
         {
-            if (pane.Type == BlockGroup.ModelType.Fence)
-            {
-                return false;
-            }
-
             if (pane.XClosed || pane.YClosed)
             {
                 //looking for the same pane in the previous Z layer
@@ -980,6 +1020,13 @@ namespace MCSM
                     if (convEnable)
                     {
                         ModelFence(bg, bt);
+                    }
+                    return new Model();
+
+                case BlockGroup.ModelType.Wall:
+                    if (convEnable)
+                    {
+                        ModelWall(bg, bt);
                     }
                     return new Model();
 
@@ -1286,6 +1333,91 @@ namespace MCSM
                 };
                 MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt, bg);
             };
+        }
+
+        private static void ModelWall(BlockGroup bg, BlockDescriptor bt)
+        {
+            const float wallw = 0.375f;
+            const float wallh = 0.875f;
+            const float postw = 0.5f;
+
+            var off = (1 - postw) / 2 + postw;
+            var model = new Model() { Name = "Wall" };
+
+            //wall (H)
+            if (bg.Orientation != BlockGroup.Orient.Z)
+            {
+                float szx = bg.Xmax - bg.Xmin;
+                float szy = bg.Ymax - bg.Ymin;
+                float offx = 0, offy = 0;
+                float alx = 1, aly = 1;
+
+                if (bg.Orientation == BlockGroup.Orient.X)
+                {
+                    szy = wallw;
+                    aly = 0;
+                    offy = 0.5f;
+
+                    if (!bg.XBegTouch)
+                    {
+                        offx = off;
+                        szx -= off;
+                    }
+
+                    if (!bg.XEndTouch)
+                    {
+                        szx -= off;
+                    }
+                }
+                else if (bg.Orientation == BlockGroup.Orient.Y)
+                {
+                    szx = wallw;
+                    alx = 0;
+                    offx = 0.5f;
+
+                    if (!bg.YBegTouch)
+                    {
+                        offy = off;
+                        szy -= off;
+                    }
+
+                    if (!bg.YEndTouch)
+                    {
+                        szy -= off;
+                    }
+                }
+                else
+                {
+                    throw new Exception("Undefined wall orientation");
+                }
+
+                if (szx < 0 || szy < 0)
+                {
+                    return;
+                }
+
+                model.Solids.Add(new Model.Solid() 
+                { 
+                    Name = "_wall",
+                    Size = new VHE.Point(szx, szy, wallh),
+                    OriginAlign = new VHE.Point(alx, aly, 1),
+                    Offset = new VHE.Point(offx, offy, 0),
+                    TextureLockOffsets = true
+                });
+            }
+            else //post (V)
+            {
+                model.Solids.Add(new Model.Solid()
+                {
+                    Name = "_post",
+                    Size = new VHE.Point(postw, postw, bg.Zmax - bg.Zmin),
+                    OriginAlign = new VHE.Point(0, 0, 1),
+                    Offset = new VHE.Point(0.5f, 0.5f, 0),
+                    TextureLockOffsets = true
+                });
+            }
+
+            MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
         }
 
         private static Model ModelDoor(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
