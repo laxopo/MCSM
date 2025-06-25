@@ -80,7 +80,7 @@ namespace MCSM
         {
             int dim = args.Range[0];
             int xmin = args.Range[1];
-            int ymin = args.Range[2]; 
+            int ymin = args.Range[2];
             int zmin = args.Range[3];
             int xmax = args.Range[4];
             int ymax = args.Range[5];
@@ -246,25 +246,25 @@ namespace MCSM
                         var block = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y));
                         BlockCurrent++;
 
-                        //ignore
-                        /*if (block.ID >= 8 && block.ID <= 11)
-                        {
-                            block.ID = 1;
-                            block.Data = 0;
-                        }
+                    //ignore
+                    /*if (block.ID >= 8 && block.ID <= 11)
+                    {
+                        block.ID = 1;
+                        block.Data = 0;
+                    }
 
-                        if (block.ID == 85)
-                        {
-                            block.ID = 0;
-                            block.Data = 0;
-                        }*/
+                    if (block.ID == 85)
+                    {
+                        block.ID = 0;
+                        block.Data = 0;
+                    }*/
 
                     //check register
                     bt_chk:
                         var bt = GetBT(block, false);
                         if (block.ID != 0 && bt == null)
                         {
-                            var res = missings.Message(block.ID, block.Data, "at " + MCCX(x) + " " + 
+                            var res = missings.Message(block.ID, block.Data, "at " + MCCX(x) + " " +
                                 MCCY(z) + " " + MCCZ(y) + " is unregistered", true, args.Replace > -1);
 
                             switch (res)
@@ -471,8 +471,8 @@ namespace MCSM
                 return;
             }
 
-            while (SyncWait) 
-            { 
+            while (SyncWait)
+            {
                 Thread.Sleep(100);
             }
         }
@@ -547,7 +547,7 @@ namespace MCSM
 
         /*Grouping*/
 
-        private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type, 
+        private static void GroupSingle(Block block, int x, int y, int z, BlockGroup.ModelType type,
             int data = -1, int dataMask = 0)
         {
             if (data == -1)
@@ -787,8 +787,8 @@ namespace MCSM
                     }
                 }
 
-                var pillar = BlockGroupsOpen.Find(p => p.Type == modelType && !p.ZClosed && 
-                    p.ID == block.ID && p.Orientation == BlockGroup.Orient.Z && 
+                var pillar = BlockGroupsOpen.Find(p => p.Type == modelType && !p.ZClosed &&
+                    p.ID == block.ID && p.Orientation == BlockGroup.Orient.Z &&
                     p.Xmin == x && p.Ymin == y && p.Zmax == z);
 
                 if (pillar == null)
@@ -926,7 +926,7 @@ namespace MCSM
                 {
                     data &= bt.DataMask;
                 }
-                BlockGroupsOpen.Add(new BlockGroup(block, block.ID, data, x, y, z) { 
+                BlockGroupsOpen.Add(new BlockGroup(block, block.ID, data, x, y, z) {
                     Type = bt.GetSolidType()
                 });
             }
@@ -1009,9 +1009,11 @@ namespace MCSM
             {
                 case BlockGroup.ModelType.Normal:
                 case BlockGroup.ModelType.Liquid:
-                case BlockGroup.ModelType.Slab:
                 case BlockGroup.ModelType.Path:
                     return ModelNormal(bg, bt, convEnable);
+
+                case BlockGroup.ModelType.Slab:
+                    return ModelSlab(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Pane:
                     return ModelPane(bg, bt, convEnable);
@@ -1108,14 +1110,14 @@ namespace MCSM
                     {
                         Size = size,
                         TextureLockOffsets = true
-                    } 
+                    }
                 }
             };
 
             if (bg.Type == BlockGroup.ModelType.Liquid)
             {
                 model.Solids[0].Size.Z -= 0.125f;
-            } 
+            }
             else if (bg.Type == BlockGroup.ModelType.Path)
             {
                 model.Solids[0].Size.Z -= 0.0625f;
@@ -1143,9 +1145,9 @@ namespace MCSM
             string tl = face, tr = face, tf = face;
 
             var bti = bt.Copy();
-            bti.Textures = new List<BlockDescriptor.TextureKey>() { 
-                new BlockDescriptor.TextureKey() 
-                { 
+            bti.Textures = new List<BlockDescriptor.TextureKey>() {
+                new BlockDescriptor.TextureKey()
+                {
                     Key = "vert",
                     Texture = edge
                 }
@@ -1216,9 +1218,9 @@ namespace MCSM
             });
 
             var model = new Model() {
-                Solids = 
-                { 
-                    new Model.Solid() 
+                Solids =
+                {
+                    new Model.Solid()
                     {
                         Size = new VHE.Point(length, th, bg.Zmax - bg.Zmin),
                         Rotation = new VHE.Point(0, 0, rot),
@@ -1310,7 +1312,7 @@ namespace MCSM
                         Solids = { new Model.Solid() {
                             Size = new VHE.Point(xmax - xmin, ymax - ymin, zmax - zmin),
                             TextureLockOffsets = true
-                            } 
+                            }
                         },
                         Position = new VHE.Point(xmin, ymin, zmin),
                     };
@@ -1329,7 +1331,7 @@ namespace MCSM
                             AbsOffset = new VHE.Point(0.375f, 0.375f, 0),
                             TextureLockOffsets = true
                         },
-                    },       
+                    },
                 };
                 MapAddObject(Modelling.GenerateSolids(bt, bg, mdl), bt, bg);
             };
@@ -1396,8 +1398,8 @@ namespace MCSM
                     return;
                 }
 
-                model.Solids.Add(new Model.Solid() 
-                { 
+                model.Solids.Add(new Model.Solid()
+                {
                     Name = "_wall",
                     Size = new VHE.Point(szx, szy, wallh),
                     OriginAlign = new VHE.Point(alx, aly, 1),
@@ -1767,7 +1769,7 @@ namespace MCSM
             if (bt.WorldOffset)
             {
                 var worldOffset = World.GetBlockXZOffset(MCCX(bg.Xmin), MCCZ(bg.Ymin));
-                
+
                 foreach (var sld in model.Solids)
                 {
                     sld.AbsOffset.X += worldOffset[0];
@@ -1854,14 +1856,14 @@ namespace MCSM
                 TextureScale = tScale
             };
 
-            var model = new Model() 
-            { 
+            var model = new Model()
+            {
                 Origin = new VHE.Point(0.5f, 0.5f, 0),
                 Rotation = new VHE.Point(0, 0, rotate),
-                Solids = new List<Model.Solid>() 
-                { 
-                    main 
-                } 
+                Solids = new List<Model.Solid>()
+                {
+                    main
+                }
             };
 
             if (ground)
@@ -1895,7 +1897,7 @@ namespace MCSM
                 for (int r = 0; r < text.Length; r++)
                 {
                     var row = text[r];
-                    
+
                     //unicode to ascii convert
                     while (row.IndexOf("\\u") != -1)
                     {
@@ -1976,7 +1978,7 @@ namespace MCSM
                                 {
                                     Model.Faces.Front
                                 },
-                                    Faces = new List<Model.Face>()
+                                Faces = new List<Model.Face>()
                                 {
                                     new Model.Face(Model.Faces.Front)
                                     {
@@ -2239,13 +2241,13 @@ namespace MCSM
                 {
                     case 0:
                         return bdata == 2;
-                       
+
                     case 1:
                         return bdata == 3;
-                       
+
                     case 2:
                         return bdata == 1;
-                       
+
                     case 3:
                         return bdata == 0;
                 }
@@ -2579,7 +2581,7 @@ namespace MCSM
                             break;
                     }
                 }
-                
+
                 switch (i)
                 {
                     case 0:
@@ -2666,6 +2668,42 @@ namespace MCSM
             }
 
             MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+
+            return model;
+        }
+
+        private static Model ModelSlab(BlockGroup bg, BlockDescriptor bt, bool convEnable = true)
+        {
+            const float cut = 0.002f;
+
+            float szx = bg.Xmax - bg.Xmin;
+            float szy = bg.Ymax - bg.Ymin;
+
+            var model = new Model()
+            {
+                Name = "Slab",
+                Solids = new List<Model.Solid>()
+                {
+                    new Model.Solid()
+                    {
+                        Name = "_bottom",
+                        Size = new VHE.Point(szx, szy, 0.25f),
+                        TextureLockOffsets = true
+                    },
+                    new Model.Solid()
+                    {
+                        Name = "_top",
+                        Size = new VHE.Point(szx - cut * 2, szy - cut * 2, 0.25f),
+                        Offset = new VHE.Point(cut, cut, 0.25f),
+                        TextureLockOffsets = true
+                    }
+                }
+            };
+
+            if (convEnable)
+            {
+                MapAddObject(Modelling.GenerateSolids(bt, bg, model), bt, bg);
+            }
 
             return model;
         }
