@@ -927,7 +927,7 @@ namespace MCSM
                     data &= bt.DataMask;
                 }
                 BlockGroupsOpen.Add(new BlockGroup(block, block.ID, data, x, y, z) {
-                    Type = bt.GetSolidType()
+                    Type = bt.GetModelType()
                 });
             }
         }
@@ -2299,6 +2299,32 @@ namespace MCSM
                 return bc;
             }
 
+            bool FreeSpaceCheck(Block blk)
+            {
+                var btt = GetBT(blk);
+                if (btt == null)
+                {
+                    return true;
+                }
+
+                var cls = new BlockGroup.ModelType[] { 
+                    BlockGroup.ModelType.Normal,
+                    BlockGroup.ModelType.Path,
+                    BlockGroup.ModelType.Stairs,
+                    BlockGroup.ModelType.Slab
+                };
+
+                foreach (var cl in cls)
+                {
+                    if (btt.GetModelType() == cl)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
             const float cut = 0.002f;
             float zbase = 0;
             var data = bg.Data;
@@ -2363,9 +2389,9 @@ namespace MCSM
                     blocks.Add(MCWorld.GetBlock(Dimension, pt.X, pt.Y, pt.Z));
                 }
 
-                bfr = blocks[0].ID != 0;
-                br = blocks[2].ID != 0;
-                bl = blocks[3].ID != 0;
+                bfr = !FreeSpaceCheck(blocks[0]);
+                br = !FreeSpaceCheck(blocks[2]);
+                bl = !FreeSpaceCheck(blocks[3]);
 
                 if (BlockCheck(blocks[3], highData) && blocks[3].Data == bg.Data)
                 {

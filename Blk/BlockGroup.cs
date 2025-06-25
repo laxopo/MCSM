@@ -188,7 +188,7 @@ namespace MCSM
             return solids;
         }
 
-        public static ModelType GetSolidType(string typeName)
+        public static ModelType GetModelType(string typeName)
         {
             return SType(typeName);
         }

@@ -143,9 +143,9 @@ namespace MCSM
             return Textures.Find(t => CompareString(t.SolidName, solidName));
         }
 
-        public BlockGroup.ModelType GetSolidType()
+        public BlockGroup.ModelType GetModelType()
         {
-            return BlockGroup.GetSolidType(ModelClass);
+            return BlockGroup.GetModelType(ModelClass);
         }
 
         public string GetTextureName(int blockdata, string solidName, bool get, params string[] keys)
