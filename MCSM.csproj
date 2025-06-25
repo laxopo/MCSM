@@ -61,7 +61,7 @@
     <Compile Include="Msg\BlockMissMsg.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Converter.cs" />
-    <Compile Include="RangeMark.cs" />
+    <Compile Include="Project.cs" />
     <Compile Include="Utils\FontDim.cs" />
     <Compile Include="Utils\Macros.cs" />
     <Compile Include="Msg\Messaging.cs" />

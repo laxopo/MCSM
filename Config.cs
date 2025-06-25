@@ -14,16 +14,8 @@ namespace MCSM
         public int TextureResolution { get; set; }
         public string CstrikePath { get; set; }
         public string MapOutputPath { get; set; }
-        public string WorldPath { get; set; }
-        public List<RangeMark> RangeMarks { get; set; } = new List<RangeMark>();
-        public string ConverterRangeMark { get; set; }
-        public string BIRangeMark { get; set; }
-        public int WorldDimensionConv { get; set; }
-        public int WorldDimensionBI { get; set; }
-        public string NBTList { get; set; }
-        public string NBTTag { get; set; }
-        public string BlockIDName { get; set; }
-        public int BlockID { get; set; }
+        public string SelectedWorldPath { get; set; }
         public List<string> WadFiles { get; set; } = new List<string>();
+        public List<string> WorldPaths { get; set; } = new List<string>();
     }
 }
