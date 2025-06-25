@@ -45,6 +45,7 @@ namespace MCSM
             Normal,
             Path,
             Slab,
+            DoubleSlab,
             Pane,
             Fence,
             Wall,

@@ -1013,6 +1013,7 @@ namespace MCSM
                     return ModelNormal(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Slab:
+                case BlockGroup.ModelType.DoubleSlab:
                     return ModelSlab(bg, bt, convEnable);
 
                 case BlockGroup.ModelType.Pane:
@@ -2704,6 +2705,12 @@ namespace MCSM
 
             float szx = bg.Xmax - bg.Xmin;
             float szy = bg.Ymax - bg.Ymin;
+            float szoz = 0;
+
+            if (bg.Type == BlockGroup.ModelType.DoubleSlab)
+            {
+                szoz = 0.5f;
+            }
 
             var model = new Model()
             {
@@ -2713,14 +2720,14 @@ namespace MCSM
                     new Model.Solid()
                     {
                         Name = "_bottom",
-                        Size = new VHE.Point(szx, szy, 0.25f),
+                        Size = new VHE.Point(szx, szy, szoz + 0.25f),
                         TextureLockOffsets = true
                     },
                     new Model.Solid()
                     {
                         Name = "_top",
                         Size = new VHE.Point(szx - cut * 2, szy - cut * 2, 0.25f),
-                        Offset = new VHE.Point(cut, cut, 0.25f),
+                        Offset = new VHE.Point(cut, cut, szoz + 0.25f),
                         TextureLockOffsets = true
                     }
                 }
