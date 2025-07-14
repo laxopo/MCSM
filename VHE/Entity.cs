@@ -4,13 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.IO;
+using Newtonsoft.Json;
 
 namespace MCSM.VHE
 {
     public class Entity
     {
         public const string SolidArrayName = "Solids";
+        public const string RangeName = "Range";
+        public const string OriginName = "origin";
         public static int SolidCounter { get; set; }
+        public string Name { get; set; }
         public string ClassName { get; set; }
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
 
@@ -20,7 +24,9 @@ namespace MCSM.VHE
             public object Value { get; set; }
             public Type ValueType { get; set; }
 
-            public Parameter (string name)
+            public Parameter() { }
+
+            public Parameter(string name)
             {
                 Name = name;
                 ValueType = Type.Undefined;
@@ -43,7 +49,6 @@ namespace MCSM.VHE
                 ValueType = Types[type.ToUpper()];
             }
 
-
             public string SerializeValue()
             {
                 return Entity.SerializeValue(Value, ValueType);
@@ -63,6 +68,18 @@ namespace MCSM.VHE
             }
         }
 
+        public class RangeSolid
+        {
+            public float[] Range { get; set; }
+            public string Texture { get; set; }
+
+            public RangeSolid(float[] range, string texture)
+            {
+                Range = range;
+                Texture = texture;
+            }
+        }
+
         public enum Type
         {
             Undefined,
@@ -73,7 +90,8 @@ namespace MCSM.VHE
             StringArray,
             Point,
             Point2D,
-            SolidArray
+            SolidArray,
+            Range
         }
 
         public static Dictionary<string, Type> Types = new Dictionary<string, Type>() {
@@ -87,8 +105,16 @@ namespace MCSM.VHE
             {"SOLIDARRAY", Type.SolidArray }
         };
 
+        public Entity() { }
+
         public Entity(string className)
         {
+            ClassName = className;
+        }
+
+        public Entity(string name, string className)
+        {
+            Name = name;
             ClassName = className;
         }
 
@@ -111,6 +137,11 @@ namespace MCSM.VHE
             Parameters.Add(new Parameter(name, value, type));
         }
 
+        public void RemoveParameter(string name)
+        {
+            RemoveItemPar(Parameters, name);
+        }
+
         public void AddSolid(Solid solid)
         {
             var par = Parameters.Find(x => x.Name == SolidArrayName);
@@ -121,6 +152,85 @@ namespace MCSM.VHE
             }
 
             (par.Value as List<Solid>).Add(solid);
+        }
+
+        public void AddRangeSolid(RangeSolid rangeSolid)
+        {
+            var par = Parameters.Find(x => x.Name == RangeName);
+
+            if (par == null)
+            {
+                par = new Parameter(RangeName, new List<RangeSolid>(), Type.Range);
+                Parameters.Add(par);
+            }
+
+            (par.Value as List<RangeSolid>).Add(rangeSolid);
+        }
+
+        public void SetRangeSolid(RangeSolid rangeSolid, int index)
+        {
+            var par = Parameters.Find(x => x.Name == RangeName);
+            if (par == null)
+            {
+                return;
+            }
+
+            (par.Value as List<RangeSolid>)[index] = rangeSolid;
+        }
+
+        public void RemoveRangeSolid(int index)
+        {
+            var par = Parameters.Find(x => x.Name == RangeName);
+            if (par == null)
+            {
+                return;
+            }
+
+            (par.Value as List<RangeSolid>).RemoveAt(index);
+        }
+
+        public List<Solid> GetSolids()
+        {
+            var par = Parameters.Find(x => x.Name == SolidArrayName);
+            if (par == null)
+            {
+                return null;
+            }
+
+            return par.Value as List<Solid>;
+        }
+
+        public Solid GetSolid(int index)
+        {
+            var slds = GetSolids();
+            if (slds == null || index >= slds.Count)
+            {
+                return null;
+            }
+
+            return slds[index];
+        }
+
+        public RangeSolid GetRangeSolid(int index)
+        {
+            var slds = GetRangeSolids();
+            if (slds == null || index >= slds.Count)
+            {
+                return null;
+            }
+
+            return slds[index];
+        }
+
+        public List<RangeSolid> GetRangeSolids()
+        {
+            var par = Parameters.Find(x => x.Name == RangeName);
+            if (par == null)
+            {
+                return null;
+            }
+
+            return JsonConvert.DeserializeObject<List<RangeSolid>>(par.Value.ToString());
         }
 
         public static dynamic DeserializeValue(string data, Type type)
@@ -237,6 +347,11 @@ namespace MCSM.VHE
 
         public static string SerializeValue(object value, Type valueType)
         {
+            if (value == null)
+            {
+                return null;
+            }
+
             string buf = "";
 
             switch (valueType)
@@ -411,7 +526,7 @@ namespace MCSM.VHE
 
         public Entity Copy()
         {
-            var entity = new Entity(ClassName);
+            var entity = new Entity(Name, ClassName);
             foreach (var par in Parameters)
             {
                 entity.Parameters.Add(par.Copy());
@@ -420,17 +535,20 @@ namespace MCSM.VHE
             return entity;
         }
 
+        public static List<string> GetTypesList()
+        {
+            var parList = Enum.GetNames(typeof(Type)).ToList();
+            parList.Remove(Enum.GetName(typeof(Type), Type.Undefined));
+            parList.Remove(Enum.GetName(typeof(Type), Type.SolidArray));
+            parList.Remove(Enum.GetName(typeof(Type), Type.Range));
+            return parList;
+        }
+
         /**/
 
         private void RemoveItemPar(List<Parameter> list, string parName)
         {
-            var rem = list.Find(x => x.Name == parName);
-            if (rem == null)
-            {
-                return;
-            }
-
-            list.Remove(rem);
+            list.RemoveAll(x => x.Name == parName);
         }
     }
 }

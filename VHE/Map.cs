@@ -12,16 +12,30 @@ namespace MCSM.VHE
     {
         public List<Entity> Data { get; set; } = new List<Entity>();
 
-        public Map() 
+        public Map(Project.MapProps mapProps = null) 
         {
             var header = new Entity("worldspawn");
             header.AddParameter("mapversion", 220, Entity.Type.Int);
-            header.AddParameter("MaxRange", 4096, Entity.Type.Int);
-            header.AddParameter("sounds", 1, Entity.Type.Int);
+
+            if (mapProps != null)
+            {
+                header.AddParameter("message", mapProps.Title, Entity.Type.String);
+                header.AddParameter("skyname", mapProps.Skyname, Entity.Type.String);
+                header.AddParameter("light", mapProps.LightLevel, Entity.Type.String);
+                header.AddParameter("WaveHeight", mapProps.WaveHeight, Entity.Type.String);
+                header.AddParameter("MaxRange", mapProps.MaxViewableDistance, Entity.Type.String);
+            }
+            else
+            {
+                header.AddParameter("MaxRange", 4096, Entity.Type.String);
+            }
+            
+            header.AddParameter("sounds", 1, Entity.Type.String);
             header.AddParameter("wad", new List<string>(), Entity.Type.StringArray);
             header.AddParameter("Solids", new List<Solid>(), Entity.Type.SolidArray);
             Data.Add(header);
         }
+
         public static string Str(object value)
         {
             string buf;
@@ -85,6 +99,11 @@ namespace MCSM.VHE
 
         public void SetParameter(string className, string paramName, object value)
         {
+            if (className == "" || className == null)
+            {
+                className = "worldspawn";
+            }
+
             GetParameter(className, paramName).Value = value;
         }
 
@@ -133,6 +152,11 @@ namespace MCSM.VHE
 
         public void AddString(string className, string paramName, string value)
         {
+            if (className == null || className == "")
+            {
+                className = "worldspawn";
+            }
+
             var param = GetParameter(className, paramName);
 
             (param.Value as List<string>).Add(value);

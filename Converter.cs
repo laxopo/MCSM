@@ -30,6 +30,7 @@ namespace MCSM
 
         public static bool SyncWait { get; set; }
         public static Config Config { get; set; }
+        public static Project Project { get; set; }
         public static List<BlockDescriptor> BlockDescriptors { get; set; }
         public static List<VHE.WAD> Wads { get; set; }
         public static List<EntityScript> SignEntities { get; set; }
@@ -214,13 +215,14 @@ namespace MCSM
 
             MCWorld = new World(args.WorldPath);
             Settings.DebugEnable = false;
-
-            Process = ProcessType.ScanBlocks;
+            Project = Project.OpenFile(args.WorldPath, true);
             InitializeMap();
+
             BlockGroups = new List<BlockGroup>();
             BlockGroupsOpen = new List<BlockGroup>();
-
             var missings = new BlockMissMsg(Message);
+            var mapProperties = Project.GetMapProperties();
+            Process = ProcessType.ScanBlocks;
 
             //coordinates of cs map
             for (int z = MapOffZ(Ymin); z <= MapOffZ(Ymax); z++)
@@ -246,18 +248,19 @@ namespace MCSM
                         var block = MCWorld.GetBlock(0, MCCX(x), MCCY(z), MCCZ(y));
                         BlockCurrent++;
 
-                    //ignore
-                    /*if (block.ID >= 8 && block.ID <= 11)
-                    {
-                        block.ID = 1;
-                        block.Data = 0;
-                    }
-
-                    if (block.ID == 85)
-                    {
-                        block.ID = 0;
-                        block.Data = 0;
-                    }*/
+                        //replacement
+                        if (mapProperties != null && mapProperties.BlockReplacement.Count > 0)
+                        {
+                            var br = mapProperties.GetBlockReplace(block.ID, block.Data);
+                            if (br != null)
+                            {
+                                block.ID = (byte)br.IDTo;
+                                if (br.DataTo != -1)
+                                {
+                                    block.Data = (byte)br.DataTo;
+                                }
+                            }
+                        }
 
                     //check register
                     bt_chk:
@@ -479,10 +482,10 @@ namespace MCSM
 
         private static void InitializeMap()
         {
-            Map = new VHE.Map();
+            Map = new VHE.Map(Project.GetMapProperties());
             foreach (var wad in Config.WadFiles)
             {
-                Map.AddString("worldspawn", "wad", wad);
+                Map.AddString("", "wad", wad);
             }
         }
 
