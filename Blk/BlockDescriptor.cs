@@ -133,7 +133,13 @@ namespace MCSM
         public static string GetTextureName(List<TextureKey> textures, BlockGroup bg, 
             string solidName, params string[] keys)
         {
-            var name = TextureName(textures, bg.Data, solidName, false, keys);
+            int data = -1;
+            if (bg != null)
+            {
+                data = bg.Data;
+            }
+
+            var name = TextureName(textures, data, solidName, false, keys);
             name = Macros.TextureName(name, bg);
             return name;
         }

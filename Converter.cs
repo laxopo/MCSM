@@ -43,7 +43,6 @@ namespace MCSM
         public static List<BlockGroup> BlockGroupsOpen { get; private set; } = new List<BlockGroup>();
         public static World MCWorld { get; set; }
 
-
         private static FontDim FontDim = new FontDim();
         private static List<VHE.Entity> GenSysEntities = new List<VHE.Entity>();
         public static Dictionary<Resources, string> Resource = new Dictionary<Resources, string>() {
@@ -451,6 +450,44 @@ namespace MCSM
                 };
 
                 Map.AddSolids(Modelling.GenerateSolids(model, "SKY"));
+            }
+
+            //Generate project entities
+            foreach (var entity in mapProperties.Entities)
+            {
+                var e = entity.Copy();
+                var model = new Model() {
+                    Position = new VHE.Point()
+                };
+
+                int index = 0;
+                foreach (var rs in e.RangeSolids)
+                {
+                    var rng = rs.GetMapRange(MOffX(), MOffY(), MOffZ());
+
+                    //apply map offsets
+                    for (int i = 0; i < 6; i += 3)
+                    {
+                        rng[i] = MapOffX(Convert.ToInt32(rng[i]));
+                        var my = rng[i + 1];
+                        rng[i + 1] = MapOffY(Convert.ToInt32(rng[i + 2]));
+                        rng[i + 2] = MapOffZ(Convert.ToInt32(my));
+                    }
+
+                    model.Solids.Add(new Model.Solid() {
+                        Name = index.ToString(),
+                        Size = new VHE.Point(rng[3] - rng[0] + 1, rng[4] - rng[1] + 1, rng[5] - rng[2] + 1),
+                        Offset = new VHE.Point(rng[0], rng[1], rng[2]) 
+                    });
+
+                    model.TextureKeys.Add(new BlockDescriptor.TextureKey() {
+                        SolidName = index.ToString(),
+                        Texture = rs.Texture
+                    });
+                }
+
+                e.AddSolidRange(Modelling.GenerateSolids(model));
+                MapAddEntity(e);
             }
 
             //Check textures
@@ -2708,11 +2745,15 @@ namespace MCSM
 
             float szx = bg.Xmax - bg.Xmin;
             float szy = bg.Ymax - bg.Ymin;
-            float szoz = 0;
+            float szoz = 0, offz = 0;
 
             if (bg.Type == BlockGroup.ModelType.DoubleSlab)
             {
                 szoz = 0.5f;
+            }
+            else if (bg.Data > 7)
+            {
+                offz = 0.5f;
             }
 
             var model = new Model()
@@ -2724,13 +2765,14 @@ namespace MCSM
                     {
                         Name = "_bottom",
                         Size = new VHE.Point(szx, szy, szoz + 0.25f),
+                        Offset = new VHE.Point(0, 0, offz),
                         TextureLockOffsets = true
                     },
                     new Model.Solid()
                     {
                         Name = "_top",
                         Size = new VHE.Point(szx - cut * 2, szy - cut * 2, 0.25f),
-                        Offset = new VHE.Point(cut, cut, szoz + 0.25f),
+                        Offset = new VHE.Point(cut, cut, szoz + 0.25f + offz),
                         TextureLockOffsets = true
                     }
                 }
@@ -2760,6 +2802,11 @@ namespace MCSM
             var pos = new VHE.Point(x, y, z);
             entity.Parameters.Add(new VHE.Entity.Parameter("origin", pos, VHE.Entity.Type.Point));
 
+            Map.Data.Add(entity);
+        }
+
+        private static void MapAddEntity(VHE.Entity entity)
+        {
             Map.Data.Add(entity);
         }
 

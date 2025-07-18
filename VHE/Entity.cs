@@ -11,12 +11,12 @@ namespace MCSM.VHE
     public class Entity
     {
         public const string SolidArrayName = "Solids";
-        public const string RangeName = "Range";
         public const string OriginName = "origin";
         public static int SolidCounter { get; set; }
         public string Name { get; set; }
         public string ClassName { get; set; }
         public List<Parameter> Parameters { get; set; } = new List<Parameter>();
+        public List<RangeSolid> RangeSolids { get; set; } = new List<RangeSolid>();
 
         public class Parameter
         {
@@ -78,6 +78,39 @@ namespace MCSM.VHE
                 Range = range;
                 Texture = texture;
             }
+
+            public RangeSolid Copy()
+            {
+                var rng = new RangeSolid(new float[Range.Length], Texture);
+                Range.CopyTo(rng.Range, 0);
+                return rng;
+            }
+
+            public float[] GetMapRange(int offx, int offy, int offz)
+            {
+                var rng = new float[Range.Length];
+                Range.CopyTo(rng, 0);
+
+                //normalize
+                for (int i = 0; i < 3; i++)
+                {
+                    Check(ref rng[i], ref rng[i + 3]);
+                }
+
+                return rng;
+            }
+
+            private void Check(ref float v0, ref float v1)
+            {
+                if (v0 <= v1)
+                {
+                    return;
+                }
+
+                var buf = v0;
+                v0 = v1;
+                v1 = buf;
+            }
         }
 
         public enum Type
@@ -90,8 +123,7 @@ namespace MCSM.VHE
             StringArray,
             Point,
             Point2D,
-            SolidArray,
-            Range
+            SolidArray
         }
 
         public static Dictionary<string, Type> Types = new Dictionary<string, Type>() {
@@ -142,6 +174,11 @@ namespace MCSM.VHE
             RemoveItemPar(Parameters, name);
         }
 
+        public void AddSolidRange(List<Solid> solids)
+        {
+            solids.ForEach(s => AddSolid(s));
+        }
+
         public void AddSolid(Solid solid)
         {
             var par = Parameters.Find(x => x.Name == SolidArrayName);
@@ -152,41 +189,6 @@ namespace MCSM.VHE
             }
 
             (par.Value as List<Solid>).Add(solid);
-        }
-
-        public void AddRangeSolid(RangeSolid rangeSolid)
-        {
-            var par = Parameters.Find(x => x.Name == RangeName);
-
-            if (par == null)
-            {
-                par = new Parameter(RangeName, new List<RangeSolid>(), Type.Range);
-                Parameters.Add(par);
-            }
-
-            (par.Value as List<RangeSolid>).Add(rangeSolid);
-        }
-
-        public void SetRangeSolid(RangeSolid rangeSolid, int index)
-        {
-            var par = Parameters.Find(x => x.Name == RangeName);
-            if (par == null)
-            {
-                return;
-            }
-
-            (par.Value as List<RangeSolid>)[index] = rangeSolid;
-        }
-
-        public void RemoveRangeSolid(int index)
-        {
-            var par = Parameters.Find(x => x.Name == RangeName);
-            if (par == null)
-            {
-                return;
-            }
-
-            (par.Value as List<RangeSolid>).RemoveAt(index);
         }
 
         public List<Solid> GetSolids()
@@ -209,28 +211,6 @@ namespace MCSM.VHE
             }
 
             return slds[index];
-        }
-
-        public RangeSolid GetRangeSolid(int index)
-        {
-            var slds = GetRangeSolids();
-            if (slds == null || index >= slds.Count)
-            {
-                return null;
-            }
-
-            return slds[index];
-        }
-
-        public List<RangeSolid> GetRangeSolids()
-        {
-            var par = Parameters.Find(x => x.Name == RangeName);
-            if (par == null)
-            {
-                return null;
-            }
-
-            return JsonConvert.DeserializeObject<List<RangeSolid>>(par.Value.ToString());
         }
 
         public static dynamic DeserializeValue(string data, Type type)
@@ -532,6 +512,9 @@ namespace MCSM.VHE
                 entity.Parameters.Add(par.Copy());
             }
 
+            entity.RangeSolids = new List<RangeSolid>();
+            RangeSolids.ForEach(r => entity.RangeSolids.Add(r.Copy()));
+
             return entity;
         }
 
@@ -540,7 +523,6 @@ namespace MCSM.VHE
             var parList = Enum.GetNames(typeof(Type)).ToList();
             parList.Remove(Enum.GetName(typeof(Type), Type.Undefined));
             parList.Remove(Enum.GetName(typeof(Type), Type.SolidArray));
-            parList.Remove(Enum.GetName(typeof(Type), Type.Range));
             return parList;
         }
 
